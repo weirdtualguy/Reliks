@@ -1,0 +1,41 @@
+const fs = require('fs');
+const { blake2b } = require('@noble/hashes/blake2b');
+const B = Buffer;
+const hex = b => B.from(b).toString('hex');
+const H = s => B.from(s, 'hex');
+const le16 = n => { const b = B.alloc(2); b.writeUInt16LE(n); return b; };
+const le32 = n => { const b = B.alloc(4); b.writeUInt32LE(n); return b; };
+const le64 = n => { const b = B.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; };
+const sm8  = n => { const b = B.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; };
+const pushExplicit = p => { const n = p.length;
+  if (n === 0) return B.from([0x00]);
+  if (n <= 75) return B.concat([B.from([n]), p]);
+  if (n <= 255) return B.concat([B.from([0x4c, n]), p]);
+  return B.concat([B.from([0x4d]), le16(n), p]); };
+const payload = (ty, v) => {
+  if (ty.kind === 'int' || ty.kind === 'temporal') return sm8(v);
+  if (ty.kind === 'byte') return B.from([v]);
+  if (ty.kind === 'fixed_bytes') return H(v);
+  throw new Error('unsupported ' + ty.kind); };
+const eAbi = JSON.parse(fs.readFileSync('edition-abi.json', 'utf8'));
+const eN = Object.keys(eAbi.contracts)[0];
+const c = eAbi.contracts[eN];
+const bc = B.from(c.compiled.bytecode);
+const { offset, len } = c.compiled.state_span;
+const prefix = bc.subarray(0, offset), suffix = bc.subarray(offset + len);
+const USER = '33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68';
+const FACT_COV = 'e37e5868903c20bf67843bc7b1586f4c5bbca301a698c4e73ce51b60bca1854a';
+const ART = '00'.repeat(2048);
+const programHash = hex(blake2b(H(ART), { dkLen: 32 }));
+const vals = { ownerIdentifier: USER, identifierType: 0, price: 0, artist: USER,
+  royalty_bips: 500, program_hash: programHash, factory_covid: FACT_COV, serial: 0 };
+const state = B.concat(c.runtime_state.fields.map(f => pushExplicit(payload(f.type, vals[f.name]))));
+const Red = B.concat([prefix, state, suffix]);
+const local = 'aa20' + hex(blake2b(Red, { dkLen: 32 })) + '87';
+(async () => {
+  const j = await (await fetch('https://kascov.io/data/testnet-10/c/31394dc63b0d55c0e36e764471cfff524f8ce2712cd641cf693b5801e27b2ce2.json')).json();
+  const onchain = j.utxos[0].script_hex;
+  console.log('local  :', local);
+  console.log('onchain:', onchain);
+  console.log(local === onchain ? '✅ BYTE-PERFECT: on-chain cell == codec(serial=0)' : '❌ MISMATCH');
+})();

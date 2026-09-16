@@ -1,0 +1,37 @@
+{
+ "series": "94d22e8d204c1a34635d0db3c568101fd1709f871cf7af94909225e22f9021d9",
+ "editions": [
+  {
+   "i": 0,
+   "seed": "fdaab5351fc8278a77acf5d653eb84f270ef80af059efbc268eebc092e149b01"
+  },
+  {
+   "i": 1,
+   "seed": "f32d4f876b4c293f0d712dae0054d4a4551309f5c47dd74b2fff8caae65b8c0b"
+  },
+  {
+   "i": 2,
+   "seed": "cf0553657a1f34b4a78864a5765a912a3cd8606ee43f8292ee0d8066df834bb2"
+  },
+  {
+   "i": 3,
+   "seed": "47130a7aaf142ed6ba0a2b284223040e38a27fc58e3c36efd5bc7c4011384c84"
+  },
+  {
+   "i": 4,
+   "seed": "5cd01c31f11e15d15748194cbbeac6003ff04179f2006160dd0878a9beb7ae73"
+  },
+  {
+   "i": 5,
+   "seed": "8c5d8f2637e997606b0076b6704219535f44166dd71e6e4a17101c1638ff050f"
+  },
+  {
+   "i": 6,
+   "seed": "ad52ccd608155fc623c1a4f34e071c5523a73f5809dff622e839f4f2d2c47755"
+  },
+  {
+   "i": 7,
+   "seed": "872fb4c165968d07c4beea2954435c5da6041dc437dbfa528ce7310ec4c12e20"
+  }
+ ]
+}

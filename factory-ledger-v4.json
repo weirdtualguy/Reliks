@@ -1,0 +1,10 @@
+{
+  "covenantId": "7ede0e9d357915cacad9bfa1d300d5b51268da177ec99c5ed1cbc20c39e88100",
+  "txId": "fe2e3f2718a95b0ea0c44c41924f3b166e3d5557b07d406275fe4658732c68ab",
+  "index": 0,
+  "counter": 1,
+  "editions": [
+    "c661b14cfd1065c7a495053398026331fa5b94475fe8d278ff8dfdcc5f553eae"
+  ],
+  "artProgramHash": "93e87b071619614e6840b2f244b4b093f2d11a7e3896fc88501f1e91533652de"
+}

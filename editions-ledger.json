@@ -1,0 +1,90 @@
+[
+  {
+    "covenantId": "31394dc63b0d55c0e36e764471cfff524f8ce2712cd641cf693b5801e27b2ce2",
+    "ownerIdentifier": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "identifierType": 0,
+    "price": 0,
+    "artist": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "royalty_bips": 500,
+    "program_hash": "200823e5158b3774c11b5c61850ada762f8264144a9bebec3ebac5a2adde67b8",
+    "serial": 0,
+    "factory_covid": "e37e5868903c20bf67843bc7b1586f4c5bbca301a698c4e73ce51b60bca1854a"
+  },
+  {
+    "covenantId": "503f7d5c13f1710d56cc989b8361b6cca236eb179ad42467274fe5b6233b16e2",
+    "ownerIdentifier": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "identifierType": 0,
+    "price": 0,
+    "artist": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "royalty_bips": 500,
+    "program_hash": "200823e5158b3774c11b5c61850ada762f8264144a9bebec3ebac5a2adde67b8",
+    "serial": 1,
+    "factory_covid": "e37e5868903c20bf67843bc7b1586f4c5bbca301a698c4e73ce51b60bca1854a"
+  },
+  {
+    "covenantId": "6f5669db1311c7b6a1dd24e1fe6b484ca0d21d0cb1c0f6923528caa752398aa0",
+    "ownerIdentifier": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "identifierType": 0,
+    "price": 0,
+    "artist": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "royalty_bips": 500,
+    "program_hash": "93e87b071619614e6840b2f244b4b093f2d11a7e3896fc88501f1e91533652de",
+    "serial": 0,
+    "factory_covid": "29552108f08989318180ee34216e83a8b9303b6952f604623693a0e465f630aa"
+  },
+  {
+    "covenantId": "941292d2721daf843cb21aee0f02ed3019f8ff86469a14c6b422b25098e40f69",
+    "ownerIdentifier": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "identifierType": 0,
+    "price": 0,
+    "artist": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "royalty_bips": 500,
+    "program_hash": "93e87b071619614e6840b2f244b4b093f2d11a7e3896fc88501f1e91533652de",
+    "serial": 1,
+    "factory_covid": "29552108f08989318180ee34216e83a8b9303b6952f604623693a0e465f630aa"
+  },
+  {
+    "covenantId": "594faea4d28efb0e27799966c5c22b37b6ed2198d02c6377d097aff2fae563ba",
+    "ownerIdentifier": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "identifierType": 0,
+    "price": 0,
+    "artist": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "royalty_bips": 500,
+    "program_hash": "93e87b071619614e6840b2f244b4b093f2d11a7e3896fc88501f1e91533652de",
+    "serial": 0,
+    "factory_covid": "0c2ce37edb08f842a3960d3efaa7afb336f7cdd3427f8fddb63aaf5db4256b95"
+  },
+  {
+    "covenantId": "439e06e6f6d848501bd110c1be12bcbd72917492f13ffa52ce3570f1a9689ae6",
+    "ownerIdentifier": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "identifierType": 0,
+    "price": 0,
+    "artist": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "royalty_bips": 500,
+    "program_hash": "93e87b071619614e6840b2f244b4b093f2d11a7e3896fc88501f1e91533652de",
+    "serial": 1,
+    "factory_covid": "0c2ce37edb08f842a3960d3efaa7afb336f7cdd3427f8fddb63aaf5db4256b95"
+  },
+  {
+    "covenantId": "cd6a4eb5acf2ec6e285fbdecf0a4f95b8b0d8b12e45a13bef952fc0fc283d7bb",
+    "ownerIdentifier": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "identifierType": 0,
+    "price": 0,
+    "artist": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "royalty_bips": 500,
+    "program_hash": "93e87b071619614e6840b2f244b4b093f2d11a7e3896fc88501f1e91533652de",
+    "serial": 0,
+    "factory_covid": "1d2a18a7344eec8d2a849c7518f5c0fc94e15e16dc474ae9ad383f718b06f519"
+  },
+  {
+    "covenantId": "01de0ae938b228ccce8776227c940d0be36b48a17bbf9932797ef5cd0018e515",
+    "ownerIdentifier": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "identifierType": 0,
+    "price": 0,
+    "artist": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "royalty_bips": 500,
+    "program_hash": "93e87b071619614e6840b2f244b4b093f2d11a7e3896fc88501f1e91533652de",
+    "serial": 3,
+    "factory_covid": "1d2a18a7344eec8d2a849c7518f5c0fc94e15e16dc474ae9ad383f718b06f519"
+  }
+]

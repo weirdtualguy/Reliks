@@ -1,0 +1,63 @@
+pragma silverscript ^0.1.0;
+
+contract NftInstance(
+    byte[32] collection_id,
+    int token_id,
+    byte[568] art_payload,
+    byte[32] init_owner,
+    byte init_scheme,
+    int init_price,
+    byte[32] init_royalty
+) {
+    byte constant IDENTIFIER_PUBKEY = 0x00;
+    byte constant IDENTIFIER_SCRIPT_HASH = 0x01;
+    byte constant IDENTIFIER_COVENANT_ID = 0x02;
+
+    byte[32] ownerIdentifier = init_owner;
+    byte identifierType = init_scheme;
+    int priceSompi = init_price;
+    byte[32] royaltyIdentifier = init_royalty;
+
+    #[covenant.singleton(mode = transition)]
+    function sell(State prev_state, sig ownerSig, byte[32] buyerIdentifier, byte buyerScheme, int askPrice, int paymentOutIdx) : (State) {
+        require(prev_state.identifierType == IDENTIFIER_PUBKEY);
+        require(checkSig(ownerSig, pubkey(prev_state.ownerIdentifier)));
+        byte[] sellerSpk = byte[](new ScriptPubKeyP2PK(pubkey(prev_state.ownerIdentifier)));
+        require(tx.outputs[paymentOutIdx].value >= askPrice);
+        require(tx.outputs[paymentOutIdx].scriptPubKey == sellerSpk);
+        return State { ownerIdentifier: buyerIdentifier, identifierType: buyerScheme, priceSompi: 0, royaltyIdentifier: prev_state.royaltyIdentifier };
+    }
+
+    #[covenant.singleton(mode = transition)]
+    function list(State prev_state, sig ownerSig, int newPrice) : (State) {
+        require(prev_state.identifierType == IDENTIFIER_PUBKEY);
+        require(checkSig(ownerSig, pubkey(prev_state.ownerIdentifier)));
+        require(newPrice >= 0);
+        return State { ownerIdentifier: prev_state.ownerIdentifier, identifierType: prev_state.identifierType, priceSompi: newPrice, royaltyIdentifier: prev_state.royaltyIdentifier };
+    }
+
+    #[covenant.singleton(mode = transition)]
+    function buy(State prev_state, byte[32] buyerIdentifier, byte buyerScheme, int paymentOutIdx, int royaltyOutIdx) : (State) {
+        require(prev_state.priceSompi > 0);
+        byte[] sellerSpk = byte[](new ScriptPubKeyP2PK(pubkey(prev_state.ownerIdentifier)));
+        byte[] roySpk = byte[](new ScriptPubKeyP2PK(pubkey(prev_state.royaltyIdentifier)));
+        require(tx.outputs[paymentOutIdx].value >= prev_state.priceSompi);
+        require(tx.outputs[paymentOutIdx].scriptPubKey == sellerSpk);
+        require(tx.outputs[royaltyOutIdx].value * 50 >= prev_state.priceSompi);
+        require(tx.outputs[royaltyOutIdx].scriptPubKey == roySpk);
+        return State { ownerIdentifier: buyerIdentifier, identifierType: buyerScheme, priceSompi: 0, royaltyIdentifier: prev_state.royaltyIdentifier };
+    }
+
+    entry spend(sig s, int witness) {
+        if (identifierType == IDENTIFIER_PUBKEY) { require(checkSig(s, pubkey(ownerIdentifier))); }
+        else if (identifierType == IDENTIFIER_SCRIPT_HASH) { byte[] spk = byte[](new ScriptPubKeyP2SH(ownerIdentifier)); require(tx.inputs[witness].scriptPubKey == spk); }
+        else if (identifierType == IDENTIFIER_COVENANT_ID) { require(OpCovInputCount(ownerIdentifier) > 0); }
+        else { require(false); }
+    }
+
+    entry reveal(byte[568] candidate, byte[32] collection_check, int token_check) {
+        require(candidate == art_payload);
+        require(collection_check == collection_id);
+        require(token_check == token_id);
+    }
+}

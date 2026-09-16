@@ -1,0 +1,67 @@
+pragma silverscript ^0.1.0;
+
+contract ArtEdition(
+    byte[32] init_owner,
+    byte[32] init_artist,
+    int init_royalty_bips,
+    byte[32] init_program_hash,
+    int init_serial,
+    int init_price
+) {
+    byte[32] ownerIdentifier = init_owner;
+    byte[32] artist = init_artist;
+    int royalty_bips = init_royalty_bips;
+    byte[32] program_hash = init_program_hash;
+    int serial = init_serial;
+    int price = init_price;
+
+    #[covenant(binding = auth, from = 1, to = 1, mode = transition)]
+    function transfer(State prev_state, sig ownerSig, byte[32] newOwner) : (State) {
+        require(checkSig(ownerSig, pubkey(prev_state.ownerIdentifier)));
+        return State {
+            ownerIdentifier: newOwner,
+            artist: prev_state.artist,
+            royalty_bips: prev_state.royalty_bips,
+            program_hash: prev_state.program_hash,
+            serial: prev_state.serial,
+            price: 0
+        };
+    }
+
+    #[covenant(binding = auth, from = 1, to = 1, mode = transition)]
+    function list(State prev_state, sig ownerSig, int newPrice) : (State) {
+        require(checkSig(ownerSig, pubkey(prev_state.ownerIdentifier)));
+        require(newPrice > 0);
+        return State {
+            ownerIdentifier: prev_state.ownerIdentifier,
+            artist: prev_state.artist,
+            royalty_bips: prev_state.royalty_bips,
+            program_hash: prev_state.program_hash,
+            serial: prev_state.serial,
+            price: newPrice
+        };
+    }
+
+    #[covenant(binding = auth, from = 1, to = 1, mode = transition)]
+    function buy(State prev_state, byte[32] buyer, int paymentOutIdx, int royaltyOutIdx) : (State) {
+        require(prev_state.price > 0);
+        byte[] sellerSpk = byte[](new ScriptPubKeyP2PK(pubkey(prev_state.ownerIdentifier)));
+        byte[] artistSpk = byte[](new ScriptPubKeyP2PK(pubkey(prev_state.artist)));
+        require(tx.outputs[paymentOutIdx].value >= prev_state.price);
+        require(tx.outputs[paymentOutIdx].scriptPubKey == sellerSpk);
+        require(tx.outputs[royaltyOutIdx].value * 10000 >= prev_state.price * prev_state.royalty_bips);
+        require(tx.outputs[royaltyOutIdx].scriptPubKey == artistSpk);
+        return State {
+            ownerIdentifier: buyer,
+            artist: prev_state.artist,
+            royalty_bips: prev_state.royalty_bips,
+            program_hash: prev_state.program_hash,
+            serial: prev_state.serial,
+            price: 0
+        };
+    }
+
+    entry spend(sig s) {
+        require(checkSig(s, pubkey(ownerIdentifier)));
+    }
+}

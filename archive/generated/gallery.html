@@ -1,0 +1,107 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel-Cove Gallery</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+        h1 { text-align: center; color: #fff; margin-bottom: 10px; }
+        .subtitle { text-align: center; color: #8b949e; margin-bottom: 40px; font-size: 0.9em; }
+        .factory-info { text-align: center; margin-bottom: 30px; color: #8b949e; font-size: 0.85em; word-break: break-all; background: #161b22; padding: 15px; border-radius: 8px; max-width: 800px; margin: 0 auto 40px auto; border: 1px solid #30363d; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; max-width: 1400px; margin: 0 auto; }
+        .card { background: #161b22; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.4); display: flex; flex-direction: column; border: 1px solid #30363d; transition: transform 0.2s; }
+        .card:hover { transform: translateY(-5px); border-color: #58a6ff; }
+        .card iframe { width: 100%; aspect-ratio: 1/1; border: none; background: #000; }
+        .card-info { padding: 20px; font-size: 0.9em; flex: 1; display: flex; flex-direction: column; }
+        .card-info h3 { margin: 0 0 15px 0; color: #fff; font-size: 1.2em; display: flex; justify-content: space-between; align-items: center; }
+        .card-info p { margin: 6px 0; color: #8b949e; word-break: break-all; font-size: 0.85em; }
+        .card-info .label { color: #58a6ff; font-weight: 600; display: block; margin-top: 10px; font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.5px; }
+        .card-info .price { color: #3fb950; font-weight: bold; font-size: 1.1em; background: #0d1117; padding: 4px 8px; border-radius: 4px; }
+        .card-info .unlisted { color: #8b949e; font-style: italic; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>Pixel-Cove Generative Gallery</h1>
+    <p class="subtitle">On-chain generative art powered by Kaspa Covenants</p>
+    <div class="factory-info">
+        <strong>Factory Covenant ID:</strong><br>
+        29552108f08989318180ee34216e83a8b9303b6952f604623693a0e465f630aa<br><br>
+        <strong>Total Editions Minted:</strong> 2
+    </div>
+    <div class="grid">
+
+        <div class="card">
+            <iframe srcdoc="&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;style&gt;body{margin:0;background:#0a0a0a;display:flex;justify-content:center;align-items:center;height:100vh}canvas{border:1px solid #333}&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;canvas id=&quot;c&quot; width=&quot;800&quot; height=&quot;800&quot;&gt;&lt;/canvas&gt;&lt;script&gt;
+const c=document.getElementById('c'),x=c.getContext('2d');
+const seed=0;let s=seed*9301+49297;
+const rnd=()=&gt;{s=(s*9301+49297)%233280;return s/233280;};
+x.fillStyle='#0a0a0a';x.fillRect(0,0,800,800);
+for(let i=0;i&lt;300;i++){
+  x.beginPath();
+  const cx=rnd()*800,cy=rnd()*800,r=rnd()*80+20;
+  x.arc(cx,cy,r,0,Math.PI*2);
+  const hue=(rnd()*60+seed*40)%360;
+  x.fillStyle=`hsla(${hue},70%,60%,0.4)`;
+  x.fill();
+  x.strokeStyle=`hsla(${hue},90%,80%,0.8)`;
+  x.lineWidth=2;x.stroke();
+}
+for(let i=0;i&lt;50;i++){
+  x.beginPath();
+  x.moveTo(rnd()*800,rnd()*800);
+  x.lineTo(rnd()*800,rnd()*800);
+  x.strokeStyle=`hsla(${(seed*50+i*10)%360},100%,90%,0.3)`;
+  x.lineWidth=rnd()*5+1;x.stroke();
+}
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       "></iframe>
+            <div class="card-info">
+                <h3>Edition #0 <span class="unlisted">Not Listed</span></h3>
+                <span class="label">Covenant ID</span>
+                <p>6f5669db1311c7b6a1dd24e1fe6b484ca0d21d0cb1c0f6923528caa752398aa0</p>
+                <span class="label">Owner</span>
+                <p>33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68</p>
+                <span class="label">Program Hash</span>
+                <p>93e87b071619614e6840b2f244b4b093f2d11a7e3896fc88501f1e91533652de</p>
+            </div>
+        </div>
+    
+        <div class="card">
+            <iframe srcdoc="&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;style&gt;body{margin:0;background:#0a0a0a;display:flex;justify-content:center;align-items:center;height:100vh}canvas{border:1px solid #333}&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;canvas id=&quot;c&quot; width=&quot;800&quot; height=&quot;800&quot;&gt;&lt;/canvas&gt;&lt;script&gt;
+const c=document.getElementById('c'),x=c.getContext('2d');
+const seed=1;let s=seed*9301+49297;
+const rnd=()=&gt;{s=(s*9301+49297)%233280;return s/233280;};
+x.fillStyle='#0a0a0a';x.fillRect(0,0,800,800);
+for(let i=0;i&lt;300;i++){
+  x.beginPath();
+  const cx=rnd()*800,cy=rnd()*800,r=rnd()*80+20;
+  x.arc(cx,cy,r,0,Math.PI*2);
+  const hue=(rnd()*60+seed*40)%360;
+  x.fillStyle=`hsla(${hue},70%,60%,0.4)`;
+  x.fill();
+  x.strokeStyle=`hsla(${hue},90%,80%,0.8)`;
+  x.lineWidth=2;x.stroke();
+}
+for(let i=0;i&lt;50;i++){
+  x.beginPath();
+  x.moveTo(rnd()*800,rnd()*800);
+  x.lineTo(rnd()*800,rnd()*800);
+  x.strokeStyle=`hsla(${(seed*50+i*10)%360},100%,90%,0.3)`;
+  x.lineWidth=rnd()*5+1;x.stroke();
+}
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       "></iframe>
+            <div class="card-info">
+                <h3>Edition #1 <span class="unlisted">Not Listed</span></h3>
+                <span class="label">Covenant ID</span>
+                <p>941292d2721daf843cb21aee0f02ed3019f8ff86469a14c6b422b25098e40f69</p>
+                <span class="label">Owner</span>
+                <p>33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68</p>
+                <span class="label">Program Hash</span>
+                <p>93e87b071619614e6840b2f244b4b093f2d11a7e3896fc88501f1e91533652de</p>
+            </div>
+        </div>
+    
+    </div>
+</body>
+</html>

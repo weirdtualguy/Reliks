@@ -1,0 +1,10 @@
+{
+  "templatePrefixLen": 1,
+  "templateSuffixLen": 791,
+  "expectedTemplateHash": "aac634bb07431261bcae0a6994b9d61560f5dd90b789326bb401f4fe4cc3cb9e",
+  "stateSpan": {
+    "offset": 1,
+    "len": 128
+  },
+  "bytecodeLen": 920
+}

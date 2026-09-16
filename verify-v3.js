@@ -1,0 +1,30 @@
+const fs = require('fs');
+const { blake2b } = require('@noble/hashes/blake2b');
+const B = Buffer; const hex = b => B.from(b).toString('hex'); const H = s => B.from(s, 'hex');
+const le16 = n => { const b = B.alloc(2); b.writeUInt16LE(n); return b; };
+const le64 = n => { const b = B.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; };
+const sm8 = n => { const b = B.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; };
+const pushExplicit = p => { const n = p.length;
+  if (n === 0) return B.from([0x00]); if (n <= 75) return B.concat([B.from([n]), p]);
+  if (n <= 255) return B.concat([B.from([0x4c, n]), p]);
+  return B.concat([B.from([0x4d]), le16(n), p]); };
+(async () => {
+  const F = JSON.parse(fs.readFileSync('factory-abi-v3.json', 'utf8'));
+  const c = F.contracts[Object.keys(F.contracts)[0]];
+  const bc = B.from(c.compiled.bytecode); const s = c.compiled.state_span;
+  const pre = bc.subarray(0, s.offset), suf = bc.subarray(s.offset + s.len);
+  const L = JSON.parse(fs.readFileSync('factory-ledger-v3.json', 'utf8'));
+  const ART = fs.readFileSync('art-program.hex', 'utf8').trim();
+  const enc = vals => B.concat(c.runtime_state.fields.map(f => {
+    const t = f.type.kind, x = vals[f.name];
+    if (t === 'int' || t === 'temporal') return pushExplicit(sm8(x));
+    if (t === 'byte') return pushExplicit(B.from([x]));
+    return pushExplicit(H(x)); }));
+  const spk = 'aa20' + hex(blake2b(B.concat([pre, enc({ art: ART, artist: '33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68', price: 100000000, royalty_bips: 500, cap: 64, counter: L.counter }), suf]), { dkLen: 32 })) + '87';
+  const cov = await (await fetch('https://kascov.io/data/testnet-10/c/' + L.covenantId + '.json')).json();
+  const live = cov.utxos.find(u => u.live);
+  console.log('factory v2:', L.covenantId);
+  console.log('counter:', L.counter, '| editions:', L.editions.length);
+  console.log('drift check:', live && live.script_hex === spk ? '✅ live spk matches codec' : '❌ MISMATCH ' + spk + ' vs ' + (live || {}).script_hex);
+  console.log('events:', cov.events.map(e => e.kind).join(' → '));
+})();

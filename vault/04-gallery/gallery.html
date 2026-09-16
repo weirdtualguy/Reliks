@@ -1,0 +1,40 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>pixel-cove gallery</title><style>
+body{background:#0b0b0f;color:#e8e8e8;font-family:monospace;margin:0;padding:16px}
+input,button{background:#16161c;color:#e8e8e8;border:1px solid #333;border-radius:8px;padding:10px;font-family:monospace}
+canvas{image-rendering:pixelated;border:2px solid #333;border-radius:8px;margin-top:12px}
+#meta{margin-top:12px;color:#8f8}#log{white-space:pre-wrap;color:#888;font-size:12px}</style></head><body>
+<h2>🐼 pixel-cove gallery</h2>
+<input id="cid" size="60" value="9931b1374fd16d3785d6bd9d1f0e87680769a7260646b431589a217ec6fac448">
+<button onclick="load()">render art</button>
+<button onclick="set('4783a3d844a2cc356e54a821865174dc571f9e014ee7eae27ac926e1e56c4435')">the Face (unrevealed)</button>
+<div id="meta"></div><canvas id="cv" width="512" height="512" style="display:none"></canvas><div id="log"></div>
+<script>
+const NET='testnet-10', $=id=>document.getElementById(id);
+const log=s=>{$('log').textContent+=s+'\n';}, hx=s=>s.replace(/^0x/,'');
+function set(id){$('cid').value=id;load();}
+const isArt=w=>{if(w.length!==1136)return false;const b=i=>parseInt(w.substr(i*2,2),16);
+  return b(48)===0&&b(178)===1&&b(308)===2&&b(438)===3;};
+function scan(obj){for(const run of (JSON.stringify(obj).match(/[0-9a-f]{1136,}/g)||[]))
+  for(let i=0;i+1136<=run.length;i+=2){const w=run.substr(i,1136);if(isArt(w))return w;}return null;}
+function decode(a){const b=i=>parseInt(a.substr(i*2,2),16),pal=[];
+  for(let i=0;i<16;i++)pal.push([b(i*3),b(i*3+1),b(i*3+2)]);
+  const grid=new Array(256).fill(0);let off=48;
+  for(let l=0;l<4;l++){const base=off+2;
+    for(let p=0;p<256;p++){const byte=b(base+(p>>1)),idx=(p%2===0)?(byte>>4):(byte&15);
+      if(idx!==0||l===0)grid[p]=idx;}off+=130;}
+  return{pal,grid};}
+function render({pal,grid}){const cv=$('cv');cv.style.display='block';const x2=cv.getContext('2d');
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){const[r,g,bl]=pal[grid[y*16+x]];
+    x2.fillStyle=`rgb(${r},${g},${bl})`;x2.fillRect(x*32,y*32,32,32);}}
+async function j(u){const r=await fetch(u);if(!r.ok)throw new Error(u+' → '+r.status);return r.json();}
+async function load(){const cid=$('cid').value.trim();$('log').textContent='';$('meta').textContent='loading…';
+ try{const coin=await j(`https://kascov.io/data/${NET}/c/${cid}.json`);
+  $('meta').innerHTML=`<b>${coin.name||cid.slice(0,8)}</b> · lifecycle: ${(coin.events||[]).map(e=>e.kind).join(' → ')}`;
+  let art=scan(coin);
+  for(const e of (art?[]:coin.events||[])){const tx=await j(`https://kascov.io/data/${NET}/tx/${e.txid}.json`);
+    art=scan(tx);if(art)break;}
+  if(!art){$('meta').textContent+=' — art not found: coin still hidden (p2sh commitment, never spent)';return;}
+  log('✅ 568-byte art payload located in revealed program');render(decode(art));
+ }catch(e){$('meta').textContent='error: '+e.message;}}
+</script></body></html>

@@ -1,0 +1,29 @@
+{
+ "series": "0ccce75b2549f4f0a9c63e39a987c9b4080f17e962ef4346c5765c8c77a33f6a",
+ "editions": [
+  {
+   "i": 1,
+   "seed": "0560e1e26ecd2f493ce406abc8853f6593606d52e60eb03a352cc551d4dcd361"
+  },
+  {
+   "i": 2,
+   "seed": "22359cd4e6c87292c36ab527861fc4d7cd0a033b05a9217ebf3c1e5e1f553c68"
+  },
+  {
+   "i": 3,
+   "seed": "4eb435e3672c5c8865ede15bf4210d459473920a65c0841986080c073eafa35e"
+  },
+  {
+   "i": 4,
+   "seed": "238276355ae3aa48ced528b7e40571294afc4597a87e3e5c407a2834b6219912"
+  },
+  {
+   "i": 5,
+   "seed": "361c1e1f467f0f3bcf059ba92b0ab6310bde46eb5c9c57b61fa35b1ca08ccd70"
+  },
+  {
+   "i": 6,
+   "seed": "b1997231df187fc66e03c625f6b2932bdb7962cb66f056bdb6d8963df9acee7c"
+  }
+ ]
+}

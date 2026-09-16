@@ -1,0 +1,193 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>pixel-cove · mint studio</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0b0b0f;color:#e8e6e3;font-family:'SF Mono',Menlo,Consolas,monospace;font-size:13px}
+header{padding:12px 16px;border-bottom:1px solid #222;display:flex;align-items:center;gap:10px}
+header h1{font-size:16px;font-weight:600}
+header .tag{background:#1a3a1a;color:#7bd05f;padding:2px 8px;border-radius:6px;font-size:11px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:calc(100vh - 140px)}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+.panel{border-right:1px solid #222;display:flex;flex-direction:column}
+.panel:last-child{border-right:none}
+.panel-head{padding:8px 12px;background:#111118;border-bottom:1px solid #222;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px}
+textarea{flex:1;background:#0d0d14;color:#c8f7c5;border:none;padding:12px;font-family:inherit;font-size:13px;line-height:1.5;resize:none;outline:none;tab-size:2;min-height:300px}
+.preview-wrap{flex:1;display:flex;align-items:center;justify-content:center;background:#0a0a10;padding:12px;overflow:auto}
+.preview-wrap svg{max-width:100%;max-height:400px;border:1px solid #333;border-radius:8px}
+.toolbar{padding:8px 12px;background:#111118;border-top:1px solid #222;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{background:#1a2a1a;color:#7bd05f;border:1px solid #2a4a2a;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:12px}
+button:hover{background:#2a3a2a}
+button:disabled{opacity:.4;cursor:default}
+button.primary{background:#1a3a1a;border-color:#3a6a3a;font-weight:600}
+button.danger{background:#3a1a1a;color:#f77;border-color:#5a2a2a}
+input[type=range]{width:80px;accent-color:#7bd05f}
+input[type=text],input[type=number],select{background:#16161c;color:#eee;border:1px solid #333;border-radius:6px;padding:5px 8px;font-family:inherit;font-size:12px}
+.budget{font-size:11px;padding:2px 8px;border-radius:6px}
+.budget.ok{background:#1a3a1a;color:#7bd05f}
+.budget.over{background:#3a1a1a;color:#f77}
+.status{padding:8px 12px;background:#0d0d14;border-top:1px solid #222;font-size:11px;color:#888;max-height:120px;overflow-y:auto;white-space:pre-wrap;word-break:break-all}
+.status .ok{color:#7bd05f}.status .err{color:#f77}.status .info{color:#8af}
+label{font-size:11px;color:#888}
+.sep{width:1px;height:20px;background:#333}
+</style></head><body>
+<header><h1>🎨 pixel-cove mint studio</h1><span class="tag">testnet-10</span></header>
+<div class="grid">
+  <div class="panel">
+    <div class="panel-head">generative script</div>
+    <textarea id="code" spellcheck="false">// bloom — orbital garden
+cv.fill(cv.hsl(700,300,60));
+for(let i=0;i<12;i++){
+  cv.color(cv.hsl(620+i*24,460,52+i*10));
+  cv.rect(0,i*86,1024,86);
+}
+cv.mirror(()=>{
+  for(let i=0;i<26;i++){
+    if(rng.f()>0.25+((frame*137)%97)/400){
+      cv.color(rng.pick([0xf5f5f5,0xffd166,0x9ad1ff]));
+      cv.dot(rng.int(40,480),rng.int(30,990),rng.int(2,7));
+    }
+  }
+});
+for(let k=0;k<4;k++){
+  cv.color(cv.hsl(120+k*220,700,300+k*60));
+  cv.ring(512,512,150+k*86+((frame*13)%23));
+}
+cv.sym(6,()=>{
+  for(let j=0;j<3;j++){
+    const x=rng.int(90,330),y=rng.int(170,470),n=rng.f();
+    cv.color(rng.pick([0xdc2828,0xff8fa3,0x7bd05f,0x3aa0ff,0xffd166]));
+    if(n>0.66)cv.line(512,512,512+x,512-y,rng.int(5,20));
+    else if(n>0.33)cv.tri(512,512,512+x,512-y,512+(x>>1)+40,512-(y>>1)-40);
+    else cv.circle(512+x,512-y,rng.int(9,38));
+    if(rng.f()>0.5)cv.ring(512+(x>>1),512-(y>>1),rng.int(18,64));
+  }
+});
+for(let s=0;s<8;s++){
+  const a=(s*128+frame*71)&1023;
+  cv.color(rng.pick([0xf5f5f5,0xffd166]));
+  cv.dot(512+((a&511)-256),512-(((a>>2)&511)-256),rng.int(6,16));
+}
+cv.color(0xf5f5f5);
+cv.ring(512,512,58+frame*44);
+cv.circle(512,512,18);</textarea>
+    <div class="toolbar">
+      <label>seed <input type="text" id="seed" value="00" style="width:60px"></label>
+      <label>frame <input type="range" id="frame" min="0" max="7" value="0"></label>
+      <span id="frameVal" style="font-size:11px;color:#888">0</span>
+      <div class="sep"></div>
+      <button onclick="renderPreview()">▶ preview</button>
+      <button onclick="randomSeed()">🎲 seed</button>
+      <span id="budget" class="budget ok">— B / 2045</span>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-head">preview</div>
+    <div class="preview-wrap" id="preview"><span style="color:#444">press ▶ preview</span></div>
+    <div class="toolbar">
+      <button class="primary" id="btnDeploy" onclick="deploy()">🚀 deploy covenant</button>
+      <div class="sep"></div>
+      <select id="factorySel" style="min-width:100px"></select>
+      <button id="btnMint" onclick="mint()">🌸 mint edition</button>
+      <button onclick="loadFactories()">↻</button>
+    </div>
+    <div class="status" id="log">ready.\n</div>
+  </div>
+</div>
+
+<script id="wk" type="text/worker">
+const C=512,ROT={2:[-1024,0],3:[-512,887],4:[0,1024],6:[512,887],8:[724,724]};
+function rotPt(x,y,c,s){const dx=x-C,dy=y-C;return[C+((dx*c-dy*s)>>10),C+((dx*s+dy*c)>>10)]}
+function mirP(p){const a=p.a.slice();if(p.op==='rect')a[0]=1023-a[0]-a[2];else if(p.op==='line'){a[0]=1023-a[0];a[2]=1023-a[2]}else if(p.op==='tri'){a[0]=1023-a[0];a[2]=1023-a[2];a[4]=1023-a[4]}else a[0]=1023-a[0];return{op:p.op,a:a,c:p.c}}
+function hsl2rgb(h,s,l){h=((h%1024)+1024)%1024;s=Math.min(1024,Math.max(0,s));l=Math.min(1024,Math.max(0,l));
+ const q=l<512?(l*(1024+s))>>10:l+s-((l*s)>>10),p=2*l-q;
+ const f=t0=>{let t=((t0%1024)+1024)%1024;if(t<171)return p+(((q-p)*((t*6)>>10))>>10);if(t<512)return q;if(t<683)return p+(((q-p)*(((683-t)*6)>>10))>>10);return p};
+ return((f(h+341)>>2)<<16)|((f(h)>>2)<<8)|(f(h+683)>>2)}
+function hex2b(h){h=h.replace(/^0x/,'');if(h.length%2)h='0'+h;const a=new Uint8Array(h.length/2);for(let i=0;i<a.length;i++)a[i]=parseInt(h.substr(i*2,2),16);return a}
+onmessage=ev=>{const src=ev.data.src,seedHex=ev.data.seedHex,frame=ev.data.frame;
+ try{
+  const sb=hex2b(seedHex),M=0xffffffffffffffffn;let st=0n;
+  for(let i=0;i<8;i++)st|=BigInt(sb[i%sb.length])<<BigInt(8*i);if(!st)st=0x9e3779b97f4a7c15n;
+  const nx=()=>{st=(st+0x9e3779b97f4a7c15n)&M;let z=st;z=((z^(z>>30n))*0xbf58476d1ce4e5b9n)&M;z=((z^(z>>27n))*0x94d049bb133111ebn)&M;return(z^(z>>31n))&M};
+  let calls=0;const guard=()=>{if(++calls>500000)throw new Error('rng limit')};
+  const rng={int:(a,b)=>{guard();if(b<a){const t=a;a=b;b=t}return a+Number(nx()%BigInt(b-a+1))},pick:arr=>arr[rng.int(0,arr.length-1)],f:()=>{guard();return Number(nx()%1024n)/1024}};
+  const prims=[];let cur=0xffffff,bg=0;
+  const q=v=>Math.max(0,Math.min(1023,Math.round(v)));
+  const cap=()=>{if(prims.length>20000)throw new Error('prim limit')};
+  const P=(op,a)=>{cap();prims.push({op:op,a:a,c:cur})};
+  const cv={hex:h=>parseInt(h.slice(1),16),rgb:(r,g,b)=>((r&255)<<16)|((g&255)<<8)|(b&255),hsl:hsl2rgb,
+   color:c=>{cur=c|0},fill:c=>{bg=c|0},
+   dot:(x,y,r)=>P('dot',[q(x),q(y),q(r)]),circle:(x,y,r)=>P('circle',[q(x),q(y),q(r)]),ring:(x,y,r)=>P('ring',[q(x),q(y),q(r)]),
+   line:(x0,y0,x1,y1,w)=>P('line',[q(x0),q(y0),q(x1),q(y1),q(w)]),
+   rect:(x,y,w,h)=>P('rect',[q(x),q(y),q(w),q(h)]),
+   tri:(x0,y0,x1,y1,x2,y2)=>P('tri',[q(x0),q(y0),q(x1),q(y1),q(x2),q(y2)]),
+   mirror:fn=>{const at=prims.length;fn();prims.slice(at).forEach(p=>prims.push(mirP(p)))},
+   sym:(n,fn)=>{const at=prims.length;fn();const add=prims.slice(at);const bs=ROT[n];if(!bs)throw new Error('sym n in {2,3,4,6,8}');
+    for(let k=1;k<n;k++){let c=1024,s2=0;for(let i=0;i<k;i++){const nc=((c*bs[0]-s2*bs[1])>>10),ns=((c*bs[1]+s2*bs[0])>>10);c=nc;s2=ns}
+     add.forEach(p=>{const a=p.a.slice();const R=i=>{const t2=rotPt(a[i],a[i+1],c,s2);a[i]=q(t2[0]);a[i+1]=q(t2[1])};
+      if(p.op==='line'){R(0);R(2)}else if(p.op==='tri'){R(0);R(2);R(4)}else R(0);cap();prims.push({op:p.op,a:a,c:p.c})})}}};
+  const SafeMath=Object.assign(Object.create(Math),{random:()=>rng.f()});
+  const fn=new Function('rng','cv','frame','Math','"use strict";const Date=undefined;const fetch=undefined;const self=undefined;const importScripts=undefined;const XMLHttpRequest=undefined;'+src);
+  fn(rng,cv,frame,SafeMath);
+  postMessage({ok:true,bg:bg,prims:prims});
+ }catch(e){postMessage({ok:false,err:String(e&&e.message||e)})}};
+</script>
+
+<script>
+const $=id=>document.getElementById(id);
+const hx=c=>'#'+c.toString(16).padStart(6,'0');
+let W,TO;
+function mkWorker(){const b=new Blob([document.getElementById('wk').textContent],{type:'text/javascript'});
+ W=new Worker(URL.createObjectURL(b));
+ W.onmessage=e=>{clearTimeout(TO);
+  if(e.data.ok){$('preview').innerHTML=toSVG(e.data.bg,e.data.prims,512);
+    $('log').innerHTML+=`<span class="ok">✓ ${e.data.prims.length} prims</span>\n`;$('log').scrollTop=1e6;}
+  else{$('preview').innerHTML=`<span style="color:#f77">${e.data.err}</span>`;
+    $('log').innerHTML+=`<span class="err">✗ ${e.data.err}</span>\n`;$('log').scrollTop=1e6;}};}
+function toSVG(bg,prims,px){let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="${px}" height="${px}"><rect width="1024" height="1024" fill="${hx(bg)}"/>`;
+ for(const p of prims){const c=hx(p.c),a=p.a;
+  if(p.op==='dot'||p.op==='circle')s+=`<circle cx="${a[0]}" cy="${a[1]}" r="${a[2]}" fill="${c}"/>`;
+  else if(p.op==='ring')s+=`<circle cx="${a[0]}" cy="${a[1]}" r="${a[2]}" fill="none" stroke="${c}" stroke-width="14"/>`;
+  else if(p.op==='line')s+=`<line x1="${a[0]}" y1="${a[1]}" x2="${a[2]}" y2="${a[3]}" stroke="${c}" stroke-width="${a[4]}" stroke-linecap="round"/>`;
+  else if(p.op==='rect')s+=`<rect x="${a[0]}" y="${a[1]}" width="${a[2]}" height="${a[3]}" fill="${c}"/>`;
+  else s+=`<polygon points="${a[0]},${a[1]} ${a[2]},${a[3]} ${a[4]},${a[5]}" fill="${c}"/>`}
+ return s+'</svg>'}
+function minify(src){let s=src.replace(/\/\/[^\n]*/g,'').replace(/\/\*[\s\S]*?\*\//g,'').replace(/\s+/g,' ');
+ const w=c=>/[A-Za-z0-9_$]/.test(c);let out='';
+ for(let i=0;i<s.length;i++){const c=s[i];
+  if(c===' '){const p=out[out.length-1]||'',n=s[i+1]||'';if(!p||!n||!w(p)||!w(n))continue}out+=c}
+ return out.trim()}
+function updateBudget(){const m=minify($('code').value);const b=new Blob([m]).size;
+ const el=$('budget');el.textContent=`${b} B / 2045`;
+ el.className='budget '+(b<=2045?'ok':'over');return b}
+function renderPreview(){const seed=$('seed').value||'00';const frame=+$('frame').value;
+ clearTimeout(TO);TO=setTimeout(()=>{W.terminate();mkWorker();$('log').innerHTML+='<span class="err">⏱ timeout</span>\n'},5000);
+ W.postMessage({src:$('code').value,seedHex:seed,frame:frame})}
+function randomSeed(){$('seed').value=Math.floor(Math.random()*0xffffffff).toString(16).padStart(8,'0');renderPreview()}
+async function deploy(){const js=$('code').value;const b=updateBudget();
+ if(b>2045){$('log').innerHTML+='<span class="err">✗ over budget</span>\n';return}
+ $('btnDeploy').disabled=true;$('log').innerHTML+='<span class="info">⏳ deploying…</span>\n';
+ try{const r=await fetch('/api/deploy',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({js})});
+  const d=await r.json();
+  if(d.error)throw new Error(d.error);
+  $('log').innerHTML+=`<span class="ok">🚀 ${d.factory}: ${d.covenantId.slice(0,16)}… (${d.jsBytes} B)</span>\n`;
+  loadFactories();
+ }catch(e){$('log').innerHTML+=`<span class="err">✗ ${e.message}</span>\n`}
+ $('btnDeploy').disabled=false;$('log').scrollTop=1e6}
+async function mint(){const f=$('factorySel').value;if(!f)return;
+ $('btnMint').disabled=true;$('log').innerHTML+=`<span class="info">⏳ minting from ${f}…</span>\n`;
+ try{const r=await fetch('/api/mint',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({factory:f})});
+  const d=await r.json();
+  if(d.error)throw new Error(d.error);
+  $('log').innerHTML+=`<span class="ok">🌸 edition #${d.edition}: ${d.txid.slice(0,16)}…</span>\n`;
+  loadFactories();
+ }catch(e){$('log').innerHTML+=`<span class="err">✗ ${e.message}</span>\n`}
+ $('btnMint').disabled=false;$('log').scrollTop=1e6}
+async function loadFactories(){try{const r=await fetch('/api/factories');const list=await r.json();
+ const sel=$('factorySel');sel.innerHTML='';
+ list.forEach(f=>{const o=document.createElement('option');o.value=f.name;
+  o.textContent=`${f.name} (${f.counter||0} minted)`;sel.appendChild(o)});
+ if(list.length)sel.value=list[list.length-1].name;}catch{}}
+$('frame').oninput=()=>$('frameVal').textContent=$('frame').value;
+$('code').oninput=updateBudget;
+mkWorker();updateBudget();loadFactories();
+</script></body></html>
