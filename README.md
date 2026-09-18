@@ -26,7 +26,7 @@ Reliks is built on three hand-written Silverscript (Toccata) covenants:
 
 ### Key Features
 * **Math-Enforced, Creator-Set Royalties:** The royalty rate is chosen by the creator at series genesis (e.g., 500 bips for 5%) and copied into each edition's state at the instant of mint. From that moment on, exact-equality covenant checks ensure the split is enforced on every secondary sale. The rate cannot be altered post-mint, no platform can override it, and no intermediary ever holds the funds.
-* **Trustless 16KB Art Pipeline:** Generative art programs (up to 16KB) are hidden on-chain via a `commit -> reveal` pipeline. The art bytes are permanently inscribed in the transaction signature scripts.
+* **Trustless On-Chain Art Pipeline:** Generative art programs (16 KB shipped today; the cap is a builder configuration, not a protocol limit — the consensus sigscript ceiling is 250 KB per input) are hidden on-chain via a `commit -> reveal` pipeline. The art bytes are permanently inscribed in the transaction signature scripts — no IPFS, no hosting, no off-chain dependencies.
 * **Mass-Safe Parameter Set:** Carefully calibrated `MIN_PRICE` (5 KAS) and `DUST` (1 KAS) thresholds ensure that covenant UTXOs never violate Kaspa's storage mass limits, preventing accidental UTXO consolidation failures.
 * **Mobile-First Audit:** The entire protocol, including reverse-engineering the Kaspa v1 REST API schema and bridging wRPC network gaps, was audited and deployed to mainnet entirely from a Termux shell on an Android device.
 
