@@ -1,0 +1,75 @@
+pragma silverscript ^0.1.0;
+
+contract SeriesFactory(
+    byte[32] init_program_hash,
+    byte[32] artist_id,
+    int mint_price_sompi,
+    int royalty_bips_val,
+    int edition_cap,
+    int init_counter,
+    byte[] edition_template_prefix,
+    byte[] edition_template_suffix,
+    byte[32] expected_template_hash
+) {
+    byte[32] program_hash = init_program_hash;
+    byte[32] artist = artist_id;
+    int price = mint_price_sompi;
+    int royalty_bips = royalty_bips_val;
+    int cap = edition_cap;
+    int counter = init_counter;
+
+    byte constant IDENTIFIER_PUBKEY = 0x00;
+
+    struct EditionState {
+        byte[32] ownerIdentifier; byte identifierType; int price; byte[32] artist;
+        int royalty_bips; byte[32] program_hash; byte[32] factory_covid; int serial;
+    }
+
+    function artistPaid(int paymentOutIdx) {
+        if (price > 0) {
+            byte[36] artistSpk = new ScriptPubKeyP2PK(pubkey(artist));
+            require(tx.outputs[paymentOutIdx].value >= price);
+            require(tx.outputs[paymentOutIdx].scriptPubKey == byte[](artistSpk));
+        }
+    }
+
+    function spawnEdition(byte[32] buyerIdentifier, int editionOutIdx) {
+        EditionState editionState = EditionState {
+            ownerIdentifier: buyerIdentifier,
+            identifierType: IDENTIFIER_PUBKEY,
+            price: 0,
+            artist: artist,
+            royalty_bips: royalty_bips,
+            program_hash: program_hash,
+            factory_covid: OpInputCovenantId(this.activeInputIndex),
+            serial: counter
+        };
+        validateOutputStateWithTemplate(editionOutIdx, editionState, edition_template_prefix, edition_template_suffix, expected_template_hash);
+    }
+
+    function conserveValue() {
+        int factoryOutIdx = OpAuthOutputIdx(this.activeInputIndex, 0);
+        require(tx.outputs[factoryOutIdx].value >= tx.inputs[this.activeInputIndex].value);
+    }
+
+    #[covenant(binding = auth, from = 1, to = 1, mode = transition, name = mint)]
+    function mintPolicy(State prev_state, byte[32] buyerIdentifier, int paymentOutIdx, int editionOutIdx) : (State) {
+        require(royalty_bips >= 0 && royalty_bips <= 10000);
+        require(counter < cap);
+        artistPaid(paymentOutIdx);
+        spawnEdition(buyerIdentifier, editionOutIdx);
+        conserveValue();
+        return State {
+            program_hash: program_hash,
+            artist: artist,
+            price: price,
+            royalty_bips: royalty_bips,
+            cap: cap,
+            counter: prev_state.counter + 1
+        };
+    }
+
+    entry close(sig artistSig) {
+        require(checkSig(artistSig, pubkey(artist)));
+    }
+}

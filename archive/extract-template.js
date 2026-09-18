@@ -1,0 +1,13 @@
+const fs = require('fs');
+const abi = JSON.parse(fs.readFileSync('pixel-token-abi.json', 'utf8'));
+const c = abi.contracts[Object.keys(abi.contracts)[0]];
+const bc = Array.isArray(c.compiled.bytecode) ? c.compiled.bytecode : Array.from(Buffer.from(c.compiled.bytecode, 'hex'));
+const off = c.compiled.state_span.offset;
+const len = c.compiled.state_span.len;
+const prefixLen = off;
+const suffixLen = bc.length - off - len;
+const hash = Array.isArray(c.compiled.template_hash) ? Buffer.from(c.compiled.template_hash).toString('hex') : c.compiled.template_hash;
+console.log('PREFIX_LEN=' + prefixLen);
+console.log('SUFFIX_LEN=' + suffixLen);
+console.log('TEMPLATE_HASH=' + hash);
+fs.writeFileSync('token-template.json', JSON.stringify({prefixLen, suffixLen, hash}));

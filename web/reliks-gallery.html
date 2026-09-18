@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reliks Gallery (Genesis Link Pattern)</title>
+<style>
+body{font-family:sans-serif;background:#111;color:#eee;padding:20px}
+input{padding:8px;width:500px;background:#222;color:#eee;border:1px solid #444;font-family:monospace}
+button{padding:8px 16px;background:#007bff;color:#fff;border:none;cursor:pointer}
+button:disabled{background:#555}
+#status{margin:10px 0;color:#aaa;white-space:pre-wrap;font-family:monospace;font-size:14px}
+iframe{width:800px;height:800px;border:2px solid #444;background:#000;display:block;margin-top:20px}
+.error{color:#f44}.success{color:#4f4}
+</style>
+</head>
+<body>
+<h1>🐼 Reliks Gallery</h1>
+<p><strong>Genesis Link Pattern:</strong> registry hint → reveal tx(s) → sigscript chunks → blake2b vs on-chain state</p>
+<div><input type="text" id="covId" value="0c3cab42cad1c4cad1c4cacd3f0e906f2bd837493d537b56de550bfa6228e4d86a3f5c">
+<button id="loadBtn" onclick="loadArt()">Load Art</button></div>
+<div id="status"></div>
+<iframe id="artFrame" sandbox="allow-scripts"></iframe>
+<script type="module">
+import { blake2b } from './vendor/blake2b.bundle.js';
+const NET = new URLSearchParams(location.search).get('net') || 'testnet'; const NETS = { testnet: { kascov: 'https://kascov.io/data/testnet-10', rest: 'https://api-tn10.kaspa.org' }, mainnet: { kascov: 'https://kascov.io/data/mainnet', rest: 'https://api.kaspa.org' } }; const KASCOV = NETS[NET].kascov;
+const REST = NETS[NET].rest;
+const log = (m, c) => { document.getElementById('status').innerHTML += '<div class="' + (c || '') + '">' + m + '</div>'; };
+const hexToBytes = h => { const b = new Uint8Array(h.length / 2); for (let i = 0; i < h.length; i += 2) b[i / 2] = parseInt(h.substr(i, 2), 16); return b; };
+const bytesToHex = b => Array.from(b).map(x => x.toString(16).padStart(2, '0')).join('');
+function parsePushes(bytes) {
+  const pushes = []; let i = 0;
+  while (i < bytes.length) {
+    const op = bytes[i++]; let len = 0; let isPush = true;
+    if (op === 0x00) len = 0;
+    else if (op >= 0x01 && op <= 0x4b) len = op;
+    else if (op === 0x4c) len = bytes[i++];
+    else if (op === 0x4d) { len = bytes[i] | (bytes[i + 1] << 8); i += 2; }
+    else if (op === 0x4e) { len = bytes[i] | (bytes[i + 1] << 8) | (bytes[i + 2] << 16) | (bytes[i + 3] << 24); i += 4; }
+    else isPush = false;
+    if (isPush) { pushes.push(bytes.slice(i, i + len)); i += len; }
+  }
+  return pushes;
+}
+window.loadArt = async function () {
+  document.getElementById('status').innerHTML = '';
+  const btn = document.getElementById('loadBtn'); btn.disabled = true;
+  const factoryCovId = document.getElementById('covId').value.trim();
+  try {
+    log('1. Registry hint...');
+    const reg = await (await fetch('reliks-registry.json')).json();
+    const entry = reg[factoryCovId];
+    if (!entry) throw new Error('factory not in registry');
+    const revealIds = entry.revealTxIds || [entry.revealTxId];
+    log('   reveal txs: ' + revealIds.length, 'success');
+    log('1b. On-chain program_hash (kascov, REST fallback via mintTx hint)...');
+    let sigHex = null;
+    try {
+      const covRes = await fetch(KASCOV + '/c/' + factoryCovId + '.json');
+      if (covRes.ok) {
+        const cov = await covRes.json();
+        const liveU = cov.utxos && cov.utxos.find(u => u.live);
+        if (liveU) {
+          const tx = await (await fetch(REST + '/transactions/' + liveU.outpoint.split(':')[0])).json();
+          sigHex = tx.inputs[0].signature_script;
+          log('   source: kascov live utxo', 'success');
+        }
+      }
+    } catch (e) {}
+    if (!sigHex && entry.mintTx) {
+      const tx = await (await fetch(REST + '/transactions/' + entry.mintTx)).json();
+      sigHex = tx.inputs[0].signature_script;
+      log('   source: registry mintTx hint ' + entry.mintTx.slice(0, 8) + ' (untrusted hint, hash-verified below)', 'success');
+    }
+    if (!sigHex) throw new Error('cannot locate factory/lane redeem (kascov miss and no mintTx hint)');
+    const sigPushes = parsePushes(hexToBytes(sigHex));
+    const redeem = sigPushes[sigPushes.length - 1];
+    const programHashOnChain = bytesToHex(parsePushes(redeem)[0]);
+    if (programHashOnChain.length !== 64) throw new Error('bad program_hash extraction (' + programHashOnChain.length + ' hex chars) — input0 is not a factory/lane spend');
+    log('   on-chain: ' + programHashOnChain, 'success');
+    log('2. Fetching reveal tx(s) and extracting chunks...');
+    const chunks = [];
+    for (const rid of revealIds) {
+      const revTx = await (await fetch(REST + '/transactions/' + rid)).json();
+      for (let i = 0; i < revTx.inputs.length; i++) {
+        const sp = parsePushes(hexToBytes(revTx.inputs[i].signature_script));
+        const chunk = parsePushes(sp[sp.length - 1])[0];
+        if (chunk.length !== 2048) throw new Error('bad chunk len ' + chunk.length);
+        chunks.push(chunk);
+      }
+    }
+    log('   extracted ' + chunks.length + ' chunks (' + (chunks.length * 2048) + ' bytes)', 'success');
+    log('3. Verifying blake2b(32B)...');
+    const full = new Uint8Array(chunks.length * 2048);
+    chunks.forEach((c, k) => full.set(c, k * 2048));
+    const hash = bytesToHex(blake2b(full, { dkLen: 32 }));
+    if (hash !== programHashOnChain) throw new Error('HASH MISMATCH: ' + hash + ' vs ' + programHashOnChain);
+    log('   TRUSTLESS CHECK PASSED', 'success');
+    log('4. Rendering...');
+    document.getElementById('artFrame').srcdoc = new TextDecoder().decode(full);
+  } catch (e) { log('ERROR: ' + e.message, 'error'); console.error(e); }
+  finally { btn.disabled = false; }
+};
+</script>
+</body>
+</html>

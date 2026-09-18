@@ -1,0 +1,15 @@
+const c5 = require('./factory-abi-v5.json').contracts[Object.keys(require('./factory-abi-v5.json').contracts)[0]];
+const v6 = require('./factory-abi-v6.json');
+const c6 = v6.contracts[Object.keys(v6.contracts)[0]];
+const tags = c => Object.fromEntries(Object.entries(c.entries).map(([k, v]) => [k, v.dispatch_tag]));
+const params = c => Object.fromEntries(Object.entries(c.entries).map(([k, v]) => [k, JSON.stringify(v.params)]));
+console.log('tags v5:', JSON.stringify(tags(c5)));
+console.log('tags v6:', JSON.stringify(tags(c6)));
+console.log('TAGS IDENTICAL:', JSON.stringify(tags(c5)) === JSON.stringify(tags(c6)));
+console.log('PARAMS IDENTICAL:', JSON.stringify(params(c5)) === JSON.stringify(params(c6)));
+console.log('STATE FIELDS IDENTICAL:', JSON.stringify(c5.runtime_state.fields) === JSON.stringify(c6.runtime_state.fields));
+console.log('STATE SPAN LEN v5/v6:', c5.compiled.state_span.len, c6.compiled.state_span.len);
+console.log('TEMPLATE HASH v5:', Buffer.from(c5.compiled.template_hash).toString('hex'));
+console.log('TEMPLATE HASH v6:', Buffer.from(c6.compiled.template_hash).toString('hex'));
+console.log('BYTECODE LEN v5/v6:', c5.compiled.bytecode.length, c6.compiled.bytecode.length);
+console.log('cov_decl_to_abi v6:', JSON.stringify(c6.cov_decl_to_abi), '| delegate:', c6.delegate_entry_abi);

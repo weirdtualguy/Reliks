@@ -1,3 +1,9 @@
-node_modules/
-web/node_modules/
+# Secrets & Credentials
 secrets.env
+
+# Dependencies
+node_modules/
+
+# OS & Editor files
+.DS_Store
+*.log

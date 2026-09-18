@@ -30,8 +30,8 @@ button.go{background:#238636}button.warn{background:#9e6a03}
 <div id="gallery">Loading editions...</div>
 <div class="log" id="log"></div>
 <script type="module">
-import { blake2b } from 'https://esm.sh/@noble/hashes@1.4.0/blake2b';
-import { schnorr } from 'https://esm.sh/@noble/curves@1.6.0/secp256k1';
+import { blake2b } from './vendor/blake2b.bundle.js';
+import { schnorr } from './vendor/schnorr.bundle.js';
 const log=m=>{const el=document.getElementById('log');el.textContent+=new Date().toISOString().substr(11,8)+' '+m+'\n';el.scrollTop=el.scrollHeight;};
 const HX=t=>Uint8Array.from(t.replace(/\s/g,'').match(/.{2}/g).map(b=>parseInt(b,16)));
 const hexb=b=>Array.from(b).map(x=>x.toString(16).padStart(2,'0')).join('');

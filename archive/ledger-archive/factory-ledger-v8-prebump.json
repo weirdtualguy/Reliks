@@ -1,0 +1,28 @@
+{
+  "C": "c04f9e161e77613c8194f332cb883d1e71453d7b37ecddbe98c10ea8fc1bdcac",
+  "genesisTxId": "87142754e2872dcd0d9f77660774ed51e71c211a733532939910645bb4f47db8",
+  "series": {
+    "program_hash": "d425b2e1150e665d6ae672b87d3c875cde611c9eebc5178b9e32cdb58bb60fa6",
+    "artist": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "price": 5000000000,
+    "royalty_bips": 500
+  },
+  "lanes": [
+    {
+      "txId": "0978bb180c0a5af23a6b727f92be746609c98714c663270f877001c515c149b2",
+      "index": 0,
+      "mintsLeft": 1
+    }
+  ],
+  "editions": [
+    {
+      "cov": "6e99ab246ec1031f74d288f6b9cc1b46417ea03f1fc1ba33ab0c77b5424062d8",
+      "txId": "0978bb180c0a5af23a6b727f92be746609c98714c663270f877001c515c149b2",
+      "index": 1,
+      "amount": 100000000,
+      "owner": "25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b",
+      "price": 0,
+      "serial": "975712004904810359"
+    }
+  ]
+}

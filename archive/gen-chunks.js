@@ -1,0 +1,10 @@
+const fs = require('fs');
+const { blake2b } = require('@noble/hashes/blake2b');
+const B = Buffer;
+const inFile = process.argv[2] || 'art-program-v5.hex';
+const outFile = process.argv[3] || 'chunks.json';
+const art = B.from(fs.readFileSync(inFile, 'utf8').trim(), 'hex');
+const chunks = [];
+for (let i = 0; i < art.length; i += 2048) chunks.push(art.subarray(i, i + 2048).toString('hex'));
+fs.writeFileSync(outFile, JSON.stringify({ programHash: B.from(blake2b(art, { dkLen: 32 })).toString('hex'), chunks }, null, 2));
+console.log('wrote ' + outFile + ': ' + art.length + ' bytes -> ' + chunks.length + ' chunks');
