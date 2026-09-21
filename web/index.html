@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel-Cove dApp</title>
+<style>
+body{font-family:monospace;background:#1a1a1a;color:#eee;padding:20px;max-width:860px;margin:0 auto}
+.wallet{background:#2a2a2a;padding:15px;border-radius:8px;margin-bottom:20px}
+.addr{font-size:11px;word-break:break-all;color:#8af;background:#1a1a1a;padding:8px;border-radius:4px;margin:8px 0}
+.balance{font-size:18px;color:#8f8;margin:10px 0}
+button{background:#4a4a4a;color:#eee;border:none;padding:8px 14px;margin:4px;cursor:pointer;border-radius:4px;font-family:monospace;font-size:12px}
+button:hover{background:#5a5a5a}button:disabled{opacity:.4;cursor:not-allowed}
+button.go{background:#238636}button.warn{background:#9e6a03}
+.edition{background:#2a2a2a;padding:15px;margin:10px 0;border-radius:8px}
+.art-frame{width:100%;height:300px;border:1px solid #555;background:#000}
+.log{background:#0a0a0a;padding:10px;margin-top:20px;border-radius:4px;font-size:11px;max-height:260px;overflow-y:auto;white-space:pre-wrap}
+.you{color:#ff0}.price{color:#8f8}
+</style></head><body>
+<h1>🐼 Pixel-Cove dApp</h1>
+<div class="wallet">
+<h3>Session Wallet</h3>
+<div class="addr" id="addr">Loading...</div>
+<div class="balance" id="balance">Balance: ...</div>
+<button onclick="refreshBalance()">↻ Refresh</button>
+<button onclick="copyAddr()">📋 Address</button>
+<button onclick="copyPub()">📋 Pubkey</button>
+<button class="go" id="bMint" onclick="doMint()">⛏ MINT NEXT EDITION</button>
+<button id="bExport">📤 Export overlay</button>
+<p style="font-size:11px;color:#aaa">Mint costs 1 KAS to the artist + 0.1 dust. Fund via <code>node drip.js &lt;pubkey&gt; 60</code>.</p>
+</div>
+<h2>Gallery</h2>
+<div id="gallery">Loading editions...</div>
+<div class="log" id="log"></div>
+<script type="module">
+import { blake2b } from './vendor/blake2b.bundle.js';
+import { schnorr } from './vendor/schnorr.bundle.js';
+const log=m=>{const el=document.getElementById('log');el.textContent+=new Date().toISOString().substr(11,8)+' '+m+'\n';el.scrollTop=el.scrollHeight;};
+const HX=t=>Uint8Array.from(t.replace(/\s/g,'').match(/.{2}/g).map(b=>parseInt(b,16)));
+const hexb=b=>Array.from(b).map(x=>x.toString(16).padStart(2,'0')).join('');
+const cat=l=>{const n=l.reduce((a,x)=>a+x.length,0);const o=new Uint8Array(n);let p=0;for(const x of l){o.set(x,p);p+=x.length;}return o;};
+const U=a=>Uint8Array.from(a);
+const ENC=s=>new TextEncoder().encode(s);
+const le16=n=>U([n&255,(n>>8)&255]);
+const le32=n=>U([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255]);
+const le64=n=>{let v=BigInt(n);const o=new Uint8Array(8);for(let i=0;i<8;i++){o[i]=Number(v&255n);v>>=8n;}return o;};
+const sm8=le64;
+const pe=p=>{const n=p.length;if(n===0)return U([0]);if(n<=75)return cat([U([n]),p]);if(n<=255)return cat([U([0x4c,n]),p]);return cat([U([0x4d]),le16(n),p]);};
+const pmi=v=>{if(v===0)return U([0]);if(v>=1&&v<=16)return U([0x50+v]);if(v===-1)return U([0x4f]);let h=v.toString(16);if(h.length%2)h='0'+h;let b=HX(h);b.reverse();if(b[b.length-1]&0x80)b=cat([b,U([0])]);return cat([U([b.length]),b]);};
+const Kh=(d,k)=>blake2b(d,{dkLen:32,key:k||ENC('TransactionSigningHash')});
+const u8=v=>U([v&255]), vb=b=>cat([le64(b.length),b]);
+const sighash=(ins,outs,i)=>{const x=ins[i];
+  const poh=Kh(cat(ins.map(y=>cat([HX(y.txId),le32(y.index)]))));
+  const seh=Kh(cat(ins.map(y=>le64(y.sequence||0))));
+  const oh=Kh(cat(outs.map(o=>{const p=[le64(o.amount),le16(0),vb(HX(o.scriptPublicKey))];if(o.covenant)p.push(u8(1),le16(o.covenant.authorizingInput),HX(o.covenant.covenantId));else p.push(u8(0));return cat(p);})));
+  return Kh(cat([le16(1),poh,seh,HX(x.txId),le32(x.index),le16(0),vb(HX(x.spk)),le64(x.amount),le64(x.sequence),oh,le64(0),HX('00'.repeat(20)),le64(0),new Uint8Array(32),u8(1)]));};
+const p2sh=R=>'aa20'+hexb(blake2b(R,{dkLen:32}))+'87';
+// ---------- wallet ----------
+let privHex=localStorage.getItem('pc_priv');
+if(!privHex){const p=crypto.getRandomValues(new Uint8Array(32));privHex=hexb(p);localStorage.setItem('pc_priv',privHex);}
+const priv=HX(privHex);
+const pubHex=hexb(schnorr.getPublicKey(priv));
+let addr='pub:'+pubHex;
+try{const bm=await import('../bech32-solved.js');addr=bm.encodePub(pubHex);log('bech32: '+addr);}catch(e){log('bech32 unavailable: '+e.message);}
+document.getElementById('addr').textContent=addr;
+window.copyAddr=()=>{navigator.clipboard.writeText(addr);log('address copied');};
+window.copyPub=()=>{navigator.clipboard.writeText(pubHex);log('pubkey copied');};
+const FEE=2000000n, DUST=100000000n;
+async function fetchR(u,o,n){n=n||4;for(let i=0;i<n;i++){try{return await fetch(u,o);}catch(e){if(i===n-1)throw e;await new Promise(r=>setTimeout(r,2000));}}}
+async function utxosOf(a){const u=await (await fetchR('https://api-tn10.kaspa.org/addresses/'+a+'/utxos')).json();
+  return u.map(x=>({txId:x.outpoint.transactionId,index:x.outpoint.index,amount:BigInt(x.utxoEntry.amount)}));}
+window.refreshBalance=async()=>{try{const u=await utxosOf(addr);const s=u.reduce((a,x)=>a+x.amount,0n);
+  document.getElementById('balance').textContent='Balance: '+(Number(s)/1e8).toFixed(8)+' KAS';}catch(e){document.getElementById('balance').textContent='Balance: 0 KAS';}};
+// ---------- abis / state codec ----------
+let EABI=null,FABI=null,FARGS=null,FAC=null,ED=[];
+const parts=abi=>{const c=abi.contracts[Object.keys(abi.contracts)[0]];const bc=U(c.compiled.bytecode);const s=c.compiled.state_span;return {c,pre:bc.subarray(0,s.offset),suf:bc.subarray(s.offset+s.len)};};
+const encState=(P,v)=>cat(P.c.runtime_state.fields.map(f=>{const t=f.type.kind,x=v[f.name];if(t==='int'||t==='temporal')return pe(sm8(x));if(t==='byte')return pe(U([x]));return pe(HX(x));}));
+const tagOf=(c,frag)=>{const k=Object.keys(c.entries).find(k=>k.includes(frag));return HX(c.entries[k].dispatch_tag);};
+async function pollLive(cov,spk,tries){tries=tries||12;for(let i=0;i<tries;i++){try{const c=await (await fetchR('https://kascov.io/data/testnet-10/c/'+cov+'.json')).json();
+  const u=(c.utxos||[]).find(u=>u.live&&u.script_hex===spk);if(u){const [t,x]=u.outpoint.split(':');return {txId:t,index:+x,amount:BigInt(u.value)};}}catch(e){}
+  log('  indexer lag ('+(i+1)+'/'+tries+')');await new Promise(r=>setTimeout(r,4000));}return null;}
+const lastOut=()=>JSON.parse(localStorage.getItem('pc_lastout')||'{}');
+const setLastOut=(cov,op)=>{const o=lastOut();o[cov]=op;localStorage.setItem('pc_lastout',JSON.stringify(o));};
+async function pollCell(cov,spk,expectOp){for(let i=0;i<20;i++){const u=await pollLive(cov,spk,1);if(u&&(!expectOp||u.txId+':'+u.index===expectOp))return u;if(u)log('  waiting confirmation: live '+u.txId.slice(0,8)+':'+u.index+' != expected '+expectOp);await new Promise(r=>setTimeout(r,4000));}return null;}
+// ---------- art ----------
+function parsePushes(bytes){const out=[];let i=0;while(i<bytes.length){const op=bytes[i++];let len=-1;
+  if(op===0x00){out.push(new Uint8Array(0));continue;}
+  if(op>=0x01&&op<=0x4b)len=op;else if(op===0x4c){len=bytes[i];i+=1;}else if(op===0x4d){len=bytes[i]|(bytes[i+1]<<8);i+=2;}else if(op===0x4e){len=bytes[i]|(bytes[i+1]<<8)|(bytes[i+2]<<16)|(bytes[i+3]<<24);i+=4;}else continue;
+  if(len<0||i+len>bytes.length)break;out.push(bytes.slice(i,i+len));i+=len;}return out;}
+async function artFor(cov,ph){const key='pc_art_'+cov;const cached=localStorage.getItem(key);
+  if(cached&&hexb(blake2b(ENC(cached),{dkLen:32}))===ph)return cached;
+  const zeroHash=hexb(blake2b(new Uint8Array(2048),{dkLen:32}));
+  if(ph===zeroHash)return '<html><body style="margin:0;background:#151515;color:#666;display:flex;align-items:center;justify-content:center;height:100vh;font-family:monospace;font-size:12px">placeholder edition · zero-art program</body></html>';
+  try{const c=await (await fetchR('https://kascov.io/data/testnet-10/c/'+cov+'.json')).json();
+    const gen=(c.events||[]).find(e=>e.kind==='genesis');const txid=gen&&(gen.txid||gen.tx_id);
+    if(txid){const tx=await (await fetchR('https://api-tn10.kaspa.org/transactions/'+txid)).json();
+      const m=JSON.stringify(tx).match(/4d0008([0-9a-f]{4096})/i);
+      if(m){const art=HX(m[1]);
+        if(hexb(blake2b(art,{dkLen:32}))===ph){const html=new TextDecoder().decode(art);localStorage.setItem(key,html);log('art verified on-chain (blake2b matches program_hash)');return html;}}}}catch(e){log('art chain fetch failed: '+e.message);}
+  try{const local=(await (await fetchR('../art-program.hex')).text()).trim();
+    if(hexb(blake2b(HX(local),{dkLen:32}))===ph)return new TextDecoder().decode(HX(local));}catch(e){}
+  return null;}
+// ---------- overlay ----------
+const overlay=()=>JSON.parse(localStorage.getItem('pc_overlay')||'[]');
+const saveOverlay=o=>localStorage.setItem('pc_overlay',JSON.stringify(o));
+const facOv=()=>JSON.parse(localStorage.getItem('pc_fac')||'null');
+// ---------- tx engine ----------
+async function walletInput(need){const u=await utxosOf(addr);u.sort((a,b)=>Number(b.amount-a.amount));
+  const picked=[];let acc=0n;for(const x of u){picked.push({...x,spk:'20'+pubHex+'ac',sequence:0});acc+=x.amount;if(acc>=need)break;}
+  if(acc<need)throw new Error('session wallet underfunded: have '+(Number(acc)/1e8)+' need '+(Number(need)/1e8));
+  return {picked,acc};}
+const wSig=(ins,outs,i)=>cat([schnorr.sign(sighash(ins,outs,i),priv),U([1])]);
+const rpcTx=(inputs,outputs,sigs)=>({version:1,lockTime:0,subnetworkId:'00'.repeat(20),gas:0,payload:'',mass:0,
+  inputs:inputs.map((inp,k)=>({previousOutpoint:{transactionId:inp.txId,index:inp.index},signatureScript:sigs[k],sequence:0,sigOpCount:0,computeBudget:k===0?60:10})),
+  outputs:outputs.map(o=>({value:Number(o.amount),scriptPublicKey:'0000'+o.scriptPublicKey,...(o.covenant?{covenant:o.covenant}:{})}))});
+function broadcast(tx){const urls=['wss://electron-10.kaspa.stream/kaspa/testnet-10/wrpc/json','wss://vector-10.kaspa.green/kaspa/testnet-10/wrpc/json'];
+  return new Promise(res=>{const go=k=>{if(k>=urls.length)return res(null);
+    const ws=new WebSocket(urls[k]);const t=setTimeout(()=>{ws.close();go(k+1);},12000);
+    ws.onopen=()=>ws.send(JSON.stringify({id:1,method:'submitTransaction',params:{transaction:tx,allowOrphan:true}}));
+    ws.onmessage=ev=>{const s=(typeof ev.data==='string')?ev.data:JSON.stringify(ev.data);clearTimeout(t);log('📥 '+s.slice(0,300));let id=null;try{const j=JSON.parse(s);id=(j.params||j.result||{}).transactionId||null;if(!id&&j.error)log('⛔ node rejected: '+j.error.message);}catch(e){}ws.close();res(id);};
+    ws.onerror=()=>{clearTimeout(t);ws.close();go(k+1);};};go(0);});}
+async function send(inputs,outputs,sigs,label){const id=await broadcast(rpcTx(inputs,outputs,sigs));
+  if(id){log('✅ '+label+': '+id);setTimeout(()=>{refreshBalance();loadGallery();},6000);}else log('❌ '+label+' broadcast failed');
+  return id;}
+let busy=false;
+const guard=fn=>async(...a)=>{if(busy)return log('busy — wait for previous tx');busy=true;document.getElementById('bMint').disabled=true;
+  try{await fn(...a);}catch(e){log('❌ '+e.message);}finally{busy=false;document.getElementById('bMint').disabled=false;}};
+// ---------- actions ----------
+window.doMint=guard(async()=>{
+  const FP=parts(FABI),EP=parts(EABI);
+  const artHex=FARGS[0].value.map(b=>b.toString(16).padStart(2,'0')).join('');
+  const artist=FARGS[1].value.map(b=>b.toString(16).padStart(2,'0')).join('');
+  const price=BigInt(FARGS[2].value),royBips=FARGS[3].value,cap=FARGS[4].value;
+  const ov=facOv();const counter=ov?ov.counter:FAC.counter;const facId=ov?ov.covenantId:FAC.covenantId;
+  if(counter>=cap)return log('factory sold out');
+  const fState=c=>({art:artHex,artist,price:Number(price),royalty_bips:royBips,cap,counter:c});
+  const curSpk=p2sh(cat([FP.pre,encState(FP,fState(counter)),FP.suf]));
+  const fu=await pollCell(facId,curSpk,lastOut()[facId]);if(!fu)return log('factory cell not live/confirmed');
+  const eState={ownerIdentifier:pubHex,identifierType:0,price:0,artist,royalty_bips:royBips,program_hash:hexb(blake2b(HX(artHex),{dkLen:32})),factory_covid:facId,serial:counter};
+  const spkE=p2sh(cat([EP.pre,encState(EP,eState),EP.suf]));
+  const w=await walletInput(price+DUST+FEE);
+  const edCov=hexb(blake2b(cat([HX(w.picked[0].txId),le32(w.picked[0].index),le64(1),le32(1),le64(10000000),le16(0),le64(35),HX(spkE)]),{dkLen:32,key:ENC('CovenantID')}));
+  const outputs=[{amount:fu.amount,scriptPublicKey:p2sh(cat([FP.pre,encState(FP,fState(counter+1)),FP.suf])),covenant:{authorizingInput:0,covenantId:facId}},
+    {amount:10000000n,scriptPublicKey:spkE,covenant:{authorizingInput:1,covenantId:edCov}},
+    {amount:price,scriptPublicKey:'20'+artist+'ac'},
+    {amount:w.acc-price-10000000n-FEE,scriptPublicKey:'20'+pubHex+'ac'}];
+  const inputs=[{...fu,spk:curSpk,sequence:0},...w.picked];
+  const sig0=hexb(cat([pe(HX(pubHex)),pmi(2),pmi(1),pe(tagOf(FP.c,'mint')),pe(cat([FP.pre,encState(FP,fState(counter)),FP.suf]))]));
+  const id=await send(inputs,outputs,[sig0,...w.picked.map((_,k)=>hexb(pe(wSig(inputs,outputs,1+k))))],'mint #'+counter);
+  if(id){setLastOut(facId,id+':0');localStorage.setItem('pc_fac',JSON.stringify({covenantId:facId,counter:counter+1}));
+    const o=overlay();o.push({...eState,covenantId:edCov});saveOverlay(o);}});
+function editionButtons(ed,host){
+  if(ed.price>0){const b=document.createElement('button');b.className='go';b.textContent='BUY '+(ed.price/1e8).toFixed(2);
+    b.onclick=guard(()=>doBuy(ed));host.appendChild(b);}
+  if(ed.ownerIdentifier===pubHex){
+    const mk=(t,cls,f)=>{const b=document.createElement('button');b.className=cls||'';b.textContent=t;b.onclick=guard(f);host.appendChild(b);};
+    mk('LIST','warn',()=>doList(ed,false));
+    if(ed.price>0)mk('UNLIST','',()=>doList(ed,true));
+    mk('SELL','warn',()=>doSell(ed));
+    mk('TRANSFER','',()=>doTransfer(ed));}}
+async function doBuy(ed){const EP=parts(EABI);
+  const oldRedeem=cat([EP.pre,encState(EP,ed),EP.suf]);const oldSpk=p2sh(oldRedeem);
+  const u=await pollCell(ed.covenantId,oldSpk,lastOut()[ed.covenantId]);if(!u)return log('edition cell not live/confirmed');
+  const price=BigInt(ed.price);const roy=price*BigInt(ed.royalty_bips)/10000n;
+  const out0=u.amount>DUST?u.amount:DUST,out2=roy>0n?(roy>DUST?roy:DUST):0n;
+  const w=await walletInput(out0+price+out2+FEE-u.amount>0n?out0+price+out2+FEE-u.amount:FEE);
+  const outputs=[{amount:out0,scriptPublicKey:p2sh(cat([EP.pre,encState(EP,{...ed,ownerIdentifier:pubHex,identifierType:0,price:0}),EP.suf])),covenant:{authorizingInput:0,covenantId:ed.covenantId}},
+    {amount:price,scriptPublicKey:'20'+ed.ownerIdentifier+'ac'}];
+  if(out2>0n)outputs.push({amount:out2,scriptPublicKey:'20'+ed.artist+'ac'});
+  outputs.push({amount:w.acc+u.amount-outputs.reduce((a,o)=>a+o.amount,0n)-FEE,scriptPublicKey:'20'+pubHex+'ac'});
+  const inputs=[{...u,spk:oldSpk,sequence:0},...w.picked];
+  const sig0=hexb(cat([pe(HX(pubHex)),pe(U([0])),pmi(1),pmi(out2>0n?2:1),pe(tagOf(EP.c,'buy')),pe(oldRedeem)]));
+  const id=await send(inputs,outputs,[sig0,...w.picked.map((_,k)=>hexb(pe(wSig(inputs,outputs,1+k))))],'buy #'+ed.serial);
+  if(id){setLastOut(ed.covenantId,id+':0');updOverlay({...ed,ownerIdentifier:pubHex,price:0});}}
+async function doList(ed,unlist){const np=unlist?0:Math.round(parseFloat(prompt('List price (KAS):','1.5'))*1e8);if(np==null||isNaN(np)||np<0)return;
+  const EP=parts(EABI);const oldRedeem=cat([EP.pre,encState(EP,ed),EP.suf]);const oldSpk=p2sh(oldRedeem);
+  const u=await pollCell(ed.covenantId,oldSpk,lastOut()[ed.covenantId]);if(!u)return log('cell not live/confirmed');
+  const out0=u.amount>DUST?u.amount:DUST;const w=await walletInput(out0+FEE-u.amount>0n?out0+FEE-u.amount:FEE);
+  const outputs=[{amount:out0,scriptPublicKey:p2sh(cat([EP.pre,encState(EP,{...ed,price:np}),EP.suf])),covenant:{authorizingInput:0,covenantId:ed.covenantId}},
+    {amount:w.acc+u.amount-out0-FEE,scriptPublicKey:'20'+pubHex+'ac'}];
+  const inputs=[{...u,spk:oldSpk,sequence:0},...w.picked];
+  const sig0=hexb(cat([pe(wSig(inputs,outputs,0)),pmi(np),pe(tagOf(EP.c,'list')),pe(oldRedeem)]));
+  const id=await send(inputs,outputs,[sig0,...w.picked.map((_,k)=>hexb(pe(wSig(inputs,outputs,1+k))))],'list #'+ed.serial+' @ '+np);
+  if(id){setLastOut(ed.covenantId,id+':0');updOverlay({...ed,price:np});}}
+async function doSell(ed){const ask=Math.round(parseFloat(prompt('OTC ask (KAS):','2.0'))*1e8);if(!ask)return;
+  const buyer=prompt('Buyer pubkey hex (32B):',pubHex);if(!buyer||buyer.length!==64)return;
+  const EP=parts(EABI);const oldRedeem=cat([EP.pre,encState(EP,ed),EP.suf]);const oldSpk=p2sh(oldRedeem);
+  const u=await pollCell(ed.covenantId,oldSpk,lastOut()[ed.covenantId]);if(!u)return log('cell not live/confirmed');
+  const roy=BigInt(ask)*BigInt(ed.royalty_bips)/10000n;const out0=u.amount>DUST?u.amount:DUST,out2=roy>DUST?roy:DUST;
+  const w=await walletInput(out0+out2+FEE-u.amount>0n?out0+out2+FEE-u.amount:FEE);
+  const outputs=[{amount:out0,scriptPublicKey:p2sh(cat([EP.pre,encState(EP,{...ed,ownerIdentifier:buyer,identifierType:0,price:0}),EP.suf])),covenant:{authorizingInput:0,covenantId:ed.covenantId}},
+    {amount:BigInt(ask),scriptPublicKey:'20'+ed.ownerIdentifier+'ac'},{amount:out2,scriptPublicKey:'20'+ed.artist+'ac'},
+    {amount:w.acc+u.amount-out0-BigInt(ask)-out2-FEE,scriptPublicKey:'20'+pubHex+'ac'}];
+  const inputs=[{...u,spk:oldSpk,sequence:0},...w.picked];
+  const sig0=hexb(cat([pe(wSig(inputs,outputs,0)),pe(HX(buyer)),pe(U([0])),pmi(ask),pmi(1),pmi(2),pe(tagOf(EP.c,'sell')),pe(oldRedeem)]));
+  const id=await send(inputs,outputs,[sig0,...w.picked.map((_,k)=>hexb(pe(wSig(inputs,outputs,1+k))))],'sell #'+ed.serial);
+  if(id){setLastOut(ed.covenantId,id+':0');updOverlay({...ed,ownerIdentifier:buyer,price:0});}}
+async function doTransfer(ed){const no=prompt('New owner pubkey hex (32B):');if(!no||no.length!==64)return;
+  const EP=parts(EABI);const oldRedeem=cat([EP.pre,encState(EP,ed),EP.suf]);const oldSpk=p2sh(oldRedeem);
+  const u=await pollCell(ed.covenantId,oldSpk,lastOut()[ed.covenantId]);if(!u)return log('cell not live/confirmed');
+  const out0=u.amount>DUST?u.amount:DUST;const w=await walletInput(out0+FEE-u.amount>0n?out0+FEE-u.amount:FEE);
+  const outputs=[{amount:out0,scriptPublicKey:p2sh(cat([EP.pre,encState(EP,{...ed,ownerIdentifier:no,identifierType:0,price:0}),EP.suf])),covenant:{authorizingInput:0,covenantId:ed.covenantId}},
+    {amount:w.acc+u.amount-out0-FEE,scriptPublicKey:'20'+pubHex+'ac'}];
+  const inputs=[{...u,spk:oldSpk,sequence:0},...w.picked];
+  const sig0=hexb(cat([pe(wSig(inputs,outputs,0)),pe(HX(no)),pe(U([0])),pe(tagOf(EP.c,'transfer')),pe(oldRedeem)]));
+  const id=await send(inputs,outputs,[sig0,...w.picked.map((_,k)=>hexb(pe(wSig(inputs,outputs,1+k))))],'transfer #'+ed.serial);
+  if(id){setLastOut(ed.covenantId,id+':0');updOverlay({...ed,ownerIdentifier:no,price:0});}}
+function updOverlay(ed){const o=overlay();const i=o.findIndex(x=>x.covenantId===ed.covenantId);if(i>=0)o[i]=ed;else o.push(ed);saveOverlay(o);}
+// ---------- gallery ----------
+async function loadGallery(){
+  try{EABI=JSON.parse(await (await fetchR('../edition-abi-v3.json')).text());
+    FABI=JSON.parse(await (await fetchR('../factory-abi-v3.json')).text());
+    FARGS=JSON.parse(await (await fetchR('../factory-args-v3.json')).text());
+    FAC=JSON.parse(await (await fetchR('../factory-ledger-v3.json')).text());
+    const base=JSON.parse(await (await fetchR('../editions-ledger.json')).text());
+    const ov=overlay();ED=base.filter(e=>!ov.find(o=>o.covenantId===e.covenantId)).concat(ov);
+  }catch(e){log('load failed: '+e.message);return;}
+  const g=document.getElementById('gallery');g.innerHTML='';
+  for(const ed of ED){const div=document.createElement('div');div.className='edition';
+    const mine=ed.ownerIdentifier===pubHex;
+    div.innerHTML='<h4>Edition #'+ed.serial+' '+(mine?'<span class="you">(YOU)</span>':'')+'</h4>'
+      +'<p><b>Covenant:</b> '+ed.covenantId.substr(0,16)+'...</p>'
+      +'<p><b>Owner:</b> '+ed.ownerIdentifier.substr(0,16)+'...</p>'
+      +'<p><b>Price:</b> '+(ed.price?'<span class="price">'+(ed.price/1e8).toFixed(2)+' KAS</span>':'Not listed')+'</p>'
+      +'<p><b>Serial:</b> '+ed.serial+'</p><iframe class="art-frame"></iframe><div class="btns"></div>';
+    g.appendChild(div);
+    editionButtons(ed,div.querySelector('.btns'));
+    artFor(ed.covenantId,ed.program_hash).then(html=>{if(html)div.querySelector('iframe').srcdoc='<scr'+'ipt>window.SERIAL='+ed.serial+';</scr'+'ipt>'+html;});}
+  log('Loaded '+ED.length+' editions from ledger');}
+document.getElementById('bExport').onclick=()=>{navigator.clipboard.writeText(JSON.stringify({overlay:overlay(),fac:facOv(),lastout:lastOut()}));log('overlay JSON copied to clipboard');};
+window.refreshBalance();
+loadGallery();
+</script></body></html>

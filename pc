@@ -1,0 +1,21 @@
+#!/data/data/com.termux/files/usr/bin/bash
+cd ~/pixel-cove || exit 1
+case "${1:-help}" in
+  server) case "${2:-start}" in
+    start) termux-wake-lock 2>/dev/null; nohup npx http-server -p 8080 -c-1 --silent >/tmp/pc-server.log 2>&1 &
+           sleep 1; echo "server up → http://localhost:8080/web/  (lan: http://$(hostname 2>/dev/null):8080/web/)";;
+    stop)  pkill -f http-server; termux-wake-unlock 2>/dev/null; echo "server stopped";;
+    log)   tail -n 40 /tmp/pc-server.log;;
+    *) echo "pc server {start|stop|log}";; esac;;
+  doctor) node pc-doctor.js;;
+  verify) node verify-v3.js;;
+  state)  node probe-fac-state.js;;
+  bech32) node bech32-solved.js;;
+  addr)   node -e "import('./bech32-solved.js').then(m=>console.log(m.encodePub(process.argv[1])))" "$2";;
+  backup) TS=$(date +%Y%m%d-%H%M); OUT=~/pixel-cove-$TS.tar.gz
+          tar --exclude=node_modules -czf "$OUT" . ~/opt/silverscript/contracts ~/opt/silverscript/target/release/silverc 2>/dev/null \
+            || tar --exclude=node_modules -czf "$OUT" . ~/opt/silverscript/contracts
+          ls -lh "$OUT"; echo "copy it off-device (this tar now includes the silverc binary)";;
+  git)    git add -A && git commit -m "${2:-checkpoint}" && git log --oneline | head -3;;
+  *) echo "usage: pc {server start|stop|log | doctor | verify | state | bech32 | addr <pubhex> | backup | git [msg]}";;
+esac

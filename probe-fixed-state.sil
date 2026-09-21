@@ -1,0 +1,7 @@
+pragma silverscript ^0.1.0;
+contract ProbeFixed(byte[8] init_blob) {
+    byte[8] blob = init_blob;
+    entry touch() {
+        require(blob.length == 8);
+    }
+}

@@ -1,0 +1,11 @@
+const fs = require('fs');
+const { execSync } = require('child_process');
+const V = require('./v8-lib.js');
+const trePriv = require('crypto').randomBytes(32).toString('hex');
+const trePub = execSync('PC_PRIV=' + trePriv + ' PC_NET=testnet node -e "console.log(require(\'./v8-lib.js\').USER)"').toString().trim();
+fs.appendFileSync('secrets-v11.env', '\nexport PC_TREASURY_PRIV=' + trePriv + '\n');
+const cfg = { artist: V.USER, price: 100000000, royalty_bips: 500, mints_left: 8, treasury: trePub };
+fs.writeFileSync('data/series-testnet-v11.json', JSON.stringify(cfg, null, 2));
+console.log('artist  :', V.USER);
+console.log('treasury:', trePub, '(receive-only; priv appended to secrets-v11.env)');
+console.log('series  :', JSON.stringify(cfg));

@@ -1,0 +1,148 @@
+pragma silverscript ^0.1.0;
+
+// ReliksEdition-v10 — pure NFT asset state machine (Phase 2 composition).
+// Homogeneous 1:1 covenant family: every route is an auth-bound singleton
+// DECL declaration. Issuance policy lives in ReliksMinter-v10 (separate
+// controller), which spawns this template via validateOutputStateWithTemplate
+// and validates editions via validateOutputStateWithInputTemplate.
+// OfferEscrow-v3 binds editions from the escrow side (accept); the Edition
+// itself never references escrow templates (keeps template hash stable).
+// State field order matches v3/v4/v8 EditionState positions for decoder
+// compatibility (field 6 = factory_covid, unchanged name and position).
+// Carrier value (the KAS riding inside the covenant UTXO) is intentionally
+// UNCONSTRAINED per audit finding (D): builders manage storage-mass fuel;
+// consensus only exact-checks the payment split on P2PK outputs.
+//
+// v10 AUDIT FIX: Added index-distinctness guards in checkPayments to prevent
+// underpayment edge cases when royalty_bips == PLATFORM_BIPS (1%).
+
+contract ReliksEdition(
+    byte[32] init_owner,
+    byte init_scheme,
+    int init_price,
+    byte[32] init_artist,
+    int init_royalty_bips,
+    byte[32] init_program_hash,
+    byte[32] init_factory_covid,
+    int init_serial
+) {
+    byte[32] ownerIdentifier = init_owner;
+    byte identifierType = init_scheme;
+    int price = init_price;
+    byte[32] artist = init_artist;
+    int royalty_bips = init_royalty_bips;
+    byte[32] program_hash = init_program_hash;
+    byte[32] factory_covid = init_factory_covid;
+    int serial = init_serial;
+
+    byte constant IDENTIFIER_PUBKEY = 0x00;
+    int constant PLATFORM_BIPS = 100;              // 1% protocol fee
+    int constant MIN_PRICE = 500000000;            // 5 KAS mass-safe floor (F-B14)
+    int constant MAX_PRICE = 922337203685477;      // i64 overflow guard for price*bips
+
+    // Owner authorization + pubkey-scheme gating (v2 scheme-brick remediation).
+    function ownerAuthorized(sig ownerSig) {
+        require(identifierType == IDENTIFIER_PUBKEY);
+        require(checkSig(ownerSig, pubkey(ownerIdentifier)));
+    }
+
+    // Exact-equality payment split for a sale at salePrice.
+    // Below FEE_MERGE_THRESHOLD the 1% protocol fee is merged into the
+    // creator (artist) cut to keep every output above the storage-mass cliff.
+    function checkPayments(int salePrice, int ownerOutIdx, int artistOutIdx, int platformOutIdx) {
+        require(identifierType == IDENTIFIER_PUBKEY);
+        
+        // AUDIT FIX: Prevent index aliasing (underpayment edge case when roy == fee)
+        require(ownerOutIdx != artistOutIdx);
+        require(ownerOutIdx != platformOutIdx);
+        require(artistOutIdx != platformOutIdx);
+        
+        int fee = (salePrice * PLATFORM_BIPS) / 10000;
+        int roy = (salePrice * royalty_bips) / 10000;
+        int ownerNet = salePrice - roy - fee;
+        require(ownerNet >= 0);
+        byte[36] artistSpk = new ScriptPubKeyP2PK(pubkey(artist));
+        byte[36] ownerSpk = new ScriptPubKeyP2PK(pubkey(ownerIdentifier));
+        require(tx.outputs[ownerOutIdx].value >= ownerNet);
+        require(tx.outputs[ownerOutIdx].scriptPubKey == byte[](ownerSpk));
+        require(tx.outputs[artistOutIdx].value == roy);
+        require(tx.outputs[artistOutIdx].scriptPubKey == byte[](artistSpk));
+        require(tx.outputs[platformOutIdx].value == fee);
+        require(tx.outputs[platformOutIdx].scriptPubKey == byte[](artistSpk));
+    }
+
+    // Successor state after any ownership change: custody clears the listing.
+    function clearedState(byte[32] newOwner): State {
+        return State {
+            ownerIdentifier: newOwner,
+            identifierType: IDENTIFIER_PUBKEY,
+            price: 0,
+            artist: artist,
+            royalty_bips: royalty_bips,
+            program_hash: program_hash,
+            factory_covid: factory_covid,
+            serial: serial
+        };
+    }
+
+    // Owner sets a public listing price (unlist is a separate route).
+    #[covenant(binding = auth, from = 1, to = 1, mode = transition, name = list)]
+    function listPolicy(State prev_state, int newPrice, sig ownerSig) : (State) {
+        ownerAuthorized(ownerSig);
+        require(newPrice >= MIN_PRICE && newPrice <= MAX_PRICE);
+        return State {
+            ownerIdentifier: prev_state.ownerIdentifier,
+            identifierType: prev_state.identifierType,
+            price: newPrice,
+            artist: prev_state.artist,
+            royalty_bips: prev_state.royalty_bips,
+            program_hash: prev_state.program_hash,
+            factory_covid: prev_state.factory_covid,
+            serial: prev_state.serial
+        };
+    }
+
+    // Owner clears the listing (price -> 0). Separate tag for UI clarity.
+    #[covenant(binding = auth, from = 1, to = 1, mode = transition, name = unlist)]
+    function unlistPolicy(State prev_state, sig ownerSig) : (State) {
+        ownerAuthorized(ownerSig);
+        return clearedState(prev_state.ownerIdentifier);
+    }
+
+    // Permissionless taker of a public listing. No owner signature: the
+    // listing itself is the authorization; payments are exact-equality.
+    #[covenant(binding = auth, from = 1, to = 1, mode = transition, name = buy)]
+    function buyPolicy(State prev_state, byte[32] buyer, int ownerOutIdx, int artistOutIdx, int platformOutIdx) : (State) {
+        require(price > 0);
+        require(price <= MAX_PRICE);
+        checkPayments(price, ownerOutIdx, artistOutIdx, platformOutIdx);
+        return clearedState(buyer);
+    }
+
+    // Owner-initiated direct (unlisted) sale at an in-transaction price.
+    // salePrice == 0 degenerates to a signed free handoff to buyer.
+    #[covenant(binding = auth, from = 1, to = 1, mode = transition, name = sell)]
+    function sellPolicy(State prev_state, byte[32] buyer, int salePrice, int ownerOutIdx, int artistOutIdx, int platformOutIdx, sig ownerSig) : (State) {
+        ownerAuthorized(ownerSig);
+        require(salePrice == 0 || (salePrice >= MIN_PRICE && salePrice <= MAX_PRICE));
+        if (salePrice > 0) {
+            checkPayments(salePrice, ownerOutIdx, artistOutIdx, platformOutIdx);
+        }
+        return clearedState(buyer);
+    }
+
+    // Royalty-free custody move; force-clears the listing (F-03).
+    #[covenant(binding = auth, from = 1, to = 1, mode = transition, name = transfer)]
+    function transferPolicy(State prev_state, byte[32] newOwner, sig ownerSig) : (State) {
+        ownerAuthorized(ownerSig);
+        return clearedState(newOwner);
+    }
+
+    // Terminal dust-recovery: burns the covenant, returns carrier value
+    // off-covenant (builder pays owner P2PK). Singleton termination opt-in.
+    #[covenant(binding = auth, from = 1, to = 1, mode = transition, termination = allowed, name = spend)]
+    function spendPolicy(State prev_state, sig ownerSig) : (State[]) {
+        ownerAuthorized(ownerSig);
+        return State[]{};
+    }
+}

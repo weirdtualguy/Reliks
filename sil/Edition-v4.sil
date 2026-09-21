@@ -1,0 +1,96 @@
+pragma silverscript ^0.1.0;
+
+contract Edition(
+    byte[32] init_owner,
+    byte init_scheme,
+    int init_price,
+    byte[32] init_artist,
+    int init_royalty_bips,
+    byte[32] init_program_hash,
+    byte[32] init_factory_covid,
+    int init_serial
+) {
+    byte[32] ownerIdentifier = init_owner;
+    byte identifierType = init_scheme;
+    int price = init_price;
+    byte[32] artist = init_artist;
+    int royalty_bips = init_royalty_bips;
+    byte[32] program_hash = init_program_hash;
+    byte[32] factory_covid = init_factory_covid;
+    int serial = init_serial;
+
+    byte constant IDENTIFIER_PUBKEY = 0x00;
+    int constant MIN_PRICE = 1000000;          // 0.01 KAS: keeps roy and fee non-dust
+    int constant PLATFORM_BIPS = 100;          // 1% protocol fee (goes to artist per decision #3)
+
+    function paySplits(int gross, int paymentOutIdx, int royaltyOutIdx, int platformOutIdx) {
+        int roy = (gross * royalty_bips) / 10000;
+        int fee = (gross * PLATFORM_BIPS) / 10000;
+        byte[36] ownerSpk = new ScriptPubKeyP2PK(pubkey(ownerIdentifier));
+        byte[36] artistSpk = new ScriptPubKeyP2PK(pubkey(artist));
+        require(tx.outputs[paymentOutIdx].value >= gross - roy - fee);
+        require(tx.outputs[paymentOutIdx].scriptPubKey == byte[](ownerSpk));
+        require(tx.outputs[royaltyOutIdx].value == roy);
+        require(tx.outputs[royaltyOutIdx].scriptPubKey == byte[](artistSpk));
+        require(tx.outputs[platformOutIdx].value == fee);
+        require(tx.outputs[platformOutIdx].scriptPubKey == byte[](artistSpk));
+    }
+
+    entry list(sig ownerSig, int newPrice) {
+        require(identifierType == IDENTIFIER_PUBKEY);
+        require(checkSig(ownerSig, pubkey(ownerIdentifier)));
+        require(newPrice == 0 || newPrice >= MIN_PRICE);
+        require(OpAuthOutputCount(this.activeInputIndex) == 1);
+        int outIdx = OpAuthOutputIdx(this.activeInputIndex, 0);
+        validateOutputState(outIdx, State {
+            ownerIdentifier: ownerIdentifier, identifierType: identifierType, price: newPrice,
+            artist: artist, royalty_bips: royalty_bips, program_hash: program_hash,
+            factory_covid: factory_covid, serial: serial
+        });
+    }
+
+    entry buy(byte[32] buyer, byte buyerScheme, int paymentOutIdx, int royaltyOutIdx, int platformOutIdx) {
+        require(identifierType == IDENTIFIER_PUBKEY);
+        require(price >= MIN_PRICE);
+        paySplits(price, paymentOutIdx, royaltyOutIdx, platformOutIdx);
+        require(OpAuthOutputCount(this.activeInputIndex) == 1);
+        int outIdx = OpAuthOutputIdx(this.activeInputIndex, 0);
+        validateOutputState(outIdx, State {
+            ownerIdentifier: buyer, identifierType: buyerScheme, price: 0,
+            artist: artist, royalty_bips: royalty_bips, program_hash: program_hash,
+            factory_covid: factory_covid, serial: serial
+        });
+    }
+
+    entry sell(sig ownerSig, byte[32] buyer, byte scheme, int askPrice, int paymentOutIdx, int royaltyOutIdx, int platformOutIdx) {
+        require(identifierType == IDENTIFIER_PUBKEY);
+        require(checkSig(ownerSig, pubkey(ownerIdentifier)));
+        require(askPrice >= MIN_PRICE);
+        paySplits(askPrice, paymentOutIdx, royaltyOutIdx, platformOutIdx);
+        require(OpAuthOutputCount(this.activeInputIndex) == 1);
+        int outIdx = OpAuthOutputIdx(this.activeInputIndex, 0);
+        validateOutputState(outIdx, State {
+            ownerIdentifier: buyer, identifierType: scheme, price: 0,
+            artist: artist, royalty_bips: royalty_bips, program_hash: program_hash,
+            factory_covid: factory_covid, serial: serial
+        });
+    }
+
+    // Custody-only handoff: no payments, no royalty, no platform fee.
+    entry transfer(sig ownerSig, byte[32] newOwner, byte newScheme) {
+        require(identifierType == IDENTIFIER_PUBKEY);
+        require(checkSig(ownerSig, pubkey(ownerIdentifier)));
+        require(OpAuthOutputCount(this.activeInputIndex) == 1);
+        int outIdx = OpAuthOutputIdx(this.activeInputIndex, 0);
+        validateOutputState(outIdx, State {
+            ownerIdentifier: newOwner, identifierType: newScheme, price: 0,
+            artist: artist, royalty_bips: royalty_bips, program_hash: program_hash,
+            factory_covid: factory_covid, serial: serial
+        });
+    }
+
+    entry spend(sig s) {
+        require(identifierType == IDENTIFIER_PUBKEY);
+        require(checkSig(s, pubkey(ownerIdentifier)));
+    }
+}

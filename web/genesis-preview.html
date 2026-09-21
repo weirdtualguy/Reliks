@@ -1,0 +1,50 @@
+<!doctype html><html><head><meta charset=utf-8><title>RELIKS GENESIS</title>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}canvas{width:100vw;height:100vh;display:block}</style>
+</head><body><canvas id=c></canvas><script>
+"use strict";
+var cv=document.getElementById('c'),g=cv.getContext('2d'),W,H,i;
+function rs(){W=cv.width=innerWidth*devicePixelRatio;H=cv.height=innerHeight*devicePixelRatio}rs();onresize=rs;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+var R=mulberry32(0x9E3779B9^1);
+var STARS=[];for(i=0;i<420;i++)STARS.push([R(),R(),R()*1.6+0.3,R()]);
+var AUDIT="256a6f25 1b128529 8326c4a7 6eb850d3 36675063 48137a63 c2939697";
+var PAL=['245,197,66','66,232,245','245,66,200'];
+function branch(x,y,a,l,d,t){
+ if(d<=0||l<2)return;
+ var x2=x+Math.cos(a)*l,y2=y+Math.sin(a)*l;
+ g.strokeStyle='rgba('+PAL[d%3]+','+(0.10+0.09*d)+')';
+ g.lineWidth=d*0.35;
+ g.beginPath();g.moveTo(x,y);
+ g.quadraticCurveTo(x+Math.cos(a+0.35)*l*0.5,y+Math.sin(a+0.35)*l*0.5,x2,y2);
+ g.stroke();
+ var s=0.62+0.10*Math.sin(t+d);
+ branch(x2,y2,a-0.42-0.10*Math.sin(t*0.7+d),l*s,d-1,t);
+ branch(x2,y2,a+0.46+0.08*Math.cos(t*0.6+d),l*s,d-1,t);
+}
+function frame(ms){
+ var t=ms*0.00045;
+ var bg=g.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.7);
+ bg.addColorStop(0,'#05060f');bg.addColorStop(1,'#000');
+ g.fillStyle=bg;g.fillRect(0,0,W,H);
+ for(i=0;i<STARS.length;i++){var s=STARS[i];g.fillStyle='rgba(255,255,255,'+(0.25+0.55*Math.abs(Math.sin(t*2+s[3]*9)))+')';g.fillRect(s[0]*W,s[1]*H,s[2],s[2]);}
+ var cx=W/2,cy=H/2;
+ for(i=7;i>0;i--){var r=Math.max(W,H)*0.06*i*(1+0.05*Math.sin(t+i));g.strokeStyle='rgba(120,160,255,'+(0.05+0.03*(8-i))+')';g.lineWidth=1.2;g.beginPath();g.arc(cx,cy,r,0,7);g.stroke();}
+ var core=60+8*Math.sin(t*3);
+ var cg=g.createRadialGradient(cx,cy,0,cx,cy,core*3);
+ cg.addColorStop(0,'rgba(255,255,255,0.95)');cg.addColorStop(0.25,'rgba(180,200,255,0.5)');cg.addColorStop(1,'rgba(0,0,0,0)');
+ g.fillStyle=cg;g.beginPath();g.arc(cx,cy,core*3,0,7);g.fill();
+ var L=Math.min(W,H)*0.16;
+ for(i=0;i<6;i++){var a=-Math.PI/2+i*Math.PI/3+t*0.05;branch(cx+Math.cos(a)*L*0.35,cy+Math.sin(a)*L*0.35,a,L,6,t);}
+ var bh=Math.max(70,H*0.085);
+ g.fillStyle='rgba(2,3,8,0.72)';g.fillRect(0,H-bh,W,bh);
+ var f1=Math.max(12,H*0.020),f2=Math.max(9,H*0.013);
+ g.textBaseline='top';
+ g.fillStyle='#f5c542';g.font='bold '+f1+'px monospace';
+ g.fillText('RELIKS \u2014 GENESIS',W*0.03,H-bh+f2*0.8);
+ g.fillStyle='#9fb4ff';g.font=f2+'px monospace';
+ g.fillText('SERIAL 1 OF 1 \u00b7 PRICE 10 KAS \u00b7 ROYALTY 5% \u00b7 PROTOCOL 1% \u00b7 FEE STACK ENFORCED ON-CHAIN',W*0.03,H-bh+f2*0.8+f1*1.2);
+ g.fillText('TESTNET PROOF TX: '+AUDIT,W*0.03,H-bh+f2*0.8+f1*1.2+f2*1.3);
+ requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script></body></html>

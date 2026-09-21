@@ -1,0 +1,60 @@
+pragma silverscript ^0.1.0;
+
+contract ArtFactory(
+    byte[2048] program_art,
+    byte[32] artist_id,
+    int mint_price_sompi,
+    int royalty_bips_val,
+    int edition_cap,
+    int init_counter,
+    int templatePrefixLen,
+    int templateSuffixLen,
+    byte[32] expectedTemplateHash
+) {
+    byte constant IDENTIFIER_PUBKEY = 0x00;
+
+    byte[2048] art = program_art;
+    byte[32] artist = artist_id;
+    int price = mint_price_sompi;
+    int royalty_bips = royalty_bips_val;
+    int cap = edition_cap;
+    int counter = init_counter;
+
+    struct ArtEditionState {
+        byte[32] ownerIdentifier;
+        byte identifierType;
+        int price;
+        byte[32] artist;
+        int royalty_bips;
+        byte[32] program_hash;
+        int serial;
+    }
+
+    #[covenant(binding = auth, from = 1, to = 1, mode = verification)]
+    function mint(State prev_state, State[] new_states, byte[32] buyerIdentifier, byte buyerScheme, int paymentOutIdx, int editionOutIdx, byte[] templatePrefix, byte[] templateSuffix) {
+        require(prev_state.counter < prev_state.cap);
+        require(templatePrefix.length == templatePrefixLen);
+        require(templateSuffix.length == templateSuffixLen);
+        byte[] artistSpk = byte[](new ScriptPubKeyP2PK(pubkey(prev_state.artist)));
+        require(tx.outputs[paymentOutIdx].value >= prev_state.price);
+        require(tx.outputs[paymentOutIdx].scriptPubKey == artistSpk);
+        byte[32] programHash = blake2b(byte[](prev_state.art));
+        ArtEditionState editionState = ArtEditionState {
+            ownerIdentifier: buyerIdentifier,
+            identifierType: buyerScheme,
+            price: 0,
+            artist: prev_state.artist,
+            royalty_bips: prev_state.royalty_bips,
+            program_hash: programHash,
+            serial: prev_state.counter
+        };
+        validateOutputStateWithTemplate(editionOutIdx, editionState, templatePrefix, templateSuffix, expectedTemplateHash);
+        require(new_states.length == 1);
+        require(new_states[0].counter == prev_state.counter + 1);
+        require(new_states[0].art == prev_state.art);
+        require(new_states[0].artist == prev_state.artist);
+        require(new_states[0].price == prev_state.price);
+        require(new_states[0].royalty_bips == prev_state.royalty_bips);
+        require(new_states[0].cap == prev_state.cap);
+    }
+}

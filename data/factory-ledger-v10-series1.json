@@ -1,0 +1,43 @@
+{
+  "C": "128a26d7f902910bc9d792520fb8cc2ab15db69c6e1261cad575d016e110e788",
+  "genesisTxId": "287685e3e0fc684950c4d0ab71d74e6af8f69f1bda972bf2ccf9afe41eac01c9",
+  "series": {
+    "program_hash": "8ad0717df91abe588dba3237a874285e3c9928694e8cffdb56a84e88831bb1d9",
+    "artist": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "price": 500000000,
+    "royalty_bips": 500,
+    "engine_lang": 0,
+    "render_hash": "41cdf1240f72cf8a0eb212fc2cf699cc863e208b516a5f87ad536adf62ebd468"
+  },
+  "lanes": [
+    {
+      "txId": "7d180a7cb39c5a6877a8aef3b61f6fd02b08863f1465e5799df6d15fa4219a0e",
+      "index": 0,
+      "mintsLeft": 0
+    }
+  ],
+  "editions": [
+    {
+      "cov": "7b3207389c8163cfdc7b4cd4578c1d456724c04e417a271db201aab18b8d09db",
+      "txId": "5d1c5b574fa109bc2445d10e31d0c8066f9190f5bb3c6d9165409907ba87e70e",
+      "index": 1,
+      "amount": 100000000,
+      "owner": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+      "price": 0,
+      "serial": "2316573588301712809",
+      "spk": "aa20c99668d3d83327e2c799a6bc880b500b4d0483db4d01131850c886532082217c87",
+      "templateHash": "8ce05da97392076fcb2c39de5bae065a01fe9c3c87ae0f137d60c645483e5a63"
+    },
+    {
+      "cov": "7f33afbb921029ea04e2104085c6e5a825124935c47ce092b00a69c5600fb509",
+      "txId": "7d180a7cb39c5a6877a8aef3b61f6fd02b08863f1465e5799df6d15fa4219a0e",
+      "index": 1,
+      "amount": 100000000,
+      "owner": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+      "price": 0,
+      "serial": "1926707513164653245",
+      "spk": "aa206c5188bf1240e5b9b933195b975cf1487dfc638c74afd2dce6bb6130d963d0e487",
+      "templateHash": "8ce05da97392076fcb2c39de5bae065a01fe9c3c87ae0f137d60c645483e5a63"
+    }
+  ]
+}

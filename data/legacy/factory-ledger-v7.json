@@ -1,0 +1,34 @@
+{
+  "C": "e9ae4dbfde97222fb4b24b1d0dd4e9ad8b3ed59ee35c9d1fc0f0e5a6e7013116",
+  "genesisTxId": "319542177a8ba38497087d038f9663613e261b04c4b54d2401bbd3e47fd408d1",
+  "series": {
+    "program_hash": "d425b2e1150e665d6ae672b87d3c875cde611c9eebc5178b9e32cdb58bb60fa6",
+    "artist": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "price": 100000000,
+    "royalty_bips": 500
+  },
+  "lanes": [
+    {
+      "txId": "d78241b2218efb0ce196ff301957c90843260e7a5b0b6c20e351f220da7cd510",
+      "index": 0,
+      "mintsLeft": 1
+    },
+    {
+      "txId": "0bcc4c3613e147b9b4edeb54efd806fdb8ad67b360a1724a21a51a5b331bf767",
+      "index": 0,
+      "mintsLeft": 1
+    }
+  ],
+  "editions": [
+    "93c889781b1bced77f93c1132225b8c4c684a63139357ba0e0e3269cd49eda00",
+    "ec8849f4eeee2703e8d175ad87699ad1cf027e65bd8909bc0808210349ab06a0"
+  ],
+  "artTxId": "088af6dae7f105b3ea0f0c8ebcab25b3bfa43479e9546b8f35b57e45ce043265",
+  "revealTxIds": [
+    "db2d37930d6267d45c7cbc1ee71c2851f07c9956a790355afafc109c2daf4f2d",
+    "3758b2f38dc955e25d676bdf8e02d85466594a75a979f4342d9e50682097ffaf",
+    "35c2bd1e5d704bd45080196729b03ced311d07924f9319144e117150e33aa1f9",
+    "99b061be9e5be1eb0f1c717b64a738f21a7b75df8aa2754d166fec2ab69d4553"
+  ],
+  "revealTxId": "db2d37930d6267d45c7cbc1ee71c2851f07c9956a790355afafc109c2daf4f2d"
+}

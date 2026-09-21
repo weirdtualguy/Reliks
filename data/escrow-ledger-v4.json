@@ -1,0 +1,18 @@
+{
+  "txId": "82935af3df2623d54525b2833c504cbf3da1beed16521cc15c75be53a21e0071",
+  "index": 0,
+  "spk": "aa207029bd3ae162b469798cd5518696914a3a235f6832dcf780095dd63c0107ae8a87",
+  "locked": 303000000,
+  "state": {
+    "ownerIdentifier": "33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68",
+    "identifierType": 0,
+    "edition_covid": "1b26f6367d2ffa4de66a92c62ca6366a8838977e84042f41e151e3064559c277",
+    "askPrice": 300000000,
+    "expireAge": 100000,
+    "artist": "ec7a4c67eb8c26c145519cbee601ee8dfe3ada9eb5e47d81b6d4d0f8d5094294",
+    "royalty_bips": 500,
+    "offerer": "ec7a4c67eb8c26c145519cbee601ee8dfe3ada9eb5e47d81b6d4d0f8d5094294",
+    "marketplace": "fb2c09011bb6d77061d8f2fe9e2f6b7128866517b2cdff65bcfe797f8ce9f90f"
+  },
+  "consumed": "a514a886deb278b6f978d034260bcd225bbdab9b80e6367e008004c696851579"
+}
