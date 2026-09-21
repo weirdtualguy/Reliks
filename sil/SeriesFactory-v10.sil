@@ -1,0 +1,132 @@
+pragma silverscript ^0.1.0;
+// SeriesFactory-v10 "Reliks Engine": generative-seed architecture.
+// state[0] program_hash = blake2b(engine_code) (gallery first-push trick).
+// engine_code is immutable TEMPLATE data (baked constructor param, NOT a state
+// field) because validateOutputState cannot encode variable-length byte[] state.
+// engine_lang + render_hash are fixed-width state fields (revealed on mint).
+contract SeriesFactory(
+    byte[32] init_program_hash,
+    byte[32] init_artist,
+    int init_price,
+    int init_royalty_bips,
+    int init_mints_left,
+    byte[] engine_code,
+    int init_engine_lang,
+    byte[32] init_render_hash,
+    byte[] edition_template_prefix,
+    byte[] edition_template_suffix,
+    byte[32] expected_template_hash
+) {
+    byte[32] program_hash = init_program_hash;
+    byte[32] artist = init_artist;
+    int price = init_price;
+    int royalty_bips = init_royalty_bips;
+    int mints_left = init_mints_left;
+    int engine_lang = init_engine_lang;
+    byte[32] render_hash = init_render_hash;
+
+    byte constant IDENTIFIER_PUBKEY = 0x00;
+    int constant PLATFORM_BIPS = 100;
+    int constant MIN_PRICE = 1000000;
+
+    struct EditionState {
+        byte[32] ownerIdentifier;
+        byte identifierType;
+        int price;
+        byte[32] artist;
+        int royalty_bips;
+        byte[32] program_hash;
+        byte[32] factory_covid;
+        int serial;
+    }
+
+    // Template-bake anchor: a pure blake2b(engine_code) is constant-folded and
+    // the engine bytes elided. Mixing in the runtime outpoint forces the
+    // compiler to materialize engine_code in the bytecode. blake2b never
+    // returns all-zeros, so the invariant always holds.
+    function engineBaked() {
+        require(blake2b(engine_code + OpOutpointTxId(this.activeInputIndex)) != byte[32](0x0000000000000000000000000000000000000000000000000000000000000000));
+    }
+
+    function serialFromOutpoint(): int {
+        byte[] domain = byte[]("ReliksSerialV10");
+        byte[32] h = blake2b(domain + OpOutpointTxId(this.activeInputIndex) + (OpOutpointIndex(this.activeInputIndex) as byte[4]));
+        int s = unsigned(h[0])
+            + unsigned(h[1]) * 256
+            + unsigned(h[2]) * 65536
+            + unsigned(h[3]) * 16777216
+            + unsigned(h[4]) * 4294967296
+            + unsigned(h[5]) * 1099511627776
+            + unsigned(h[6]) * 281474976710656
+            + (unsigned(h[7]) % 128) * 72057594037927936;
+        return s;
+    }
+
+    entry mint(byte[32] buyer, byte buyerScheme, int editionOutIdx, int artistOutIdx, int platformOutIdx) {
+        require(mints_left > 0);
+        require(price == 0 || price >= MIN_PRICE);
+        engineBaked();
+        if (price > 0) {
+            int fee = (price * PLATFORM_BIPS) / 10000;
+            int artistCut = price - fee;
+            byte[36] artistSpk = new ScriptPubKeyP2PK(pubkey(artist));
+            require(tx.outputs[artistOutIdx].value == artistCut);
+            require(tx.outputs[artistOutIdx].scriptPubKey == byte[](artistSpk));
+            require(tx.outputs[platformOutIdx].value == fee);
+            require(tx.outputs[platformOutIdx].scriptPubKey == byte[](artistSpk));
+        }
+        EditionState editionState = EditionState {
+            ownerIdentifier: buyer,
+            identifierType: buyerScheme,
+            price: 0,
+            artist: artist,
+            royalty_bips: royalty_bips,
+            program_hash: program_hash,
+            factory_covid: OpInputCovenantId(this.activeInputIndex),
+            serial: serialFromOutpoint()
+        };
+        validateOutputStateWithTemplate(
+            editionOutIdx,
+            editionState,
+            edition_template_prefix,
+            edition_template_suffix,
+            expected_template_hash
+        );
+        require(OpAuthOutputCount(this.activeInputIndex) == 1);
+        int laneOutIdx = OpAuthOutputIdx(this.activeInputIndex, 0);
+        require(tx.outputs[laneOutIdx].value >= tx.inputs[this.activeInputIndex].value);
+        validateOutputState(laneOutIdx, State {
+            program_hash: program_hash,
+            artist: artist,
+            price: price,
+            royalty_bips: royalty_bips,
+            mints_left: mints_left - 1,
+            engine_lang: engine_lang,
+            render_hash: render_hash
+        });
+    }
+
+    entry fork(sig artistSig, int leftMints, int rightMints) {
+        require(checkSig(artistSig, pubkey(artist)));
+        require(leftMints > 0 && rightMints > 0);
+        require(leftMints + rightMints == mints_left);
+        require(OpAuthOutputCount(this.activeInputIndex) == 2);
+        int leftIdx = OpAuthOutputIdx(this.activeInputIndex, 0);
+        int rightIdx = OpAuthOutputIdx(this.activeInputIndex, 1);
+        require(tx.outputs[leftIdx].value + tx.outputs[rightIdx].value >= tx.inputs[this.activeInputIndex].value);
+        validateOutputState(leftIdx, State {
+            program_hash: program_hash, artist: artist, price: price,
+            royalty_bips: royalty_bips, mints_left: leftMints,
+            engine_lang: engine_lang, render_hash: render_hash
+        });
+        validateOutputState(rightIdx, State {
+            program_hash: program_hash, artist: artist, price: price,
+            royalty_bips: royalty_bips, mints_left: rightMints,
+            engine_lang: engine_lang, render_hash: render_hash
+        });
+    }
+
+    entry close(sig artistSig) {
+        require(checkSig(artistSig, pubkey(artist)));
+    }
+}

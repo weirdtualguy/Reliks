@@ -1,0 +1,10 @@
+node_modules/
+secrets*.env
+*.pem
+tmp/
+.attic/
+*.log
+.DS_Store
+*.svg
+reliks-gallery-*.html
+*.bak-*

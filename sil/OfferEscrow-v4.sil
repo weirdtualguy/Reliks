@@ -1,0 +1,116 @@
+pragma silverscript ^0.1.0;
+// OfferEscrow-v4 — Model B marketplace escrow (1% buyer premium).
+// The offerer locks (askPrice + mktFee) + carrier at offer time.
+// The owner accepts by co-spending the listed edition and signing.
+// The edition's own buy route enforces the royalty-only split
+// (owner >= askPrice - roy, artist == roy); this escrow enforces the
+// SAME split plus the marketplace premium, so both scripts agree on
+// the output vector without the edition needing to know about the
+// marketplace (keeping the edition template hash stable across
+// marketplace upgrades).
+contract OfferEscrow(
+    byte[32] init_owner,
+    byte init_scheme,
+    byte[32] init_edition_covid,
+    int init_askPrice,
+    int init_expireAge,
+    byte[32] init_artist,
+    int init_royalty_bips,
+    byte[32] init_offerer,
+    byte[32] init_marketplace,
+    int edition_prefix_len,
+    int edition_suffix_len,
+    byte[32] expected_template_hash
+) {
+    byte[32] ownerIdentifier = init_owner;
+    byte identifierType = init_scheme;
+    byte[32] edition_covid = init_edition_covid;
+    int askPrice = init_askPrice;
+    int expireAge = init_expireAge;
+    byte[32] artist = init_artist;
+    int royalty_bips = init_royalty_bips;
+    byte[32] offerer = init_offerer;
+    byte[32] marketplace = init_marketplace;
+
+    byte constant IDENTIFIER_PUBKEY = 0x00;
+    int constant MIN_PRICE = 100000000;   // 1 KAS (v11 floor)
+    int constant MKT_BIPS = 100;          // 1% buyer premium
+
+    struct EditionState {
+        byte[32] ownerIdentifier;
+        byte identifierType;
+        int price;
+        byte[32] artist;
+        int royalty_bips;
+        byte[32] program_hash;
+        byte[32] factory_covid;
+        int serial;
+    }
+
+    entry accept(
+        sig ownerSig,
+        int editionOutIdx,
+        int paymentOutIdx,
+        int royaltyOutIdx,
+        int mktFeeOutIdx
+    ) {
+        require(identifierType == IDENTIFIER_PUBKEY);
+        require(checkSig(ownerSig, pubkey(ownerIdentifier)));
+        require(askPrice >= MIN_PRICE);
+
+        int roy = (askPrice * royalty_bips) / 10000;
+        int mktFee = (askPrice * MKT_BIPS) / 10000;
+        int totalRequired = askPrice + mktFee;
+        require(tx.inputs[this.activeInputIndex].value >= totalRequired);
+
+        byte[36] ownerSpk = new ScriptPubKeyP2PK(pubkey(ownerIdentifier));
+        byte[36] artistSpk = new ScriptPubKeyP2PK(pubkey(artist));
+        byte[36] mktSpk = new ScriptPubKeyP2PK(pubkey(marketplace));
+
+        // Model B split: owner (askPrice - roy), artist (roy), marketplace (mktFee)
+        require(tx.outputs[paymentOutIdx].value >= askPrice - roy);
+        require(tx.outputs[paymentOutIdx].scriptPubKey == byte[](ownerSpk));
+        require(tx.outputs[royaltyOutIdx].value == roy);
+        require(tx.outputs[royaltyOutIdx].scriptPubKey == byte[](artistSpk));
+        require(tx.outputs[mktFeeOutIdx].value == mktFee);
+        require(tx.outputs[mktFeeOutIdx].scriptPubKey == byte[](mktSpk));
+
+        // Co-spend the edition and validate its transition
+        require(OpCovInputCount(edition_covid) == 1);
+        int editionInIdx = OpCovInputIdx(edition_covid, 0);
+        EditionState prevEd = readInputStateWithTemplate(
+            editionInIdx, edition_prefix_len, edition_suffix_len, expected_template_hash
+        );
+        // Bait-and-switch guard: edition must be listed at exactly askPrice
+        require(prevEd.ownerIdentifier == ownerIdentifier);
+        require(prevEd.price == askPrice);
+
+        EditionState nextEd = EditionState {
+            ownerIdentifier: offerer,
+            identifierType: IDENTIFIER_PUBKEY,
+            price: 0,
+            artist: prevEd.artist,
+            royalty_bips: prevEd.royalty_bips,
+            program_hash: prevEd.program_hash,
+            factory_covid: prevEd.factory_covid,
+            serial: prevEd.serial
+        };
+        validateOutputStateWithInputTemplate(
+            editionOutIdx, nextEd, editionInIdx,
+            edition_prefix_len, edition_suffix_len, expected_template_hash
+        );
+
+        // Escrow terminates: no continuation outputs.
+        require(OpAuthOutputCount(this.activeInputIndex) == 0);
+    }
+
+    // Permissionless liveness escape: after the age lock anyone may refund
+    // the offerer in full. This and accept are the ONLY exits.
+    entry expire() {
+        require(this.ageDaa >= expireAge);
+        byte[36] offererSpk = new ScriptPubKeyP2PK(pubkey(offerer));
+        require(tx.outputs[0].value == tx.inputs[this.activeInputIndex].value);
+        require(tx.outputs[0].scriptPubKey == byte[](offererSpk));
+        require(OpAuthOutputCount(this.activeInputIndex) == 0);
+    }
+}
