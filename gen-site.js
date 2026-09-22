@@ -29,6 +29,14 @@ const wcScript = '<script type="module">\nimport SignClient from "https://esm.sh
 const qrScript = '<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></' + 'script>';
 
 // 4. Assemble HTML
+const { blake2b } = require('@noble/hashes/blake2b');
+function seedLanes(serial){const le=Buffer.alloc(8);le.writeBigUInt64LE(BigInt(serial));const h=blake2b(Buffer.concat([Buffer.from('ReliksSeedV10','utf8'),le]),{dkLen:32});const dv=new DataView(h.buffer,h.byteOffset,h.byteLength);const o=[];for(let i=0;i<8;i++)o.push(dv.getInt32(i*4,true));return o;}
+function renderEngine(src, serial){const f=new Function('L','serial',src+'\nreturn reliks(L,serial);');const sN=Number(BigInt(serial)&0xFFFFFFFFn);return f(seedLanes(sN), sN|0);}
+const ENG_B = require('./reliks-engine-v10.js');
+const ENG_C = require('./reliks-engine-mainnet.js');
+const svgB = ENG_B.render(449271923980672019);
+const svgC = ENG_C.render(5056484704985813865);
+const svgD = renderEngine(PRELUDE + '\n' + TEMPLATES.circles, 1046690524652801491);
 const html = `<!doctype html>
 <html lang="en">
 <head>
@@ -140,7 +148,7 @@ const html = `<!doctype html>
       <div class="gallery-grid">
         <div class="series-card">
           <div class="card-art">
-            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="#0a0b10"/><circle cx="50" cy="50" r="40" fill="none" stroke="#49c5b1" stroke-width="2"/><circle cx="50" cy="50" r="20" fill="none" stroke="#7fd1ae" stroke-width="1"/><path d="M50 10 L50 90 M10 50 L90 50" stroke="#23282e" stroke-width="1"/></svg>
+            ${svgB}
           </div>
           <div class="card-info">
             <span class="badge">Testnet Rehearsal</span>
@@ -156,7 +164,7 @@ const html = `<!doctype html>
 
         <div class="series-card">
           <div class="card-art">
-            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="#0a0b10"/><path d="M50 20 L80 35 L80 65 L50 80 L20 65 L20 35 Z" fill="none" stroke="#49c5b1" stroke-width="1.5"/><path d="M50 20 L50 80 M20 35 L80 65 M80 35 L20 65" stroke="#23282e" stroke-width="1"/><circle cx="50" cy="50" r="5" fill="#7fd1ae"/></svg>
+            ${svgC}
           </div>
           <div class="card-info">
             <span class="badge">Mainnet Candidate</span>
@@ -172,7 +180,7 @@ const html = `<!doctype html>
 
         <div class="series-card">
           <div class="card-art">
-            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="#000"/><circle cx="30" cy="30" r="25" fill="#ff6b6b" opacity="0.6"/><circle cx="70" cy="40" r="30" fill="#49c5b1" opacity="0.6"/><circle cx="45" cy="70" r="20" fill="#e7dfc8" opacity="0.6"/></svg>
+            ${svgD}
           </div>
           <div class="card-info">
             <span class="badge">Studio Born</span>
