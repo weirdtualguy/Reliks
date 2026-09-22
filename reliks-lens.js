@@ -56,7 +56,7 @@ function gates(enginePath) {
   for (const s of TESTS) { const a = M.render(s); const b = M.render(s); if (a !== b) det = false; outs[s] = a; }
   check('L3 determinism: double-render byte-identical x' + TESTS.length, det);
   let vmOk = true, vmErr = '', vmReliks = null;
-  try { vmReliks = vm.runInContext('(function(){' + SRC + '\nreturn reliks;})()', vm.createContext({}), { timeout: 10000 }); }
+  try { vmReliks = vm.runInContext('(function(L,serial){' + SRC + '\nreturn reliks(L,serial);})', vm.createContext({}), { timeout: 10000 }); }
   catch (e) { vmOk = false; vmErr = e.message; }
   if (vmOk) for (const s of TESTS) { const s32 = seed32(s); if (vmReliks(seedLanes(s32), s32 | 0) !== outs[s]) { vmOk = false; vmErr = 'mismatch at serial ' + s; break; } }
   check('L4 bare-realm parity (no host globals) + canonical seed pipeline', vmOk, vmErr);
