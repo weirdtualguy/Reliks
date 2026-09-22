@@ -649,3 +649,12 @@ ledger-c needed no retroactive patch; lineage green on both editions.
 Mint fees passed first-attempt 3M at ~11 KB bc, matching the fitted mass law.
 COMMUNITY PoC: reliks-gallery-c.html (self-contained, 51680 B, 2 editions).
 MAINNET CANDIDATE ENGINE: this DAG-city engine; §9.A runbook unchanged.
+
+RELIKS LENS (tooling): reliks-lens.js = pre-deploy engine gate suite (L0-L10:
+module shape, size<=RELIKS_ENGINE_CAP(32768), banned constructs (Math.random/
+transcendentals/Date/fetch/eval/env), double-render determinism, bare-vm-realm
+parity with independent ReliksSeedV10 pipeline, seed mod-2^32 convention, hash
+recompute, seedLanes parity, SVG sanity, fitted mass/fee law + 100000 mass
+ceiling, optional features() rarity buckets). `html` subcommand emits an
+interactive lens page (serial scrubber + 3-compile determinism check).
+Policy: NO ENGINE BAKES WITHOUT A GREEN LENS. Season-2 artist uploads gate here.
