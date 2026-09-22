@@ -59,15 +59,25 @@ const css = 'body{background:#0b0d10;color:#e8e6e3;font-family:ui-monospace,Menl
 '.side{flex:1;display:flex;flex-direction:column;gap:10px}iframe{width:100%;aspect-ratio:1/1;border:1px solid #23282e;border-radius:8px;background:#000}' +
 'pre{font-size:11px;color:#8a9199;white-space:pre-wrap;margin:0}#status{font-size:12px;color:#7fd1ae}' +
 '.note{color:#5c6670;font-size:11px;margin-top:16px;border-top:1px solid #23282e;padding-top:12px;line-height:1.6}';
+
+const wcScript = '<script type="module">\n' +
+  'import SignClient from "https://esm.sh/@walletconnect/sign-client@2.13.0";\n' +
+  'window.SignClient = SignClient;\n' +
+  'window.dispatchEvent(new Event("signclient-loaded"));\n' +
+  '</' + 'script>';
+const qrScript = '<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></' + 'script>';
+
 const html = ['<!doctype html>', '<html lang="en"><head>', '<meta charset="utf-8">',
 '<meta name="viewport" content="width=device-width, initial-scale=1">',
-'<title>Reliks Studio</title>', '<style>' + css + '</style></head><body>',
+'<title>Reliks Studio</title>', 
+wcScript, qrScript,
+'<style>' + css + '</style></head><body>',
 '<h1>RELIKS <span>// studio</span></h1>',
 '<div class="row">name <input id="name" value="my-engine" size="14"> template <select id="tpl"><option>circles</option><option>flow</option><option>blank</option></select> <button id="load">load template</button></div>',
-'<div class="row"><button id="wallet-btn">Connect Wallet</button> <span id="wallet-status"></span></div>',
+'<div class="row"><button id="wallet-btn">Connect Kaspire</button> <span id="wallet-status"></span></div>',
 '<div class="row">serial <input id="ser" value="1" size="20"> <button id="go">render</button> <button id="rnd">random</button> <button id="gates">run gates</button> <button id="exe">export engine .js</button> <button id="exs">export series .json</button></div>',
 '<div class="main"><textarea id="ed" spellcheck="false"></textarea><div class="side"><iframe id="prev" sandbox=""></iframe><pre id="gates"></pre><pre id="hashes"></pre><div id="status"></div></div></div>',
-'<div class="note">Engine = PRELUDE_V1 (' + PRELUDE.length + ' B, integer-only R API) + your code; anchored bytes include the prelude. Use only R.* for randomness (never Math.random/Date/network). <b>Connect Kaspire wallet</b> to auto-fill artist pubkey in series JSON. Workflow: edit &rarr; render &rarr; gates green &rarr; export engine .js + series .json &rarr; in Termux: <b>node reliks-lens.js &lt;name&gt;.js</b>, then RELIKS_ENGINE=./&lt;name&gt;.js RELIKS_ARGS=data/factory-args-&lt;name&gt;.json node gen-factory-args-v11.js series-&lt;name&gt;.json, then silverc + deploy-v11.js with RELIKS_FACTORY_ABI. Fill treasury pubkey manually (or use same wallet for artist+treasury). royalty_bips 1..2000, price 0 or &ge;100000000.</div>',
+'<div class="note">Engine = PRELUDE_V1 (' + PRELUDE.length + ' B, integer-only R API) + your code; anchored bytes include the prelude. Use only R.* for randomness (never Math.random/Date/network). <b>Connect Kaspire via WalletConnect</b> to auto-fill artist pubkey in series JSON. Workflow: edit &rarr; render &rarr; gates green &rarr; export engine .js + series .json &rarr; in Termux: <b>node reliks-lens.js &lt;name&gt;.js</b>, then RELIKS_ENGINE=./&lt;name&gt;.js RELIKS_ARGS=data/factory-args-&lt;name&gt;.json node gen-factory-args-v11.js series-&lt;name&gt;.json, then silverc + deploy-v11.js with RELIKS_FACTORY_ABI. Fill treasury pubkey manually. royalty_bips 1..2000, price 0 or &ge;100000000.</div>',
 '<script>' + blakeSrc + '</' + 'script>',
 '<script>' + walletSrc + '</' + 'script>',
 '<script>',
@@ -77,4 +87,4 @@ const html = ['<!doctype html>', '<html lang="en"><head>', '<meta charset="utf-8
 runtime,
 '</' + 'script>', '</body></html>'].join('\n');
 fs.writeFileSync('reliks-studio.html', html);
-console.log('reliks-studio.html written (' + html.length + ' bytes) | prelude ' + PRELUDE.length + ' B | cap ' + CAP + ' | wallet integration enabled');
+console.log('reliks-studio.html written (' + html.length + ' bytes) | prelude ' + PRELUDE.length + ' B | cap ' + CAP + ' | Kaspire WalletConnect enabled');

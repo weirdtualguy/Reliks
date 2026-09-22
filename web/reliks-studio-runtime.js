@@ -8,6 +8,7 @@ var statusEl=document.getElementById('status');
 var tplSel=document.getElementById('tpl');
 var walletBtn=document.getElementById('wallet-btn');
 var walletStatus=document.getElementById('wallet-status');
+
 function enc(s){return new TextEncoder().encode(s);}
 function blen(s){return enc(s).length;}
 function hx(b){var s='';for(var i=0;i<b.length;i++)s+=('0'+b[i].toString(16)).slice(-2);return s;}
@@ -18,6 +19,7 @@ function seed32(s){return Number(BigInt(s)&0xFFFFFFFFn);}
 function compile(src){return new Function('L','serial',src+'\nreturn reliks(L,serial);');}
 function liveSrc(){return PRELUDE+'\n'+editor.value;}
 function renderAt(serialStr){var s=seed32(serialStr);var f=compile(liveSrc());return f(seedLanes(s),s|0);}
+
 var BANNED=[
 [/\bMath\s*\.\s*(random|sin|cos|tan|asin|acos|atan2?|pow|sqrt|hypot|exp|log2?|log10)\b/,'Math transcendental/random'],
 [/\bDate\b/,'Date'],[/\bperformance\b/,'performance'],[/\bfetch\s*\(/,'fetch'],
@@ -25,6 +27,7 @@ var BANNED=[
 [/\bimport\s*[\(\{]/,'import'],[/\beval\s*\(/,'eval'],[/new\s+Function/,'new Function'],
 [/\bwindow\b/,'window'],[/\bdocument\b/,'document'],[/\blocalStorage\b/,'localStorage'],
 [/\bsetTimeout\b|\bsetInterval\b/,'timer'],[/\bprocess\b/,'process'],[/\bglobalThis\b/,'globalThis']];
+
 function runGates(){
   var src=liveSrc(),out=[],ok=true;
   function chk(name,pass,info){out.push((pass?'PASS ':'FAIL ')+name+(info?' | '+info:''));if(!pass)ok=false;}
@@ -43,6 +46,7 @@ function runGates(){
   statusEl.textContent=(ok?'GATES GREEN':'GATES FAILED')+' | '+(ok?'cleared for export':'fix failures before export');
   return ok;
 }
+
 function show(){
   var serial=serialEl.value.trim()||'1';var svg='';
   try{svg=renderAt(serial);}catch(e){statusEl.textContent='ERROR: '+e.message;return;}
@@ -52,7 +56,9 @@ function show(){
   statusEl.textContent='rendered serial '+serial+' | svg '+svg.length+' bytes';
   runGates();
 }
+
 function download(fn,text){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));a.download=fn;a.click();}
+
 function exportEngine(){
   var name=(document.getElementById('name').value||'reliks-engine').replace(/[^a-z0-9-]/gi,'');
   var src=liveSrc();
@@ -71,6 +77,7 @@ function exportEngine(){
   download(name+'.js',lines.join('\n')+'\n');
   statusEl.textContent='exported '+name+'.js | next: node reliks-lens.js '+name+'.js';
 }
+
 function exportSeries(){
   var name=(document.getElementById('name').value||'reliks-engine').replace(/[^a-z0-9-]/gi,'');
   var artistPubkey = ReliksWallet.isConnected() ? ReliksWallet.getPubkey() : '<64-hex artist pubkey>';
@@ -78,28 +85,38 @@ function exportSeries(){
   if (artistPubkey === '<64-hex artist pubkey>') {
     statusEl.textContent='exported series-'+name+'.json | WARNING: wallet not connected; fill artist/treasury pubkeys manually';
   } else {
-    statusEl.textContent='exported series-'+name+'.json | artist pubkey auto-filled from wallet; fill treasury pubkey';
+    statusEl.textContent='exported series-'+name+'.json | artist pubkey auto-filled from Kaspire; fill treasury pubkey';
   }
   download('series-'+name+'.json',JSON.stringify(series,null,2)+'\n');
 }
+
 function updateWalletUI() {
   if (ReliksWallet.isConnected()) {
-    walletBtn.textContent = 'Disconnect';
-    walletStatus.textContent = 'Connected: ' + ReliksWallet.getAddress().slice(0,12) + '...';
+    walletBtn.textContent = 'Disconnect Kaspire';
+    var addr = ReliksWallet.getAddress() || '';
+    var shortAddr = addr.length > 12 ? addr.slice(0, 12) + '...' : addr;
+    walletStatus.textContent = 'Connected: ' + shortAddr;
     walletStatus.className = 'wallet-connected';
   } else {
-    walletBtn.textContent = 'Connect Wallet';
-    walletStatus.textContent = ReliksWallet.detect() ? 'Kaspire detected' : 'No wallet extension';
+    walletBtn.textContent = 'Connect Kaspire';
+    walletStatus.textContent = window.SignClient ? 'Ready' : 'Loading WalletConnect...';
     walletStatus.className = 'wallet-disconnected';
   }
 }
-walletBtn.onclick = function() {
+window.updateWalletUI = updateWalletUI;
+
+walletBtn.onclick = async function() {
   if (ReliksWallet.isConnected()) {
     ReliksWallet.disconnect();
   } else {
-    ReliksWallet.connect().then(updateWalletUI);
+    walletBtn.disabled = true;
+    walletBtn.textContent = 'Connecting...';
+    var ok = await ReliksWallet.connect();
+    walletBtn.disabled = false;
+    if (!ok) updateWalletUI();
   }
 };
+
 document.getElementById('load').onclick=function(){editor.value=TEMPLATES[tplSel.value]||TEMPLATES.circles;show();};
 document.getElementById('go').onclick=show;
 document.getElementById('rnd').onclick=function(){serialEl.value=String(Math.floor(Math.random()*4294967296));show();};
@@ -109,4 +126,6 @@ document.getElementById('exs').onclick=exportSeries;
 editor.value=TEMPLATES.circles;
 show();
 updateWalletUI();
+ReliksWallet.init().then(updateWalletUI);
+window.addEventListener('signclient-loaded', updateWalletUI);
 })();
