@@ -1,0 +1,7 @@
+{
+  "artist": "<MAINNET ARTIST PUBKEY 64 hex>",
+  "price": 100000000,
+  "royalty_bips": 500,
+  "mints_left": 8,
+  "treasury": "<MAINNET TREASURY PUBKEY 64 hex>"
+}
