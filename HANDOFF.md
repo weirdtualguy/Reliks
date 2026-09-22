@@ -658,3 +658,38 @@ recompute, seedLanes parity, SVG sanity, fitted mass/fee law + 100000 mass
 ceiling, optional features() rarity buckets). `html` subcommand emits an
 interactive lens page (serial scrubber + 3-compile determinism check).
 Policy: NO ENGINE BAKES WITHOUT A GREEN LENS. Season-2 artist uploads gate here.
+
+RELIKS LENS CLOSED (tooling gate): reliks-lens.js gates L0-L10 (module shape,
+size<=RELIKS_ENGINE_CAP, banned constructs, double-render determinism x6,
+bare-vm-realm parity + canonical ReliksSeedV10 pipeline, mod-2^32 seed
+convention, hash recompute, seedLanes parity, SVG sanity, fitted mass/fee vs
+100000 ceiling, optional features()). `html` subcommand = interactive lens
+(serial scrubber + 3-compile determinism + in-page blake2b cross-check).
+PROVEN: v10 901 B, mainnet DAG-city 3888 B, probe 32768/32768 B all PASS;
+Math.random-poisoned engine FAILS L2-L6 exit=1. POLICY: NO ENGINE BAKES
+WITHOUT A GREEN LENS.
+MAINNET CANDIDATE ENGINE ANCHORS: reliks-engine-mainnet.js 3888 B,
+engine_hash 16440384b2b00579d67e1366e8aa9c835e276fbf84a711d4920e87b134d7eaa4,
+render_hash 836c15aecc078e0c19ae71467ff12cdd85a904d1c965a991af095a246dcc403c.
+Matches deployed Series C factory bc 10997 (testnet genesis 85d41d78...) - no drift.
+
+SERIES C SECONDARY MARKET REHEARSAL COMPLETE (testnet-10, DAG-city engine):
+Edition #0 (serial 5056484704985813865, mint 8f0cc8c0...):
+  list 95a408b7... (2 KAS) -> buy a3842fd7...
+  Split: ownerNet 190M / royalty 10M (500 bips) / platformFee 0.
+  Proves direct secondary route (Model B royalty-only).
+Edition #1 (serial 2977287238847657467, mint 1e80012f...):
+  list e93d0956... (3 KAS) -> offer 50477416... (locked 303M, escrow aa20b234...)
+  -> accept 407b23b5...
+  Split: ownerNet 285M / royalty 15M / mktFee 3M (1% buyer premium).
+  Proves escrow secondary route (Model B + marketplace premium).
+DUAL-FIELD LINEAGE PROVEN: mintTxId (8f0cc8c0 / 1e80012f) remains immutable
+for F1 engine-containment and serial recomputation; current txId updates to
+buy/accept txids (a3842fd7 / 407b23b5) for live-UTXO anchoring. Price resets
+to 0 (unlisted) post-trade.
+FULL REVENUE STACK PROVEN ON MAINNET-CANDIDATE ENGINE:
+1. Mint cut (1 KAS to treasury)
+2. Artist royalty (5% on-chain, universal)
+3. Marketplace premium (1% escrow buyer-side)
+SERIES C REHEARSAL STATUS: 100% COMPLETE. MINT, VERIFY, GALLERY, DIRECT
+SECONDARY, ESCROW SECONDARY ALL GREEN. MAINNET-READY.
