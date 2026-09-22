@@ -3,12 +3,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reliks Studio</title>
-<style>body{background:#0b0d10;color:#e8e6e3;font-family:ui-monospace,Menlo,Consolas,monospace;margin:0;padding:20px}h1{font-size:18px;letter-spacing:2px;margin:0 0 12px}h1 span{color:#7fd1ae}.row{margin:8px 0;font-size:12px}.row input,.row select,.row button{background:#101418;color:#e8e6e3;border:1px solid #23282e;border-radius:6px;padding:7px;font-family:inherit;font-size:12px;margin-right:6px}.main{display:flex;gap:14px;margin-top:12px}textarea{flex:1;min-height:52vh;background:#101418;color:#d8e6dc;border:1px solid #23282e;border-radius:8px;padding:12px;font-family:inherit;font-size:12px;line-height:1.5;white-space:pre}.side{flex:1;display:flex;flex-direction:column;gap:10px}iframe{width:100%;aspect-ratio:1/1;border:1px solid #23282e;border-radius:8px;background:#000}pre{font-size:11px;color:#8a9199;white-space:pre-wrap;margin:0}#status{font-size:12px;color:#7fd1ae}.note{color:#5c6670;font-size:11px;margin-top:16px;border-top:1px solid #23282e;padding-top:12px;line-height:1.6}</style></head><body>
+<style>body{background:#0b0d10;color:#e8e6e3;font-family:ui-monospace,Menlo,Consolas,monospace;margin:0;padding:20px}h1{font-size:18px;letter-spacing:2px;margin:0 0 12px}h1 span{color:#7fd1ae}.row{margin:8px 0;font-size:12px}.row input,.row select,.row button{background:#101418;color:#e8e6e3;border:1px solid #23282e;border-radius:6px;padding:7px;font-family:inherit;font-size:12px;margin-right:6px}.wallet-connected{color:#7fd1ae;font-weight:700}.wallet-disconnected{color:#8a9199}.main{display:flex;gap:14px;margin-top:12px}textarea{flex:1;min-height:52vh;background:#101418;color:#d8e6dc;border:1px solid #23282e;border-radius:8px;padding:12px;font-family:inherit;font-size:12px;line-height:1.5;white-space:pre}.side{flex:1;display:flex;flex-direction:column;gap:10px}iframe{width:100%;aspect-ratio:1/1;border:1px solid #23282e;border-radius:8px;background:#000}pre{font-size:11px;color:#8a9199;white-space:pre-wrap;margin:0}#status{font-size:12px;color:#7fd1ae}.note{color:#5c6670;font-size:11px;margin-top:16px;border-top:1px solid #23282e;padding-top:12px;line-height:1.6}</style></head><body>
 <h1>RELIKS <span>// studio</span></h1>
 <div class="row">name <input id="name" value="my-engine" size="14"> template <select id="tpl"><option>circles</option><option>flow</option><option>blank</option></select> <button id="load">load template</button></div>
+<div class="row"><button id="wallet-btn">Connect Wallet</button> <span id="wallet-status"></span></div>
 <div class="row">serial <input id="ser" value="1" size="20"> <button id="go">render</button> <button id="rnd">random</button> <button id="gates">run gates</button> <button id="exe">export engine .js</button> <button id="exs">export series .json</button></div>
 <div class="main"><textarea id="ed" spellcheck="false"></textarea><div class="side"><iframe id="prev" sandbox=""></iframe><pre id="gates"></pre><pre id="hashes"></pre><div id="status"></div></div></div>
-<div class="note">Engine = PRELUDE_V1 (894 B, integer-only R API) + your code; anchored bytes include the prelude. Use only R.* for randomness (never Math.random/Date/network). Workflow: edit &rarr; render &rarr; gates green &rarr; export engine .js + series .json &rarr; in Termux: <b>node reliks-lens.js &lt;name&gt;.js</b>, then RELIKS_ENGINE=./&lt;name&gt;.js RELIKS_ARGS=data/factory-args-&lt;name&gt;.json node gen-factory-args-v11.js series-&lt;name&gt;.json, then silverc + deploy-v11.js with RELIKS_FACTORY_ABI. Fill real pubkeys in the series json; royalty_bips 1..2000, price 0 or &ge;100000000.</div>
+<div class="note">Engine = PRELUDE_V1 (894 B, integer-only R API) + your code; anchored bytes include the prelude. Use only R.* for randomness (never Math.random/Date/network). <b>Connect Kaspire wallet</b> to auto-fill artist pubkey in series JSON. Workflow: edit &rarr; render &rarr; gates green &rarr; export engine .js + series .json &rarr; in Termux: <b>node reliks-lens.js &lt;name&gt;.js</b>, then RELIKS_ENGINE=./&lt;name&gt;.js RELIKS_ARGS=data/factory-args-&lt;name&gt;.json node gen-factory-args-v11.js series-&lt;name&gt;.json, then silverc + deploy-v11.js with RELIKS_FACTORY_ABI. Fill treasury pubkey manually (or use same wallet for artist+treasury). royalty_bips 1..2000, price 0 or &ge;100000000.</div>
 <script>/* Reliks gallery BLAKE2b (unkeyed, dkLen<=64). Cross-validated against
    @noble/hashes by gen-gallery-v10.js before it is ever inlined. */
 (function (root, factory) {
@@ -73,6 +74,45 @@
   return { blake2b: blake2b };
 });
 </script>
+<script>// studio-wallet.js - Kaspire wallet integration for Reliks Studio
+// Detects the browser extension, connects on demand, exports pubkey to series JSON.
+var ReliksWallet = (function() {
+  var connected = false;
+  var pubkey = null;
+  var address = null;
+  function detect() {
+    return typeof window !== 'undefined' && window.kaspa && typeof window.kaspa.connect === 'function';
+  }
+  function connect() {
+    if (!detect()) {
+      alert('Kaspire wallet extension not detected.\n\nInstall from: https://chrome.google.com/webstore/detail/kaspire/kcpggeijhdmhkkjhbglfpkmjpdjibhln\n\nOr fill pubkeys manually in the exported series.json.');
+      return Promise.resolve(false);
+    }
+    return window.kaspa.connect().then(function(acc) {
+      if (acc && acc.publicKey) {
+        pubkey = acc.publicKey;
+        address = acc.address || '';
+        connected = true;
+        return true;
+      }
+      return false;
+    }).catch(function(err) {
+      console.error('Wallet connect failed:', err);
+      alert('Wallet connection rejected or failed: ' + (err.message || err));
+      return false;
+    });
+  }
+  function disconnect() {
+    connected = false;
+    pubkey = null;
+    address = null;
+  }
+  function isConnected() { return connected; }
+  function getPubkey() { return pubkey; }
+  function getAddress() { return address; }
+  return { detect: detect, connect: connect, disconnect: disconnect, isConnected: isConnected, getPubkey: getPubkey, getAddress: getAddress };
+})();
+</script>
 <script>
 var PRELUDE="var R=(function(L,serial){\nvar x=(L[0]^serial)|0,y=L[1]|0,z=L[2]|0,w=L[3]|0;\nfunction rnd(){var t=(x^(x<<11))|0;x=y;y=z;z=w;w=(w^(w>>>19))^(t^(t>>>8));return w>>>0;}\nfunction ri(a,b){return a+(rnd()%(b-a+1));}\nfunction pick(a){return a[rnd()%a.length];}\nfunction chance(p){return rnd()%100<p;}\nfunction hsl(){return 'hsl('+rnd()%360+','+ri(40,90)+'%,'+ri(30,70)+'%)';}\nfunction sin(a){a&=4095;var s=a<2048?1:-1,q=a<2048?a:a-2048,u=q*(2048-q);return s*(16*u*10000/(20971520-4*u)|0);}\nfunction cos(a){return sin(a+1024);}\nfunction dir(a,len){return [cos(a)*len/10000|0,sin(a)*len/10000|0];}\nfunction svg(parts,bg){return '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1000 1000\">'+(bg?'<rect width=\"1000\" height=\"1000\" fill=\"'+bg+'\"/>':'')+parts.join('')+'</svg>';}\nreturn {rnd:rnd,ri:ri,pick:pick,chance:chance,hsl:hsl,sin:sin,cos:cos,dir:dir,svg:svg,serial:serial,lanes:L};\n})(L,serial);";
 var TEMPLATES={"circles":"function reliks(L, serial) {\n  var n = R.ri(18, 48), out = [];\n  for (var i = 0; i < n; i++) {\n    out.push('<circle cx=\"' + R.ri(0,1000) + '\" cy=\"' + R.ri(0,1000) +\n      '\" r=\"' + R.ri(20,240) + '\" fill=\"' + R.hsl() +\n      '\" fill-opacity=\"0.' + R.ri(30,85) + '\"/>');\n  }\n  return R.svg(out, '#000');\n}","flow":"function reliks(L, serial) {\n  var out = [], i;\n  for (i = 0; i < 700; i++) {\n    var x = R.ri(0, 1000), y = R.ri(0, 1000);\n    var a = (R.sin(x >> 2) + R.cos(y >> 2)) | 0;\n    var d = R.dir(a, R.ri(20, 90));\n    out.push('<line x1=\"' + x + '\" y1=\"' + y + '\" x2=\"' + (x + d[0]) +\n      '\" y2=\"' + (y + d[1]) + '\" stroke=\"' + R.hsl() +\n      '\" stroke-width=\"1\" opacity=\"0.5\"/>');\n  }\n  return R.svg(out, '#0a0b10');\n}","blank":"function reliks(L, serial) {\n  return R.svg([], '#000');\n}"};
@@ -85,6 +125,8 @@ var gatesEl=document.getElementById('gates');
 var hashEl=document.getElementById('hashes');
 var statusEl=document.getElementById('status');
 var tplSel=document.getElementById('tpl');
+var walletBtn=document.getElementById('wallet-btn');
+var walletStatus=document.getElementById('wallet-status');
 function enc(s){return new TextEncoder().encode(s);}
 function blen(s){return enc(s).length;}
 function hx(b){var s='';for(var i=0;i<b.length;i++)s+=('0'+b[i].toString(16)).slice(-2);return s;}
@@ -150,10 +192,33 @@ function exportEngine(){
 }
 function exportSeries(){
   var name=(document.getElementById('name').value||'reliks-engine').replace(/[^a-z0-9-]/gi,'');
-  var series={artist:'<64-hex artist pubkey>',price:100000000,royalty_bips:500,mints_left:8,treasury:'<64-hex treasury pubkey>'};
+  var artistPubkey = ReliksWallet.isConnected() ? ReliksWallet.getPubkey() : '<64-hex artist pubkey>';
+  var series={artist:artistPubkey,price:100000000,royalty_bips:500,mints_left:8,treasury:'<64-hex treasury pubkey>'};
+  if (artistPubkey === '<64-hex artist pubkey>') {
+    statusEl.textContent='exported series-'+name+'.json | WARNING: wallet not connected; fill artist/treasury pubkeys manually';
+  } else {
+    statusEl.textContent='exported series-'+name+'.json | artist pubkey auto-filled from wallet; fill treasury pubkey';
+  }
   download('series-'+name+'.json',JSON.stringify(series,null,2)+'\n');
-  statusEl.textContent='exported series-'+name+'.json | fill pubkeys; royalty_bips must be 1..2000, price 0 or >=100000000';
 }
+function updateWalletUI() {
+  if (ReliksWallet.isConnected()) {
+    walletBtn.textContent = 'Disconnect';
+    walletStatus.textContent = 'Connected: ' + ReliksWallet.getAddress().slice(0,12) + '...';
+    walletStatus.className = 'wallet-connected';
+  } else {
+    walletBtn.textContent = 'Connect Wallet';
+    walletStatus.textContent = ReliksWallet.detect() ? 'Kaspire detected' : 'No wallet extension';
+    walletStatus.className = 'wallet-disconnected';
+  }
+}
+walletBtn.onclick = function() {
+  if (ReliksWallet.isConnected()) {
+    ReliksWallet.disconnect();
+  } else {
+    ReliksWallet.connect().then(updateWalletUI);
+  }
+};
 document.getElementById('load').onclick=function(){editor.value=TEMPLATES[tplSel.value]||TEMPLATES.circles;show();};
 document.getElementById('go').onclick=show;
 document.getElementById('rnd').onclick=function(){serialEl.value=String(Math.floor(Math.random()*4294967296));show();};
@@ -162,6 +227,7 @@ document.getElementById('exe').onclick=exportEngine;
 document.getElementById('exs').onclick=exportSeries;
 editor.value=TEMPLATES.circles;
 show();
+updateWalletUI();
 })();
 
 </script>

@@ -6,6 +6,8 @@ var gatesEl=document.getElementById('gates');
 var hashEl=document.getElementById('hashes');
 var statusEl=document.getElementById('status');
 var tplSel=document.getElementById('tpl');
+var walletBtn=document.getElementById('wallet-btn');
+var walletStatus=document.getElementById('wallet-status');
 function enc(s){return new TextEncoder().encode(s);}
 function blen(s){return enc(s).length;}
 function hx(b){var s='';for(var i=0;i<b.length;i++)s+=('0'+b[i].toString(16)).slice(-2);return s;}
@@ -71,10 +73,33 @@ function exportEngine(){
 }
 function exportSeries(){
   var name=(document.getElementById('name').value||'reliks-engine').replace(/[^a-z0-9-]/gi,'');
-  var series={artist:'<64-hex artist pubkey>',price:100000000,royalty_bips:500,mints_left:8,treasury:'<64-hex treasury pubkey>'};
+  var artistPubkey = ReliksWallet.isConnected() ? ReliksWallet.getPubkey() : '<64-hex artist pubkey>';
+  var series={artist:artistPubkey,price:100000000,royalty_bips:500,mints_left:8,treasury:'<64-hex treasury pubkey>'};
+  if (artistPubkey === '<64-hex artist pubkey>') {
+    statusEl.textContent='exported series-'+name+'.json | WARNING: wallet not connected; fill artist/treasury pubkeys manually';
+  } else {
+    statusEl.textContent='exported series-'+name+'.json | artist pubkey auto-filled from wallet; fill treasury pubkey';
+  }
   download('series-'+name+'.json',JSON.stringify(series,null,2)+'\n');
-  statusEl.textContent='exported series-'+name+'.json | fill pubkeys; royalty_bips must be 1..2000, price 0 or >=100000000';
 }
+function updateWalletUI() {
+  if (ReliksWallet.isConnected()) {
+    walletBtn.textContent = 'Disconnect';
+    walletStatus.textContent = 'Connected: ' + ReliksWallet.getAddress().slice(0,12) + '...';
+    walletStatus.className = 'wallet-connected';
+  } else {
+    walletBtn.textContent = 'Connect Wallet';
+    walletStatus.textContent = ReliksWallet.detect() ? 'Kaspire detected' : 'No wallet extension';
+    walletStatus.className = 'wallet-disconnected';
+  }
+}
+walletBtn.onclick = function() {
+  if (ReliksWallet.isConnected()) {
+    ReliksWallet.disconnect();
+  } else {
+    ReliksWallet.connect().then(updateWalletUI);
+  }
+};
 document.getElementById('load').onclick=function(){editor.value=TEMPLATES[tplSel.value]||TEMPLATES.circles;show();};
 document.getElementById('go').onclick=show;
 document.getElementById('rnd').onclick=function(){serialEl.value=String(Math.floor(Math.random()*4294967296));show();};
@@ -83,4 +108,5 @@ document.getElementById('exe').onclick=exportEngine;
 document.getElementById('exs').onclick=exportSeries;
 editor.value=TEMPLATES.circles;
 show();
+updateWalletUI();
 })();
