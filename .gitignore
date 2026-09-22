@@ -10,3 +10,11 @@ reliks-gallery-*.html
 *.bak-*
 lens-out/
 reliks-lens.html
+
+# Local attic (deprecated, probes, rehearsals, patches)
+.attic/
+
+# Generated studio/lens outputs
+reliks-studio.html
+reliks-lens.html
+lens-out/
