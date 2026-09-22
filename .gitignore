@@ -8,3 +8,5 @@ tmp/
 *.svg
 reliks-gallery-*.html
 *.bak-*
+lens-out/
+reliks-lens.html
