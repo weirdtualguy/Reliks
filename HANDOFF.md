@@ -713,3 +713,24 @@ Lens L9 fee estimates match the on-chain fitted mass law (200 sompi/tx-byte).
 STUDIO->LENS PARITY: browser hash panel must equal lens engine_hash for the same
 template (circles: fbf130712caf9462...). gen-studio-mirror.js remains the
 download-independent parity harness.
+
+SERIES D REHEARSAL COMPLETE (testnet-10, STUDIO-BORN ENGINE):
+engine = PRELUDE_V1 (894 B) + Studio circles template = 1200 B ENGINE_SRC;
+engine_hash fbf130712caf9462b0613a63978152fd95a66ab40eddb7ab2ee7753d0b06acd1
+render_hash 4f2b9ac67323222dfe127e52b2ee612a7cfc88111065d53fdd3bef675edbfc19.
+FIRST RELIKS SERIES AUTHORED ENTIRELY IN THE BROWSER STUDIO:
+Studio export -> gen-studio-mirror -> lens 12/12 -> bake -> silverc -> chain.
+series-D factory bc 8309 (=1200+7109, fitted law exact), span {1,168},
+template f0df600f2ccdd545ce7ec785df5054ec8be5e5f76f26a860969365dd90706879.
+genesis 1df95faa89288e79b3d7fe41ac5b2cea1613d1915f5e52ab0a7d3066c29ed035
+lane D  9e29c638aa04e33adefbc15c9d66385c135fbdca29ea8b592603031a2c402e91
+mint #0 34db71a6c77c... serial 1046690524652801491 (edition 4818a63c...)
+mint #1 1a845f7705e8... serial 1665126013277412593 (edition bdc4fab7...)
+Mints first-attempt 3M fee (required ~1.78M per fitted mass law).
+verify-render 12/12 incl. F1 containment of PRELUDE_V1+circles bytes in the mint
+redeem; gallery gates + Node/browser parity OK; editions LIVE-UTXO anchored.
+ARTIST PIPELINE CLOSED END-TO-END: Studio(browser) -> export -> mirror -> lens
+-> bake -> silverc -> deploy -> mint -> verify -> gallery, hashes identical at
+every hop. Testnet rehearsal surface now complete: protocol v11 (Series B),
+mass/fee probes (16/24/32K), DAG-city + secondary direct/escrow (Series C),
+studio-born engine (Series D). ONLY HORIZON LEFT: mainnet §9.A.
