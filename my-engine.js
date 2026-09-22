@@ -1,0 +1,10 @@
+const { blake2b } = require('@noble/hashes/blake2b');
+const B = Buffer;
+const ENGINE_SRC = "var R=(function(L,serial){\nvar x=(L[0]^serial)|0,y=L[1]|0,z=L[2]|0,w=L[3]|0;\nfunction rnd(){var t=(x^(x<<11))|0;x=y;y=z;z=w;w=(w^(w>>>19))^(t^(t>>>8));return w>>>0;}\nfunction ri(a,b){return a+(rnd()%(b-a+1));}\nfunction pick(a){return a[rnd()%a.length];}\nfunction chance(p){return rnd()%100<p;}\nfunction hsl(){return 'hsl('+rnd()%360+','+ri(40,90)+'%,'+ri(30,70)+'%)';}\nfunction sin(a){a&=4095;var s=a<2048?1:-1,q=a<2048?a:a-2048,u=q*(2048-q);return s*(16*u*10000/(20971520-4*u)|0);}\nfunction cos(a){return sin(a+1024);}\nfunction dir(a,len){return [cos(a)*len/10000|0,sin(a)*len/10000|0];}\nfunction svg(parts,bg){return '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1000 1000\">'+(bg?'<rect width=\"1000\" height=\"1000\" fill=\"'+bg+'\"/>':'')+parts.join('')+'</svg>';}\nreturn {rnd:rnd,ri:ri,pick:pick,chance:chance,hsl:hsl,sin:sin,cos:cos,dir:dir,svg:svg,serial:serial,lanes:L};\n})(L,serial);\nfunction reliks(L, serial) {\n  var n = R.ri(18, 48), out = [];\n  for (var i = 0; i < n; i++) {\n    out.push('<circle cx=\"' + R.ri(0,1000) + '\" cy=\"' + R.ri(0,1000) +\n      '\" r=\"' + R.ri(20,240) + '\" fill=\"' + R.hsl() +\n      '\" fill-opacity=\"0.' + R.ri(30,85) + '\"/>');\n  }\n  return R.svg(out, '#000');\n}";
+const TEST_SERIAL = 1;
+function seedLanes(serial){const le=B.alloc(8);le.writeBigUInt64LE(BigInt(serial));const h=blake2b(B.concat([B.from('ReliksSeedV10','utf8'),le]),{dkLen:32});const dv=new DataView(h.buffer,h.byteOffset,h.byteLength);const lanes=[];for(let i=0;i<8;i++)lanes.push(dv.getInt32(i*4,true));return lanes;}
+const compiled=new Function('L','serial',ENGINE_SRC+'\nreturn reliks(L,serial);');
+function render(serial){const s=Number(BigInt(serial)&0xFFFFFFFFn);return compiled(seedLanes(s),s|0);}
+const engineHashHex=B.from(blake2b(B.from(ENGINE_SRC,'utf8'),{dkLen:32})).toString('hex');
+const renderHashHex=B.from(blake2b(B.from(render(TEST_SERIAL),'utf8'),{dkLen:32})).toString('hex');
+module.exports={ENGINE_SRC,seedLanes,render,engineHashHex,renderHashHex,TEST_SERIAL};

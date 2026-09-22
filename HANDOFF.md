@@ -693,3 +693,14 @@ FULL REVENUE STACK PROVEN ON MAINNET-CANDIDATE ENGINE:
 3. Marketplace premium (1% escrow buyer-side)
 SERIES C REHEARSAL STATUS: 100% COMPLETE. MINT, VERIFY, GALLERY, DIRECT
 SECONDARY, ESCROW SECONDARY ALL GREEN. MAINNET-READY.
+
+LENS L4 FIX (studio-era): bare-realm parity gate wrapped ENGINE_SRC in
+(function(){...return reliks;})() which cannot evaluate PRELUDE_V1's top-level
+IIFE (})(L,serial)) -> "L is not defined". L4 now compiles inside the vm realm
+with the PRODUCTION wrapper shape: (function(L,serial){SRC\nreturn reliks(L,serial);})
+via vm.runInContext completion value, so R rebuilds per call and host-global
+isolation is preserved. Proven: studio-exported my-engine.js (engine_hash
+fbf130712caf9462...) 12/12; v10 / DAG-city / probe-32768 unchanged all-PASS.
+RULE: any new engine *packaging* (preludes, wrappers) must be tested through
+gen-studio-mirror.js + lens before bake; the mirror exists to surface
+packaging/codec drift, exactly as it did here.
