@@ -1,0 +1,26 @@
+{
+  "C": "48de70dcc8aafc924af4ae1cfc22708dfcd5ddfe4d4ff65648f4629c4014e780",
+  "genesisTxId": "509ee8b13caceb8eeb8e31b93b0300d6c35acad0441ec716d7779da181233db8",
+  "series": {
+    "program_hash": "65ea22c288b43dd91b74e999742e26699cfc028008eff13b275761beb50c7ed0",
+    "artist": "ec7a4c67eb8c26c145519cbee601ee8dfe3ada9eb5e47d81b6d4d0f8d5094294",
+    "price": 100000000,
+    "royalty_bips": 500,
+    "mints_left": 1,
+    "engine_lang": 0,
+    "render_hash": "41cdf1240f72cf8a0eb212fc2cf699cc863e208b516a5f87ad536adf62ebd468",
+    "treasury": "fb2c09011bb6d77061d8f2fe9e2f6b7128866517b2cdff65bcfe797f8ce9f90f"
+  },
+  "editions": [
+    {
+      "txId": "cb4b2e7ce9faf9a16dbd5b5387123ee17c5fceaa79306c50736e7f9509b5d4c0",
+      "index": 1,
+      "cov": "119b2b90313410b7d36e95fae946bc3bac0a9a517b3eeb81e822ae136c89f757",
+      "serial": "7993950054043576356",
+      "owner": "ec7a4c67eb8c26c145519cbee601ee8dfe3ada9eb5e47d81b6d4d0f8d5094294",
+      "price": 0,
+      "amount": 100000000,
+      "spk": "61613230303936323062663034356665396363303837326331663666656535646566633330653239313437373761313435663232656636366132303962613335353437373837"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ const N = require('./network.js');
 const { blake2b: noble } = require('@noble/hashes/blake2b');
 const RB = require('./web/gallery-blake2b.js');
 const V = require('./v8-lib.js');
-const ENGINE = require('./reliks-engine-v10.js');
+const ENGINE = require(process.env.RELIKS_ENGINE || './reliks-engine-v10.js');
 
 const hx = (b) => Buffer.from(b).toString('hex');
 function assert(cond, msg) { if (!cond) { console.error('PARITY FAIL: ' + msg); process.exit(1); } }
@@ -19,7 +19,7 @@ console.log('blake2b cross-validation:', vectors.length, 'vectors OK (incl. engi
 /* 2) artifacts + registry */
 const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v11.json'), 'utf8'));
 const INIT_MINTS = JSON.parse(fs.readFileSync((process.env.RELIKS_ARGS || 'data/factory-args-v11.json'), 'utf8'))[4].value;
-const F = V.parts(JSON.parse(fs.readFileSync('data/factory-abi-v11.json', 'utf8')));
+const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v11.json'), 'utf8')));
 const Ed = V.parts(JSON.parse(fs.readFileSync('data/edition-abi-v6.json', 'utf8')));
 const tHash = (c) => (Array.isArray(c.compiled.template_hash) ? Buffer.from(c.compiled.template_hash) : Buffer.from(c.compiled.template_hash, 'hex')).toString('hex');
 const REG = {

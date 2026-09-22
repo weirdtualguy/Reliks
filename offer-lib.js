@@ -148,7 +148,7 @@ async function feeLoop(buildFn, initialFee = 3000000n) {
     const res = await broadcastREST(buildFn(fee));
     if (res.txId) return { txId: res.txId, fee };
     console.log('  attempt ' + attempt + ' rejected: ' + restRes.msg);
-    const m = restRes.msg.match(/required fee of (\d+)/i) || restRes.msg.match(/under the required (\d+)/i) || restRes.msg.match(/required fee[^\d]*(\d+)/i);
+    const m = restRes.msg.match(/required fee of (\d+)/i) || restRes.msg.match(/under the required (\d+)/i) || restRes.msg.match(/required amount of (\d+)/i) || restRes.msg.match(/required fee[^\d]*(\d+)/i);
     if (m) fee = BigInt(m[1]) + BigInt(m[1]) / 10n + 1n;
     else if (/fee/i.test(restRes.msg)) fee = fee * 2n;
     else throw new Error('non-fee rejection: ' + restRes.msg);

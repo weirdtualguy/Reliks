@@ -6,7 +6,7 @@ const { feeLoop, waitForConfirmation, pickUtxo, sighash, hex, pushMin, pushMinIn
 const covIdGenesis = require('./v7-lib.js').covIdGenesis || V.covIdGenesis || OL.covIdGenesis;
 if (typeof covIdGenesis !== 'function') { console.error('covIdGenesis unavailable in v7/v8/offer libs'); process.exit(1); }
 const B = Buffer;
-const F = V.parts(JSON.parse(fs.readFileSync('data/factory-abi-v11.json', 'utf8')));
+const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v11.json'), 'utf8')));
 const Ed = V.parts(JSON.parse(fs.readFileSync('data/edition-abi-v6.json', 'utf8')));
 const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v11.json'), 'utf8'));
 const MINT_FEE = 100000000n, CARRIER = 100000000n;
@@ -59,7 +59,7 @@ if (V.WALLET !== RG.p2pkAddress('20' + V.USER + 'ac')) { console.error('WALLET/P
     { txId: wIn.txId, index: wIn.index, sequence: 0, spk: wIn.spk, amount: wIn.amount }
   ];
   const inputs = [
-    { previousOutpoint: { transactionId: laneTxId, index: 0 }, signatureScript: '', sequence: 0, sigOpCount: 0, computeBudget: 100 },
+    { previousOutpoint: { transactionId: laneTxId, index: 0 }, signatureScript: '', sequence: 0, sigOpCount: 0, computeBudget: Number(process.env.PC_LANE_BUDGET || 100) },
     { previousOutpoint: { transactionId: wIn.txId, index: wIn.index }, signatureScript: '', sequence: 0, sigOpCount: 0, computeBudget: 10 }
   ];
   function build(fee) {
@@ -77,7 +77,7 @@ if (V.WALLET !== RG.p2pkAddress('20' + V.USER + 'ac')) { console.error('WALLET/P
   }
   const { txId, fee } = await feeLoop(build);
   await waitForConfirmation(txId);
-  LD.editions.push({ txId, index: 1, cov: covEd, serial, owner: V.USER, price: 0, amount: Number(CARRIER), spk: hex(V.p2sh(edRedeem)) });
+  LD.editions.push({ txId, index: 1, mintTxId: txId, mintIndex: 1, cov: covEd, serial, owner: V.USER, price: 0, amount: Number(CARRIER), spk: hex(V.p2sh(edRedeem)) });
   fs.writeFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v11.json'), JSON.stringify(LD, null, 2));
   console.log('RELIKS V11 MINT:', txId, '| serial', serial, '| artistCut', artistCut.toString(), '| platformFee', MINT_FEE.toString(), '| edition', covEd.slice(0, 16) + '...');
 })().catch(e => { console.error(e); process.exit(1); });
