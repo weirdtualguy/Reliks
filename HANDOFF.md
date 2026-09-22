@@ -704,3 +704,12 @@ fbf130712caf9462...) 12/12; v10 / DAG-city / probe-32768 unchanged all-PASS.
 RULE: any new engine *packaging* (preludes, wrappers) must be tested through
 gen-studio-mirror.js + lens before bake; the mirror exists to surface
 packaging/codec drift, exactly as it did here.
+
+LENS L4 FIX VERIFIED (matrix): post-fix wrapper
+(function(L,serial){SRC\nreturn reliks(L,serial);}) via vm.runInContext completion
+value passes 12/12 on: studio-export my-engine.js 1200 B (fbf13071...), v10 901 B,
+DAG-city 3888 B, probe 32768/32768 B - no regressions on prelude-less engines.
+Lens L9 fee estimates match the on-chain fitted mass law (200 sompi/tx-byte).
+STUDIO->LENS PARITY: browser hash panel must equal lens engine_hash for the same
+template (circles: fbf130712caf9462...). gen-studio-mirror.js remains the
+download-independent parity harness.
