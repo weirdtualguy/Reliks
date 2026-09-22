@@ -745,3 +745,25 @@ Series F = DAG-city engine on audit2 templates (the exact mainnet config), with
 a mandatory inline ABI-embed assertion between silverc and deploy.
 verify-render-v10.js now fails fast with PROVENANCE MISMATCH when RELIKS_ENGINE
 engine_hash != ledger series.program_hash.
+
+AUDIT2 FREEZE CLOSED (testnet-10, two configurations):
+Series E (audit2 templates + v10 engine 8ad0717d...): genesis c6ad1de7...,
+lane 11eee65b..., mints 9343a9da/061bf55a; verify 12/12 with
+RELIKS_ENGINE=reliks-engine-v10.js (diagnostic: ledger program_hash == v10;
+audit2 ABI embeds v10 - provenance guard now catches this class instantly).
+Series F (audit2 templates + DAG-city mainnet candidate 16440384...):
+genesis 5b3bae71..., lane d784588d..., mints 2de1fe1a (serial
+4491934634203358772) / 2ca4b1b4 (serial 4837310410999704466); verify 12/12;
+gallery 59484 B / 2 editions.
+Secondary on F (patched contracts): list d24d2792 -> buy cbc151d8 (ownerNet
+190M / roy 10M / plat 0); list 5c987532 -> offer 645dcfdb (locked 303M) ->
+accept e9658990 (ownerNet 285M / roy 15M / mkt 3M). All audit2 requires
+(buyerScheme, royalty>=1, program_hash==blake2b(engine_code), escrow MAX_PRICE,
+distinct indices) executed on-chain and green.
+NEW CONSENSUS/TRANSPORT PIN: REST broadcast CANNOT carry compute_budget (REST
+fallback rejects covenant spends: "script units exceeded: used=29798,
+limit=9999" == compute_budget 0). Covenant spends MUST broadcast via wRPC.
+PC_MAINNET_WRPC is therefore a BLOCKING mainnet prerequisite (own full node
+recommended); REST-only mainnet cannot deploy/mint/trade. Fee discovery still
+works because the wRPC rejection carries "required amount of X".
+SERIES F == exact mainnet configuration. §9.A is the only horizon.
