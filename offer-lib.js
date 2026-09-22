@@ -147,11 +147,12 @@ async function feeLoop(buildFn, initialFee = 3000000n) {
     console.log('  wRPC failed:', restRes.msg, '| trying REST fallback...');
     const res = await broadcastREST(buildFn(fee));
     if (res.txId) return { txId: res.txId, fee };
-    console.log('  attempt ' + attempt + ' rejected: ' + restRes.msg);
-    const m = restRes.msg.match(/required fee of (\d+)/i) || restRes.msg.match(/under the required (\d+)/i) || restRes.msg.match(/required amount of (\d+)/i) || restRes.msg.match(/required fee[^\d]*(\d+)/i);
+    console.log('  attempt ' + attempt + ' rejected: REST: ' + res.msg + ' | wRPC: ' + restRes.msg);
+    const combined = res.msg + ' | ' + restRes.msg;
+    const m = combined.match(/required fee of (\d+)/i) || combined.match(/under the required (\d+)/i) || combined.match(/required amount of (\d+)/i) || combined.match(/required fee[^\d]*(\d+)/i);
     if (m) fee = BigInt(m[1]) + BigInt(m[1]) / 10n + 1n;
-    else if (/fee/i.test(restRes.msg)) fee = fee * 2n;
-    else throw new Error('non-fee rejection: ' + restRes.msg);
+    else if (/fee/i.test(combined)) fee = fee * 2n;
+    else throw new Error('non-fee rejection: REST: ' + res.msg + ' | wRPC: ' + restRes.msg);
   }
   throw new Error('fee discovery exhausted');
 }
