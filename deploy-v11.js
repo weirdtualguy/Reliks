@@ -9,7 +9,7 @@ const { feeLoop, waitForConfirmation, pickUtxo, sighash, hex } = OL;
 const covIdGenesis = require('./v7-lib.js').covIdGenesis || V.covIdGenesis || OL.covIdGenesis;
 if (typeof covIdGenesis !== 'function') { console.error('covIdGenesis unavailable in v7/v8/offer libs'); process.exit(1); }
 const B = Buffer;
-const F = V.parts(JSON.parse(fs.readFileSync('data/factory-abi-v11.json', 'utf8')));
+const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v11.json'), 'utf8')));
 const args = JSON.parse(fs.readFileSync((process.env.RELIKS_ARGS || 'data/factory-args-v11.json'), 'utf8'));
 const hxb = (i) => B.from(args[i].value).toString('hex');
 const series = { program_hash: hxb(0), artist: hxb(1), price: args[2].value, royalty_bips: args[3].value, mints_left: args[4].value, engine_lang: args[6].value, render_hash: hxb(7), treasury: hxb(8) };

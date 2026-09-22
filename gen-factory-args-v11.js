@@ -1,5 +1,5 @@
 const fs = require('fs');
-const ENGINE = require('./reliks-engine-v10.js');
+const ENGINE = require(process.env.RELIKS_ENGINE || './reliks-engine-v10.js');
 const cfg = JSON.parse(fs.readFileSync(process.argv[2] || 'data/series-testnet-v11.json', 'utf8'));
 // E-1 GUARD (audit): royalty_bips == 0 bricks paid secondary sales.
 // ReliksEdition.checkPayments requires tx.outputs[artistOutIdx].value == roy;

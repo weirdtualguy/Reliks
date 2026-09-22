@@ -2,10 +2,10 @@ const fs = require('fs');
 const { blake2b } = require('@noble/hashes/blake2b');
 const V = require('./v8-lib.js');
 
-const F = V.parts(JSON.parse(fs.readFileSync('data/factory-abi-v11.json', 'utf8')));
+const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v11.json'), 'utf8')));
 const Ed = V.parts(JSON.parse(fs.readFileSync('data/edition-abi-v6.json', 'utf8')));
 const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v11.json'), 'utf8'));
-const ENGINE = require('./reliks-engine-v10.js');
+const ENGINE = require(process.env.RELIKS_ENGINE || './reliks-engine-v10.js');
 const INIT_MINTS = JSON.parse(fs.readFileSync((process.env.RELIKS_ARGS || 'data/factory-args-v11.json'), 'utf8'))[4].value;
 const B = V.B, H = V.H;
 

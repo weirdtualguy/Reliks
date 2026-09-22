@@ -607,3 +607,45 @@ now carry the same gallery-codec wallet/priv preflight guard as deploy/mint (pre
 stale PC_WALLET cross-wiring). offer-v4.js additionally asserts BigInt(ed.price) === askPrice
 before locking funds, preventing offers against stale ledger entries (which would
 otherwise trap funds until expireAge). Templates untouched. Backups: *.bak-esc.
+
+OPTION A MASS/FEE PROBE CLOSED (testnet-10, three live probe mints):
+LAW: transient mass = 2 x tx_bytes; required fee = 100 sompi/mass = 200 sompi/tx-byte;
+tx_bytes = mint sigscript + 546; sigscript = factory bc + 46; bc = engine S + ~7109 B.
+POINTS: S=16384 mass 48170 fee 4817000; S=24576 mass 64554 fee 6455400;
+S=32768 mass 80950 fee 8095000 (paid 8904501 via feeLoop +10% margin).
+compute_budget 100 suffices through S=32768 (engineBaked blake2b over 32 KB).
+CEILING: consensus max tx mass 100000 => engine ~42 KB; MAX_SIGNATURE_SCRIPT_LEN
+250000 not binding. ENGINE_CAP client policy RAISED 4096 -> 32768 (policy only;
+frozen templates, codec, builders untouched).
+PROBE TXIDS: 16K genesis 64f848ae mint 81352538 (lane d0bee9cb);
+24K genesis 509ee8b1 mint cb4b2e7c (lane 48de70dd);
+32K genesis 04e9ad2e mint cab82d13 (lane a83de0fe).
+Probe lanes left at mints_left 0 as 1 KAS dust monuments (close-able via artist sig).
+BEYOND 42 KB: Option B (shard covenants + assembly co-spend, ChessSettle pattern)
+or Option C (layer federation, ChessMux route-table pattern) required.
+
+SERIES C REHEARSAL (testnet-10, DAG-city engine reliks-engine-mainnet.js):
+genesis <TXID> lane C <COVID>; mints <TX0> <TX1>; verify 11/11; gallery VERIFIED.
+Env-scoped: RELIKS_ENGINE/ARGS/FACTORY_ABI/LEDGER = *-c* paths; canonical v11
+artifacts untouched. verify-render + gen-gallery now honor RELIKS_FACTORY_ABI
+(probe-era gap closed). Mint fees matched the fitted mass law (~2.3-3.0 M sompi).
+Series C = community proof-of-concept drop; mainnet genesis next.
+
+SERIES C REHEARSAL COMPLETE (testnet-10, DAG-city engine reliks-engine-mainnet.js):
+engine "Reliks Genesis City v3" integer-only iso BlockDAG, ~3.9 KB (< raised 32768
+policy); series-c.json price 1 KAS / bips 500 / mints 8.
+genesis 85d41d788b9913653631d310dcb7bf1354a6a8be00cdd145d27f6fe5f1a69def
+lane C  e2a15dc5ff70fc04cc2d252a8ea5ea46212fa9a3121c34fa0138caae4af07cb4
+factory-abi-c bc 10997 template 0e42dc7d1e54d7a561bb1b370a6452e99f50f4d1b86aef6fc6b067015256cf54
+mint #0 8f0cc8c0c121cd3dbf004298d7818d026bfdc596bc4db11b96d111d73ed01723
+        serial 5056484704985813865 (edition b3c684d6…)
+mint #1 1e80012f3276828394316a38c80c758fd5d5046f809f4ad7aced4df9c182a106
+        serial 2977287238847657467 (edition 9f14982e…)
+verify-render 12/12 PASS incl. F1 full-redeem engine containment; gallery gates +
+Node/browser parity OK; edition #0 LIVE-UTXO anchored, spent continuations
+archival-labeled (liveSpk location semantics proven again).
+DUAL-FIELD CLOSURE: mint-v11.js writes mintTxId/mintIndex natively at push;
+ledger-c needed no retroactive patch; lineage green on both editions.
+Mint fees passed first-attempt 3M at ~11 KB bc, matching the fitted mass law.
+COMMUNITY PoC: reliks-gallery-c.html (self-contained, 51680 B, 2 editions).
+MAINNET CANDIDATE ENGINE: this DAG-city engine; §9.A runbook unchanged.
