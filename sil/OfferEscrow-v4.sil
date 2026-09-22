@@ -35,6 +35,7 @@ contract OfferEscrow(
     byte constant IDENTIFIER_PUBKEY = 0x00;
     int constant MIN_PRICE = 100000000;   // 1 KAS (v11 floor)
     int constant MKT_BIPS = 100;          // 1% buyer premium
+    int constant MAX_PRICE = 922337203685477; // i64 overflow guard, mirrors Edition
 
     struct EditionState {
         byte[32] ownerIdentifier;
@@ -57,11 +58,14 @@ contract OfferEscrow(
         require(identifierType == IDENTIFIER_PUBKEY);
         require(checkSig(ownerSig, pubkey(ownerIdentifier)));
         require(askPrice >= MIN_PRICE);
+        require(askPrice <= MAX_PRICE);
 
         int roy = (askPrice * royalty_bips) / 10000;
         int mktFee = (askPrice * MKT_BIPS) / 10000;
         int totalRequired = askPrice + mktFee;
         require(tx.inputs[this.activeInputIndex].value >= totalRequired);
+        require(paymentOutIdx != royaltyOutIdx && royaltyOutIdx != mktFeeOutIdx && paymentOutIdx != mktFeeOutIdx);
+        require(editionOutIdx != paymentOutIdx && editionOutIdx != royaltyOutIdx && editionOutIdx != mktFeeOutIdx);
 
         byte[36] ownerSpk = new ScriptPubKeyP2PK(pubkey(ownerIdentifier));
         byte[36] artistSpk = new ScriptPubKeyP2PK(pubkey(artist));
