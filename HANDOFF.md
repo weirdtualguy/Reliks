@@ -734,3 +734,14 @@ ARTIST PIPELINE CLOSED END-TO-END: Studio(browser) -> export -> mirror -> lens
 every hop. Testnet rehearsal surface now complete: protocol v11 (Series B),
 mass/fee probes (16/24/32K), DAG-city + secondary direct/escrow (Series C),
 studio-born engine (Series D). ONLY HORIZON LEFT: mainnet §9.A.
+
+PROVENANCE RULE (audit2 fallout): RELIKS_ENGINE affects ONLY gen-factory-args
+(bake) and verify/gallery. deploy/mint consume ONLY the ABI artifact + args
+file. Series E (genesis c6ad1de7...) was baked with the v10 engine because the
+args/ABI fed to silverc during the audit2 shuffle were v10-based; its on-chain
+requires (buyerScheme, royalty>=1, program_hash==blake2b(engine_code)) still
+executed and are proven. Series E verifies with RELIKS_ENGINE=reliks-engine-v10.js.
+Series F = DAG-city engine on audit2 templates (the exact mainnet config), with
+a mandatory inline ABI-embed assertion between silverc and deploy.
+verify-render-v10.js now fails fast with PROVENANCE MISMATCH when RELIKS_ENGINE
+engine_hash != ledger series.program_hash.
