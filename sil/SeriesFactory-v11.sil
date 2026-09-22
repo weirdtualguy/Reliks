@@ -67,9 +67,11 @@ contract SeriesFactory(
 
     entry mint(byte[32] buyer, byte buyerScheme, int editionOutIdx, int artistOutIdx, int platformOutIdx) {
         require(mints_left > 0);
+        require(buyerScheme == IDENTIFIER_PUBKEY);
         require(price == 0 || price >= MINT_FEE);
-        require(royalty_bips >= 0 && royalty_bips <= MAX_ROYALTY_BIPS);
+        require(royalty_bips >= 1 && royalty_bips <= MAX_ROYALTY_BIPS);
         engineBaked();
+        require(program_hash == blake2b(engine_code));
         if (price > 0) {
             int artistCut = price - MINT_FEE;
             byte[36] artistSpk = new ScriptPubKeyP2PK(pubkey(artist));
