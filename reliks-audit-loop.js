@@ -94,6 +94,15 @@ KNOWN RELIKS CONSTRAINTS (do not flag these as issues, they are intentional):
 - EditionState does not track live txId/index: Live UTXO outpoints are chain properties. The state only tracks immutable mintTxId/mintIndex for lineage.
 - Engine size is enforced client-side by the tooling (reliks-lens.js) and consensus PUSHDATA2 limits, not by on-chain require() statements.
 
+
+KASPA TOCCATA & SILVERSCRIPT CANONICAL RULES (Use these to evaluate the code):
+1. STATE ENCODING: Reliks uses KCC-1 push-per-leaf encoding. Integers are 8B fixed LE. byte[32] is 33B (push 32 + opcode). byte is 2B (push 1 + opcode). Do not flag standard KCC-1 state layouts.
+2. DISPATCH TAGS: Silverscript entry dispatch tags are derived at runtime from the ABI as blake3(name(types))[0..4]. They must NEVER be hardcoded in JS builders.
+3. COVENANT LINEAGE: Covenants use a 32-byte covenantId to track state across changing script hashes. The live UTXO outpoint (txId/index) is a chain property, not stored in the state payload (except immutable mint anchors).
+4. PUSHDATA2 LIMIT: The absolute maximum size for a single data push in a Kaspa transaction is 65535 bytes. If a compiled Silverscript template or engine exceeds this, the transaction is invalid.
+5. COMPUTE BUDGET: Covenant spends require a compute_budget > 0. Kaspa REST broadcast drops this field (limit=9999), making REST categorically unsafe for covenant spends. wRPC is mandatory.
+6. VALUE CONSERVATION: Silverscript transitions (mint/fork/close/list/buy) must explicitly validate that input value >= output value + fees, unless explicitly burning.
+
 YOUR DISCIPLINE:
 - Cite file:line for every finding.
 - Classify each finding: HIGH / MEDIUM / LOW / INFORMATIONAL.

@@ -3,13 +3,6 @@ const L = require('./offer-lib.js');
 const { blake2b } = require('@noble/hashes/blake2b');
 const WebSocket = require('ws');
 const covIdGenesis = (authTxId, authIdx, outs) => L.hex(blake2b(L.B.concat([L.H(authTxId), L.le32(authIdx), L.le64(outs.length), ...outs.map(o => L.B.concat([L.le32(o.idx), L.le64(o.value), L.le16(0), L.le64(L.H(o.script).length), L.H(o.script)]))]), { dkLen: 32, key: L.B.from('CovenantID') }));
-const serialOf = (txId, idx) => {
-  const h = blake2b(L.B.concat([L.B.from('PixelCoveSerialV7', 'utf8'), L.H(txId), L.le32(idx)]), { dkLen: 32 });
-  let s = 0n;
-  for (let i = 0; i < 7; i++) s += BigInt(h[i]) * (256n ** BigInt(i));
-  s += BigInt(h[7] & 0x7f) * (256n ** 7n);
-  return s.toString();
-};
 
 async function broadcastREST(rpcTx) {
   try {
@@ -52,4 +45,4 @@ async function feeLoop(buildFn) {
   throw new Error('fee discovery exhausted');
 }
 
-module.exports = { ...L, blake2b, covIdGenesis, serialOf, DUST: 100000000n };
+module.exports = { ...L, blake2b, covIdGenesis, DUST: 100000000n };

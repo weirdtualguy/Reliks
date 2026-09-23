@@ -77,3 +77,12 @@ change outputs) is the heaviest route: 524202 storage mass post-audit4, over the
 royalty/artist from prevEd (field removal); 2-input accept redesign.
 MAINNET TODO: query mainnet max transaction mass param and re-validate the
 accept route against it before genesis; testnet-10 cap is not evidence.
+
+## Escrow accept: 2-input design with offer-side fee buffer
+Storage-mass cap (500000 on testnet-10) forbids the 3-input accept (519992).
+The 2-input accept cannot deduct the miner fee from owner/royalty/market
+outputs (edition checkPayments floors/equalities). Therefore the OFFER locks
+askPrice + mktFee + FEE_BUFFER (5M sompi); accept spends edition+escrow only,
+pays owner exactly askPrice - roy, and the buffer becomes the miner fee.
+Orphaned pre-buffer escrow bab83ad2... remains refundable via expire after
+expireAge; it is deliberately left unspent on testnet.
