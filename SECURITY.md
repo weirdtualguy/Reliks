@@ -65,3 +65,15 @@ Keys never leave offline storage; test on testnet first; verify every
 transaction before signing. Covenant-aware wallets (e.g. Kaspire) display
 all outputs for review - read them before approving.
 <!-- EOF-SEC-2 -->
+
+## Mass model (four dimensions, testnet-10 measured)
+1. Fee mass (mempool): normalized transient mass = 2*tx_bytes at 100 sompi/unit.
+2. Compute allowance: compute_budget*10000+9999 script units per v1 input.
+3. Consensus mass: storage+compute <= MAX_TRANSACTION_MASS.
+4. Storage mass: per-UTXO storage pricing; testnet-10 per-tx cap 500000.
+The escrow accept (edition+escrow+funding inputs; owner/artist/mkt/continuation/
+change outputs) is the heaviest route: 524202 storage mass post-audit4, over the
+500000 cap. Mitigations in order: owner absorbs change output; escrow derives
+royalty/artist from prevEd (field removal); 2-input accept redesign.
+MAINNET TODO: query mainnet max transaction mass param and re-validate the
+accept route against it before genesis; testnet-10 cap is not evidence.
