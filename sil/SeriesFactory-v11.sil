@@ -137,6 +137,7 @@ contract SeriesFactory(
     }
 
     entry close(sig artistSig) {
+    require(OpAuthOutputCount(this.activeInputIndex) == 0);
         require(checkSig(artistSig, pubkey(artist)));
     }
 }
