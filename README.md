@@ -1,33 +1,43 @@
-# Reliks: Prune-Proof Generative Art on Kaspa L1
+# Reliks
+**Trustless Generative Art on Kaspa Toccata**
 
-Reliks is a generative art NFT protocol and marketplace built natively on **Kaspa Toccata L1 Covenants** using SilverScript. 
+Reliks is a UTXO-native generative art protocol built on Kaspa's Toccata L1 Covenants. The artwork's genome is baked directly into the chain state, rendering trustlessly from the ledger without IPFS or centralized servers.
 
-Unlike traditional NFTs that rely on IPFS or centralized servers (which can die, taking the art with them), Reliks is **prune-proof**. The artwork is not stored as an image file; it is stored as a deterministic, integer-only mathematical engine anchored directly into the UTXO set. The art is a *consequence* of the chain state, regenerated trustlessly by anyone, anywhere, forever.
+## Architecture
+- **Chain-Anchored Genomes:** The artwork's engine (integer-only JS) is baked directly into the covenant template. You cannot prune the art without pruning mathematics.
+- **Trustless Verification:** Every edition is recomputed from the chain state. The gallery verifies the lineage gate suite directly in the browser against the live Kaspa UTXO set.
+- **Deterministic PRNG:** Seeded xorshift randomness ensures byte-identical SVG output across Node.js and every browser, forever. Verified by dual-field lineage hashes.
+- **Model B Economics:** On-chain artist royalties, marketplace escrow premiums, and permissionless secondary markets enforced entirely by covenant logic.
 
-## 🏗️ Architecture (v11)
-- **Covenant-Native:** Built on Kaspa's UTXO model using `SeriesFactory` and `ReliksEdition` covenants.
-- **Model B Economics:** Three consensus-enforced revenue streams:
-  1. **Mint Cut:** Fixed 1 KAS platform fee per paid mint.
-  2. **Royalties:** Universal, on-chain artist royalties on every secondary sale.
-  3. **Marketplace Premium:** 1% buyer-side premium handled via `OfferEscrow` covenants.
-- **Trustless Gallery:** The `reliks-gallery-runtime.js` verifies the lineage of every edition output-by-output against live Kaspa nodes. If the chain data doesn't match the mathematical anchors, the art is withheld.
-- **Zero IPFS:** No external storage dependencies. The engine bytes are physically embedded in the factory's redeem script and verified via the F1 gate.
+## Repository Structure
+- `sil/` - Frozen Silverscript covenant sources (SeriesFactory, ReliksEdition, OfferEscrow).
+- `data/` - Canonical series definitions and compiled portable ABIs.
+- `web/` - Browser-side runtime, blake2b hashing, and Kaspire WalletConnect integration.
+- `docs/` - GitHub Pages public hub (Gallery, Studio, Protocol).
 
-## 📂 Repository Structure
-- `sil/`: Frozen SilverScript covenant sources (v11 Factory, v11 Edition, v4 Escrow).
-- `data/`: Compiled ABI artifacts, live testnet ledgers, and constructor arguments.
-- `web/`: Browser-side gallery runtime and trustless verification logic.
-- `*-lib.js`: The KCC-1 codec, UTXO pickers, and wRPC broadcast layers.
-- `*-v11.js` / `*-v4.js`: The builder scripts for deploying, minting, and trading.
+## Tooling
+- `deploy-v11.js` / `mint-v11.js` - Genesis and edition minting.
+- `secondary-v11.js` - Direct secondary market listings and purchases.
+- `offer-v4.js` / `accept-v4.js` / `expire-v4.js` - Escrow-based offers.
+- `reliks-lens.js` - Pre-bake L0-L10 gate suite for engine validation.
+- `verify-render-v10.js` - Post-mint chain-anchored lineage verifier.
+- `gen-studio.js` / `gen-site.js` - Generators for the browser Studio and public hub.
 
-## 🚀 Running the Verifier
-To verify the testnet rehearsal lineage trustlessly:
-```bash
-npm install @noble/hashes @noble/secp256k1 ws
-node verify-render-v10.js
-```
+## Prerequisites
+- Node.js (v18+)
+- `@noble/hashes`, `@noble/secp256k1`, `ws`
+- `silverc` (Silverscript compiler)
 
-## ⚠️ Mainnet Status
-The v11 template set is **frozen and audited**. Mainnet deployment requires offline key generation and the `secrets.mainnet.env` file (never committed to git).
+## Mainnet Transport Requirement
+Covenant spends require `compute_budget`, which Kaspa's REST broadcast drops. Therefore, **wRPC is strictly mandatory** for all covenant transactions. 
+Set `PC_NET=mainnet` and provide a trusted wRPC endpoint via `PC_MAINNET_WRPC` in your `secrets.mainnet.env`. The client will hard-exit if wRPC is missing on mainnet, and strictly refuses REST fallback for covenant spends.
 
-*Built entirely on Termux/Node.js. No smart-contract VMs, no EVM wrappers. Pure Kaspa.*
+## Security & Audits
+The protocol has undergone multiple rounds of rigorous auditing. Consensus-enforced invariants include:
+- `buyerScheme == IDENTIFIER_PUBKEY`
+- `royalty_bips >= 1` (prevents zero-royalty bricking)
+- `program_hash == blake2b(engine_code)` (engine containment)
+- Escrow `MAX_PRICE` bounds and pairwise-distinct output indices.
+
+## License
+MIT
