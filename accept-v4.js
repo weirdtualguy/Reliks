@@ -31,29 +31,26 @@ const rpc = (inputs, outputs) => ({ version: 1, inputs, outputs: outputs.map(o =
   const RG = (() => { const fs2 = require('fs'); const src = fs2.readFileSync(__dirname + '/web/reliks-gallery-runtime.js', 'utf8'); return new Function('RB2B', 'REG', 'self', src + ';return self.ReliksGallery;')(require('@noble/hashes/blake2b').blake2b, { hrp: require('./network.js').hrp }, {}); })();
   if (V.WALLET !== RG.p2pkAddress('20' + V.USER + 'ac')) { console.error('WALLET/PRIV mismatch — stale PC_WALLET in env?'); process.exit(1); }
 
-  const wIn = await pickUtxo();
   const edIn = { txId: ed.txId, index: ed.index, sequence: 0, spk: V.p2sh(curEdRedeem), amount: BigInt(ed.amount) };
   const escIn = { txId: ESC.txId, index: ESC.index, sequence: 0, spk: escSpk, amount: BigInt(ESC.locked) };
-  const hsInputs = [edIn, escIn, { txId: wIn.txId, index: wIn.index, sequence: 0, spk: wIn.spk, amount: wIn.amount }];
+  const hsInputs = [edIn, escIn];
   const inputs = [
     { previousOutpoint: { transactionId: edIn.txId, index: edIn.index }, signatureScript: '', sequence: 0, sigOpCount: 0, computeBudget: 100 },
-    { previousOutpoint: { transactionId: escIn.txId, index: escIn.index }, signatureScript: '', sequence: 0, sigOpCount: 0, computeBudget: 100 },
-    { previousOutpoint: { transactionId: wIn.txId, index: wIn.index }, signatureScript: '', sequence: 0, sigOpCount: 0, computeBudget: 10 }
+    { previousOutpoint: { transactionId: escIn.txId, index: escIn.index }, signatureScript: '', sequence: 0, sigOpCount: 0, computeBudget: 100 }
   ];
   function build(fee) {
     const outputs = [
       { amount: BigInt(ed.amount), scriptPublicKey: V.p2sh(nextEdRedeem), covenant: { authorizingInput: 0, covenantId: ed.cov } },
       { amount: ownerNet, scriptPublicKey: '20' + ed.owner + 'ac' },
       { amount: roy, scriptPublicKey: '20' + LD.series.artist + 'ac' },
-      { amount: mktFee, scriptPublicKey: '20' + st.marketplace + 'ac' },
-      { amount: BigInt(wIn.amount) - fee, scriptPublicKey: wIn.spk }
+      { amount: mktFee, scriptPublicKey: '20' + st.marketplace + 'ac' }
     ];
     const edSs = B.concat([pushMin(B.from(st.offerer, 'hex')), pushMinInt(1), pushMinInt(2), pushMin(TAG_ed('buy')), pushMin(curEdRedeem)]);
     const ownerSigRaw = secp.schnorr.signSync(sighash(hsInputs, outputs, 1), V.PRIV);
     const escSs = B.concat([pushMin(B.concat([ownerSigRaw, B.from([0x01])])), pushMinInt(0), pushMinInt(1), pushMinInt(2), pushMinInt(3), pushMin(TAG_esc('accept')), pushMin(escRedeem)]);
     inputs[0].signatureScript = hex(edSs);
     inputs[1].signatureScript = hex(escSs);
-    inputs[2].signatureScript = '41' + hex(secp.schnorr.signSync(sighash(hsInputs, outputs, 2), V.PRIV)) + '01';
+    
     return rpc(inputs, outputs);
   }
   const { txId, fee } = await feeLoop(build);

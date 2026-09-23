@@ -143,6 +143,8 @@ async function feeLoop(buildFn, initialFee = 3000000n, opts = {}) {
   let fee = initialFee;
   for (let attempt = 0; attempt < 6; attempt++) {
     console.log('  attempt', attempt, '| fee', fee.toString(), '| trying wRPC...');
+    const __t = buildFn(fee);
+    console.log('  tx shape: inputs', __t.inputs.length, '| outputs', __t.outputs.length, '| sigscript bytes', __t.inputs.map(i => ((i.signatureScript || '').length / 2) | 0).join('+'));
     const wrpcRes = await broadcastWithMsg(buildFn(fee));
     if (wrpcRes.txId) return { txId: wrpcRes.txId, fee };
     
