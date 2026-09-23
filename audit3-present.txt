@@ -1,0 +1,7 @@
+AUDIT3-FIX-BRIEF.md
+audit3-fixes.diff
+audit3-verify-f.log
+offer-lib.js
+network.js
+verify-render-v10.js
+HANDOFF.md
