@@ -56,6 +56,13 @@ const renderSeed = (serial) => Number(BigInt(serial) & 0xFFFFFFFFn); // canonica
     const edState = { ownerIdentifier: ed.owner, identifierType: 0, price: ed.price, artist: LD.series.artist, royalty_bips: LD.series.royalty_bips, program_hash: LD.series.program_hash, factory_covid: LD.C, serial: ed.serial };
     const edSpk = p2shHex(B.concat([Ed.prefix, V.encState(Ed, edState), Ed.suffix]));
     check('[#' + i + '] edition covenant_id == mintTx.outputs[1].covenant_id', (mintTx.outputs[1].covenant_id || '') === ed.cov);
+    const actualEdSpk = spkHex(mintTx.outputs[1]);
+    if (edSpk !== actualEdSpk) {
+      console.log('FAIL [#' + i + '] edition spk mismatch: expected ' + edSpk.slice(0,16) + '... got ' + actualEdSpk.slice(0,16) + '...');
+      ok = false;
+    } else {
+      console.log('PASS [#' + i + '] edition spk == mintTx.outputs[1].scriptPubKey');
+    }
     const contSpk = p2shHex(B.concat([F.prefix, V.encState(F, { ...LD.series, mints_left: INIT_MINTS - (i + 1) }), F.suffix]));
     check('[#' + i + '] continuation spk (mints_left=' + (INIT_MINTS - (i + 1)) + ') == mintTx.outputs[0]', contSpk === spkHex(mintTx.outputs[0]));
 
