@@ -12,3 +12,8 @@ reliks-gallery-*.html
 .attic/
 tmp/
 node_modules/
+reliks-lens.html
+lens-out/
+reliks-v10-edition-*.svg
+whitelist.txt
+prune.txt
