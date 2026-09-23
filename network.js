@@ -24,6 +24,6 @@ const PROFILES = {
 };
 if (!PROFILES[NET]) { console.error('FATAL: unknown PC_NET=' + NET); process.exit(1); }
 if (NET === 'mainnet' && PROFILES.mainnet.wrpc.length === 0) {
-  console.error('WARNING: PC_NET=mainnet with no PC_MAINNET_WRPC set — wRPC broadcast disabled, REST-only.');
+  console.error('FATAL: PC_NET=mainnet requires PC_MAINNET_WRPC for covenant spends.'); process.exit(1);
 }
 module.exports = Object.assign({ NET }, PROFILES[NET]);

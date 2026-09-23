@@ -138,21 +138,31 @@ async function broadcastREST(rpcTx) {
   } catch (e) { return { txId: null, msg: e.message }; }
 }
 
-async function feeLoop(buildFn, initialFee = 3000000n) {
+async function feeLoop(buildFn, initialFee = 3000000n, opts = {}) {
+  const covenantSpend = opts.covenantSpend !== false;
   let fee = initialFee;
   for (let attempt = 0; attempt < 6; attempt++) {
-    console.log('  attempt', attempt, '| fee', fee.toString(), '| trying wRPC first...');
-    const restRes = await broadcastWithMsg(buildFn(fee));
-    if (restRes.txId) return { txId: restRes.txId, fee };
-    console.log('  wRPC failed:', restRes.msg, '| trying REST fallback...');
+    console.log('  attempt', attempt, '| fee', fee.toString(), '| trying wRPC...');
+    const wrpcRes = await broadcastWithMsg(buildFn(fee));
+    if (wrpcRes.txId) return { txId: wrpcRes.txId, fee };
+    
+    if (covenantSpend) {
+      console.log('  wRPC failed:', wrpcRes.msg);
+      const m = wrpcRes.msg.match(/required fee of (\d+)/i) || wrpcRes.msg.match(/under the required (\d+)/i) || wrpcRes.msg.match(/required amount of (\d+)/i) || wrpcRes.msg.match(/required fee[^\d]*(\d+)/i);
+      if (m) { fee = BigInt(m[1]) + BigInt(m[1]) / 10n + 1n; continue; }
+      if (/fee/i.test(wrpcRes.msg)) { fee = fee * 2n; continue; }
+      throw new Error('covenant spend requires wRPC; wRPC failed: ' + wrpcRes.msg);
+    }
+
+    console.log('  wRPC failed:', wrpcRes.msg, '| trying REST fallback...');
     const res = await broadcastREST(buildFn(fee));
     if (res.txId) return { txId: res.txId, fee };
-    console.log('  attempt ' + attempt + ' rejected: REST: ' + res.msg + ' | wRPC: ' + restRes.msg);
-    const combined = res.msg + ' | ' + restRes.msg;
+    console.log('  attempt ' + attempt + ' rejected: REST: ' + res.msg + ' | wRPC: ' + wrpcRes.msg);
+    const combined = res.msg + ' | ' + wrpcRes.msg;
     const m = combined.match(/required fee of (\d+)/i) || combined.match(/under the required (\d+)/i) || combined.match(/required amount of (\d+)/i) || combined.match(/required fee[^\d]*(\d+)/i);
     if (m) fee = BigInt(m[1]) + BigInt(m[1]) / 10n + 1n;
     else if (/fee/i.test(combined)) fee = fee * 2n;
-    else throw new Error('non-fee rejection: REST: ' + res.msg + ' | wRPC: ' + restRes.msg);
+    else throw new Error('non-fee rejection: REST: ' + res.msg + ' | wRPC: ' + wrpcRes.msg);
   }
   throw new Error('fee discovery exhausted');
 }

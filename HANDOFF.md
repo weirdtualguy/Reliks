@@ -767,3 +767,14 @@ PC_MAINNET_WRPC is therefore a BLOCKING mainnet prerequisite (own full node
 recommended); REST-only mainnet cannot deploy/mint/trade. Fee discovery still
 works because the wRPC rejection carries "required amount of X".
 SERIES F == exact mainnet configuration. §9.A is the only horizon.
+
+AUDITOR TRANSPORT/PROVENANCE FIXES (2026-09-23):
+1. offer-lib.js feeLoop now strictly refuses REST fallback for covenant spends
+   (covenantSpend=true by default). Hard-throws if wRPC fails for non-fee
+   reasons, rather than optimistically trying REST and relying on node rejection.
+2. network.js hard-exits (process.exit(1)) if PC_NET=mainnet and PC_MAINNET_WRPC
+   is missing. No more "REST-only mainnet" warnings.
+3. verify-render-v10.js now asserts the computed edition scriptPubKey against
+   mintTx.outputs[1].scriptPubKey, closing the provenance gap where covenant_id
+   equality alone didn't prove the output's actual SPK matched the state encoding.
+All three fixes convert empirical node behavior into strict client-side invariants.
