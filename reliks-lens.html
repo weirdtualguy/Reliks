@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reliks Lens</title>
+<style>body{background:#0b0d10;color:#e8e6e3;font-family:ui-monospace,Menlo,Consolas,monospace;margin:0;padding:20px}h1{font-size:18px;letter-spacing:2px}h1 span{color:#7fd1ae}.row{margin:8px 0;font-size:12px;line-height:1.6}.pass{color:#7fd1ae;font-weight:700}.fail{color:#ff6b6b;font-weight:700}input,button{background:#101418;color:#e8e6e3;border:1px solid #23282e;border-radius:6px;padding:8px;font-family:inherit;font-size:12px;margin-right:6px}iframe{width:100%;max-width:520px;aspect-ratio:1/1;border:1px solid #23282e;border-radius:8px;background:#000;display:block;margin-top:12px}</style></head><body>
+<h1>RELIKS <span>// lens</span></h1>
+<div class="row">serial <input id="ser" value="1" size="22"><button id="go">render</button><button id="rnd">random</button><button id="det">determinism x3</button></div>
+<div class="row" id="static"></div>
+<div class="row" id="live"></div>
+<iframe id="art" sandbox=""></iframe>
+<script>/* Reliks gallery BLAKE2b (unkeyed, dkLen<=64). Cross-validated against
+   @noble/hashes by gen-gallery-v10.js before it is ever inlined. */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.ReliksBlake2b = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  var M64 = (1n << 64n) - 1n;
+  var IV = [0x6a09e667f3bcc908n, 0xbb67ae8584caa73bn, 0x3c6ef372fe94f82bn, 0xa54ff53a5f1d36f1n,
+            0x510e527fade682d1n, 0x9b05688c2b3e6c1fn, 0x1f83d9abfb41bd6bn, 0x5be0cd19137e2179n];
+  var SIGMA = [
+    [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],[14,10,4,8,9,15,13,6,1,12,0,2,11,7,5,3],
+    [11,8,12,0,5,2,15,13,10,14,3,6,7,1,9,4],[7,9,3,1,13,12,11,14,2,6,5,10,4,0,15,8],
+    [9,0,5,7,2,4,10,15,14,1,11,12,6,8,3,13],[2,12,6,10,0,11,8,3,4,13,7,5,15,14,1,9],
+    [12,5,1,15,14,13,4,10,0,7,6,3,9,2,8,11],[13,11,7,14,12,1,3,9,5,0,15,4,8,6,2,10],
+    [6,15,14,9,11,3,0,8,12,2,13,7,1,4,10,5],[10,2,8,4,7,6,1,5,15,11,9,14,3,12,13,0],
+    [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],[14,10,4,8,9,15,13,6,1,12,0,2,11,7,5,3]];
+  function rotr(x, n) { var bn = BigInt(n); return ((x >> bn) | (x << (64n - bn))) & M64; }
+  function compress(h, blk, off, t, fin) {
+    var m = new Array(16);
+    for (var i = 0; i < 16; i++) {
+      var w = 0n;
+      for (var j = 7; j >= 0; j--) w = (w << 8n) | BigInt(blk[off + i * 8 + j]);
+      m[i] = w;
+    }
+    var v = h.slice();
+    for (var k = 0; k < 8; k++) v.push(IV[k]);
+    v[12] ^= t & M64;
+    v[13] ^= (t >> 64n) & M64;
+    if (fin) v[14] ^= M64;
+    function G(a, b, c, d, x, y) {
+      v[a] = (v[a] + v[b] + x) & M64; v[d] = rotr(v[d] ^ v[a], 32);
+      v[c] = (v[c] + v[d]) & M64; v[b] = rotr(v[b] ^ v[c], 24);
+      v[a] = (v[a] + v[b] + y) & M64; v[d] = rotr(v[d] ^ v[a], 16);
+      v[c] = (v[c] + v[d]) & M64; v[b] = rotr(v[b] ^ v[c], 63);
+    }
+    for (var r = 0; r < 12; r++) {
+      var s = SIGMA[r];
+      G(0,4,8,12,m[s[0]],m[s[1]]); G(1,5,9,13,m[s[2]],m[s[3]]);
+      G(2,6,10,14,m[s[4]],m[s[5]]); G(3,7,11,15,m[s[6]],m[s[7]]);
+      G(0,5,10,15,m[s[8]],m[s[9]]); G(1,6,11,12,m[s[10]],m[s[11]]);
+      G(2,7,8,13,m[s[12]],m[s[13]]); G(3,4,9,14,m[s[14]],m[s[15]]);
+    }
+    for (var q = 0; q < 8; q++) h[q] = (h[q] ^ v[q] ^ v[q + 8]) & M64;
+  }
+  function blake2b(input, dkLen) {
+    dkLen = dkLen || 32;
+    if (dkLen < 1 || dkLen > 64) throw new Error('bad dkLen');
+    var data = input instanceof Uint8Array ? input : new Uint8Array(input);
+    var h = IV.slice();
+    h[0] ^= 0x01010000n ^ BigInt(dkLen);
+    var t = 0n, off = 0;
+    while (data.length - off > 128) { t += 128n; compress(h, data, off, t, false); off += 128; }
+    var last = new Uint8Array(128);
+    var rem = data.length - off;
+    last.set(data.subarray(off, off + rem));
+    t += BigInt(rem);
+    compress(h, last, 0, t, true);
+    var out = new Uint8Array(64);
+    for (var i = 0; i < 8; i++) { var x = h[i]; for (var j = 0; j < 8; j++) { out[i * 8 + j] = Number(x & 0xffn); x >>= 8n; } }
+    return out.slice(0, dkLen);
+  }
+  return { blake2b: blake2b };
+});
+</script>
+<script>
+var STATIC={"bytes":3888,"cap":32768,"bad":[],"notes":[],"engineHash":"16440384b2b00579d67e1366e8aa9c835e276fbf84a711d4920e87b134d7eaa4","renderHash":"836c15aecc078e0c19ae71467ff12cdd85a904d1c965a991af095a246dcc403c"};
+var ENGINE_SRC="\nfunction reliks(L,serial){\nvar x=(L[0]^serial)|0,y=L[1]|0,z=L[2]|0,w=L[3]|0;\nfunction rnd(){var t=(x^(x\u003c\u003c11))|0;x=y;y=z;z=w;w=(w^(w>>>19))^(t^(t>>>8));return w>>>0;}\nfunction ri(a,b){return a+(rnd()%(b-a+1));}\nvar W=1600,CX=800,CY=770,A=36,B=18,Z=22,R=13,i,j,k,s,h,x,y,d,o=[],wat={},wpts=[];\nfunction IX(i,j){return CX+(i-j)*A;}\nfunction IY(i,j){return CY+(i+j-R)*B;}\nfunction dia(x,y){return 'M'+x+' '+y+'l'+A+' '+B+'l'+-A+' '+B+'l'+-A+' '+-B+'z';}\nfunction pl(p,wd,col,op){var q='M'+p[0][0]+' '+p[0][1];for(var v=1;v\u003cp.length;v++)q+='L'+p[v][0]+' '+p[v][1];return '\u003cpath d=\"'+q+'\" fill=\"none\" stroke=\"'+col+'\" stroke-width=\"'+wd+'\"'+(op?' opacity=\"'+op+'\"':'')+'/>';}\no.push('\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1600 1600\">\u003cdefs>\u003cradialGradient id=\"g\">\u003cstop offset=\"0\" stop-color=\"#ffd9a0\"/>\u003cstop offset=\".3\" stop-color=\"#e8923a\" stop-opacity=\".8\"/>\u003cstop offset=\"1\" stop-color=\"#e8923a\" stop-opacity=\"0\"/>\u003c/radialGradient>\u003c/defs>\u003crect width=\"1600\" height=\"1600\" fill=\"#e7dfc8\"/>');\no.push('\u003cg stroke=\"#d3c9ab\" opacity=\".5\">');\nfor(i=0;i\u003c150;i++){x=ri(60,1540);y=ri(60,1540);k=ri(30,130);o.push('\u003cline x1=\"'+x+'\" y1=\"'+y+'\" x2=\"'+(x+k)+'\" y2=\"'+(y+(k/2|0))+'\"/>');}\no.push('\u003c/g>\u003cg stroke=\"#cfc5a8\" opacity=\".55\">');\nfor(i=0;i\u003c=R;i++){o.push('\u003cline x1=\"'+IX(i,0)+'\" y1=\"'+IY(i,0)+'\" x2=\"'+IX(i,R)+'\" y2=\"'+IY(i,R)+'\"/>\u003cline x1=\"'+IX(0,i)+'\" y1=\"'+IY(0,i)+'\" x2=\"'+IX(R,i)+'\" y2=\"'+IY(R,i)+'\"/>');}\no.push('\u003c/g>');\nvar c,pts,wi,wj;\nfor(c=0;c\u003c4;c++){wi=c%2?ri(2,R-2):0;wj=c%2?0:ri(2,R-2);pts=[[IX(wi,wj),IY(wi,wj)]];wat[wi+'_'+wj]=1;wpts.push([IX(wi,wj),IY(wi,wj)]);\nwhile(wi\u003cR&&wj\u003cR){if(rnd()%2)wi++;else wj++;wat[wi+'_'+wj]=1;pts.push([IX(wi,wj),IY(wi,wj)]);wpts.push([IX(wi,wj),IY(wi,wj)]);}\no.push(pl(pts,30,'#2f2f28',0)+pl(pts,22,'#49c5b1',0)+pl(pts,6,'#bfeee2','.85'));}\nfor(s=0;s\u003c=2*R;s++){for(i=s-R>0?s-R:0;i\u003c=R&&i\u003c=s;i++){j=s-i;\nif(wat[i+'_'+j])continue;\nvar t=rnd()%10;if(t\u003c1){o.push('\u003cpath d=\"'+dia(IX(i,j),IY(i,j))+'\" fill=\"#ddd4ba\"/>');continue;}\nh=t>7?ri(6,9):ri(2,5);\nvar dk=t%3,top,lf,rf;\nif(dk==0){top='#4b4a3f';lf='#34332b';rf='#26251e';}else if(dk==1){top='#f0e9d3';lf='#d8cfb3';rf='#bfb598';}else{top='#49c5b1';lf='#2e8f85';rf='#1f6b64';}\nx=IX(i,j);y=IY(i,j)-h*Z;d=h*Z;\no.push('\u003cpath d=\"'+dia(x,y)+'\" fill=\"'+top+'\"/>\u003cpath d=\"M'+(x-A)+' '+(y+B)+'l'+A+' '+B+'v'+d+'l'+-A+' '+-B+'z\" fill=\"'+lf+'\"/>\u003cpath d=\"M'+(x+A)+' '+(y+B)+'l'+-A+' '+B+'v'+d+'l'+A+' '+-B+'z\" fill=\"'+rf+'\"/>');\nif(h>=2){var wn=h>3?3:2;for(k=0;k\u003cwn;k++){o.push('\u003cpath d=\"M'+(x-A+6+k*10)+' '+(y+B+6)+'l7 4v11l-7 -4z\" fill=\"'+(dk==1?'#34332b':'#8fe8d8')+'\"'+(dk==1?'':' opacity=\".9\"')+'/>');}}\nif(h>=6){o.push('\u003cpath d=\"M'+(x+6)+' '+(y+B+d-24)+'v-11q10 -12 20 0v11z\" fill=\"'+(dk==1?'#26251e':'#123c36')+'\"/>');\nvar ah=ri(18,42);o.push('\u003cline x1=\"'+x+'\" y1=\"'+(y+B)+'\" x2=\"'+x+'\" y2=\"'+(y+B-ah)+'\" stroke=\"#26251e\" stroke-width=\"3\"/>\u003ccircle cx=\"'+x+'\" cy=\"'+(y+B-ah)+'\" r=\"3\" fill=\"#49c5b1\"/>');}\nif(t==6||t==7){var di=rnd()%2,dj=di?0:1,n=ri(4,7);\nfor(k=1;k\u003c=n;k++){var e2=h*Z-k*13,qx=IX(i+di*k,j+dj*k),qy=IY(i+di*k,j+dj*k)-(e2>0?e2:0);\no.push('\u003cpath d=\"'+dia(qx,qy)+'\" fill=\"#efe8d2\"/>\u003cpath d=\"M'+(qx-A)+' '+(qy+B)+'l'+A+' '+B+'v13l'+-A+' '+-B+'z\" fill=\"#34332b\"/>');}}\n}}\no.push('\u003cg>');\nfor(k=0;k\u003cwpts.length;k++){if(rnd()%3==0){var bx=wpts[k][0]+(rnd()%2?26:-26),by=wpts[k][1]+8;o.push('\u003ccircle cx=\"'+bx+'\" cy=\"'+by+'\" r=\"9\" fill=\"#49c5b1\" opacity=\".22\"/>\u003ccircle cx=\"'+bx+'\" cy=\"'+by+'\" r=\"3\" fill=\"#bfeee2\"/>');}}\no.push('\u003c/g>');\nvar m=R/2|0,gx=IX(m,m),gy=IY(m,m)-ri(2,4)*Z;\no.push('\u003ccircle cx=\"'+gx+'\" cy=\"'+gy+'\" r=\"110\" fill=\"url(#g)\"/>\u003ccircle cx=\"'+gx+'\" cy=\"'+gy+'\" r=\"9\" fill=\"#fff\"/>');\nfor(k=14;k\u003c=42;k+=7)o.push('\u003ccircle cx=\"'+gx+'\" cy=\"'+gy+'\" r=\"'+k+'\" fill=\"none\" stroke=\"'+(k>34?'#49c5b1':'#e8923a')+'\" stroke-width=\"2\" opacity=\".75\"/>');\no.push('\u003crect x=\"36\" y=\"36\" width=\"1528\" height=\"1528\" fill=\"none\" stroke=\"#3a3a33\" stroke-width=\"7\"/>\u003c/svg>');\nreturn o.join('');\n}";
+var compiled=new Function("L","serial",ENGINE_SRC+"\nreturn reliks(L,serial);");
+function hx(b){var s="";for(var i=0;i<b.length;i++)s+=("0"+b[i].toString(16)).slice(-2);return s;}
+function le64(v){var b=new Uint8Array(8);new DataView(b.buffer).setBigUint64(0,BigInt(v),true);return b;}
+function utf8(s){return new TextEncoder().encode(s);}
+function cat(a){var n=0,i;for(i=0;i<a.length;i++)n+=a[i].length;var o=new Uint8Array(n),p=0;for(i=0;i<a.length;i++){o.set(a[i],p);p+=a[i].length;}return o;}
+function seedLanes(s){var h=ReliksBlake2b.blake2b(cat([utf8("ReliksSeedV10"),le64(s)]),32);var dv=new DataView(h.buffer,h.byteOffset,h.byteLength);var o=[];for(var i=0;i<8;i++)o.push(dv.getInt32(i*4,true));return o;}
+function render(serial){var s=Number(BigInt(serial)&0xFFFFFFFFn);return compiled(seedLanes(s),s|0);}
+var h="";
+h+="<div>bytes "+STATIC.bytes+" / cap "+STATIC.cap+" - "+(STATIC.bytes<=STATIC.cap?"<span class=\"pass\">OK</span>":"<span class=\"fail\">OVER CAP</span>")+"</div>";
+h+="<div>banned constructs: "+(STATIC.bad.length===0?"<span class=\"pass\">none</span>":"<span class=\"fail\">"+STATIC.bad.join("; ")+"</span>")+"</div>";
+for(var i=0;i<STATIC.notes.length;i++)h+="<div>note: "+STATIC.notes[i]+"</div>";
+h+="<div>node-side engine_hash "+STATIC.engineHash+"</div>";
+h+="<div>in-page recompute engine_hash "+hx(ReliksBlake2b.blake2b(utf8(ENGINE_SRC),32))+" | render_hash(1) "+hx(ReliksBlake2b.blake2b(utf8(render(1)),32))+"</div>";
+document.getElementById("static").innerHTML=h;
+function show(){var s=document.getElementById("ser").value.trim();var svg=render(s);document.getElementById("art").srcdoc="<!doctype html><html><head><meta charset=utf-8><style>html,body{margin:0;height:100%;background:#000}svg{display:block;width:100vw;height:100vh}</style></head><body>"+svg+"</body></html>";document.getElementById("live").innerHTML="serial "+s+" | svg bytes "+svg.length+" | render_hash "+hx(ReliksBlake2b.blake2b(utf8(svg),32));}
+document.getElementById("go").onclick=show;
+document.getElementById("rnd").onclick=function(){document.getElementById("ser").value=String(Math.floor(Math.random()*4294967296));show();};
+document.getElementById("det").onclick=function(){var s=document.getElementById("ser").value.trim();var a=render(s);var b=render(s);var c2=new Function("L","serial",ENGINE_SRC+"\nreturn reliks(L,serial);");var s32=Number(BigInt(s)&0xFFFFFFFFn);var c=c2(seedLanes(s32),s32|0);var ok=(a===b&&b===c);document.getElementById("live").innerHTML=(ok?"<span class=\"pass\">DETERMINISTIC</span>":"<span class=\"fail\">NON-DETERMINISTIC</span>")+" - 3 independent compiles @ serial "+s;};
+show();
+</script>
+</body></html>

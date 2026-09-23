@@ -1,20 +1,14 @@
-node_modules/
+# Secrets
 secrets*.env
-*.pem
-tmp/
-.attic/
-*.log
-.DS_Store
-*.svg
-reliks-gallery-*.html
-*.bak-*
-lens-out/
-reliks-lens.html
 
-# Local attic (deprecated, probes, rehearsals, patches)
-.attic/
+# Ephemeral chain state (ledgers are generated locally at runtime)
+data/*ledger*.json
 
-# Generated studio/lens outputs
+# Generated local HTML (docs/index.html is tracked for GitHub Pages)
 reliks-studio.html
-reliks-lens.html
-lens-out/
+reliks-gallery-*.html
+
+# Local archives, temp, and node modules
+.attic/
+tmp/
+node_modules/
