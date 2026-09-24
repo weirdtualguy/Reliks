@@ -62,9 +62,16 @@ contract ReliksEdition(
         };
     }
 
+    // Carrier value conservation: edition output >= edition input
+    function carrierConserved() {
+        int outIdx = OpAuthOutputIdx(this.activeInputIndex, 0);
+        require(tx.outputs[outIdx].value >= tx.inputs[this.activeInputIndex].value);
+    }
+
     #[covenant(binding = auth, from = 1, to = 1, mode = transition, name = list)]
     function listPolicy(State prev_state, int newPrice, sig ownerSig) : (State) {
         ownerAuthorized(ownerSig);
+        carrierConserved();
         require(newPrice >= MIN_PRICE && newPrice <= MAX_PRICE);
         return State {
             ownerIdentifier: prev_state.ownerIdentifier,
@@ -81,6 +88,7 @@ contract ReliksEdition(
     #[covenant(binding = auth, from = 1, to = 1, mode = transition, name = unlist)]
     function unlistPolicy(State prev_state, sig ownerSig) : (State) {
         ownerAuthorized(ownerSig);
+        carrierConserved();
         return clearedState(prev_state.ownerIdentifier);
     }
 
@@ -88,6 +96,7 @@ contract ReliksEdition(
     function buyPolicy(State prev_state, byte[32] buyer, int ownerOutIdx, int artistOutIdx) : (State) {
         require(price > 0);
         require(price <= MAX_PRICE);
+        carrierConserved();
         checkPayments(price, ownerOutIdx, artistOutIdx);
         return clearedState(buyer);
     }
@@ -95,6 +104,7 @@ contract ReliksEdition(
     #[covenant(binding = auth, from = 1, to = 1, mode = transition, name = sell)]
     function sellPolicy(State prev_state, byte[32] buyer, int salePrice, int ownerOutIdx, int artistOutIdx, sig ownerSig) : (State) {
         ownerAuthorized(ownerSig);
+        carrierConserved();
         require(salePrice == 0 || (salePrice >= MIN_PRICE && salePrice <= MAX_PRICE));
         if (salePrice > 0) {
             checkPayments(salePrice, ownerOutIdx, artistOutIdx);
@@ -105,6 +115,7 @@ contract ReliksEdition(
     #[covenant(binding = auth, from = 1, to = 1, mode = transition, name = transfer)]
     function transferPolicy(State prev_state, byte[32] newOwner, sig ownerSig) : (State) {
         ownerAuthorized(ownerSig);
+        carrierConserved();
         return clearedState(newOwner);
     }
 

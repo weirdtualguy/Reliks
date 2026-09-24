@@ -24,7 +24,7 @@ const rpc = (inputs, outputs) => ({ version: 1, inputs, outputs: outputs.map(o =
   if (V.WALLET !== RG.p2pkAddress('20' + V.USER + 'ac')) { console.error('WALLET/PRIV mismatch — stale PC_WALLET in env?'); process.exit(1); }
 
   const wIn = await pickUtxo();
-  const FEE_BUFFER = 5000000n; // audit4: 2-input accept pays miner fee from this buffer
+  const FEE_BUFFER = 10000000n; // audit: 10M for headroom on large engines // audit4: 2-input accept pays miner fee from this buffer
 const locked = askPrice + mktFee + FEE_BUFFER;
   const hsInputs = [{ txId: wIn.txId, index: wIn.index, sequence: 0, spk: wIn.spk, amount: wIn.amount }];
   const inputs = [{ previousOutpoint: { transactionId: wIn.txId, index: wIn.index }, signatureScript: '', sequence: 0, sigOpCount: 0, computeBudget: 10 }];

@@ -1,10 +1,8 @@
 pragma silverscript ^0.1.0;
-// SeriesFactory-v11 "Reliks Engine": generative-seed architecture + v11 economics.
-// v11 changes: fixed MINT_FEE (1 KAS) to a chain-visible treasury; artist receives
-// price - MINT_FEE; free series (price == 0) pay nothing; royalty cap enforced at
-// mint (collector protection); edition template v11 (royalty-only checkPayments,
-// marketplace fee moved to OfferEscrow-v4 buyer premium).
-// state[0] program_hash = blake2b(engine_code) (gallery first-push trick).
+// SeriesFactory-v11 — DECL-lowered hybrid factory (production).
+// fork/close: DECL macros. mint: handwritten (heterogeneous spawner).
+// mint stays handwritten (heterogeneous spawner boundary per DECL.md).
+// Carrier value conservation enforced on edition output.
 contract SeriesFactory(
     byte[32] init_program_hash,
     byte[32] init_artist,
@@ -29,8 +27,8 @@ contract SeriesFactory(
     byte[32] treasury = init_treasury;
 
     byte constant IDENTIFIER_PUBKEY = 0x00;
-    int constant MINT_FEE = 100000000;        // fixed 1 KAS platform cut per paid mint
-    int constant MAX_ROYALTY_BIPS = 2000;     // 20% collector-protection cap
+    int constant MINT_FEE = 100000000;
+    int constant MAX_ROYALTY_BIPS = 2000;
 
     struct EditionState {
         byte[32] ownerIdentifier;
@@ -43,14 +41,10 @@ contract SeriesFactory(
         int serial;
     }
 
-    // Template-bake anchor: pure blake2b(engine_code) is constant-folded and the
-    // engine bytes elided; mixing the runtime outpoint forces materialization.
     function engineBaked() {
         require(blake2b(engine_code + OpOutpointTxId(this.activeInputIndex)) != byte[32](0x0000000000000000000000000000000000000000000000000000000000000000));
     }
 
-    // Serial domain kept at ReliksSerialV10: it is a protocol namespace, not a
-    // generation tag; uniqueness is global via outpoints.
     function serialFromOutpoint(): int {
         byte[] domain = byte[]("ReliksSerialV10");
         byte[32] h = blake2b(domain + OpOutpointTxId(this.activeInputIndex) + (OpOutpointIndex(this.activeInputIndex) as byte[4]));
@@ -65,6 +59,7 @@ contract SeriesFactory(
         return s;
     }
 
+    // mint: handwritten (heterogeneous spawner — DECL boundary).
     entry mint(byte[32] buyer, byte buyerScheme, int editionOutIdx, int artistOutIdx, int platformOutIdx) {
         require(mints_left > 0);
         require(buyerScheme == IDENTIFIER_PUBKEY);
@@ -101,6 +96,7 @@ contract SeriesFactory(
             edition_template_suffix,
             expected_template_hash
         );
+        require(tx.outputs[editionOutIdx].value >= 100000000); // carrier floor: 1 KAS min
         require(OpAuthOutputCount(this.activeInputIndex) == 1);
         int laneOutIdx = OpAuthOutputIdx(this.activeInputIndex, 0);
         require(tx.outputs[laneOutIdx].value >= tx.inputs[this.activeInputIndex].value);
@@ -116,28 +112,45 @@ contract SeriesFactory(
         });
     }
 
-    entry fork(sig artistSig, int leftMints, int rightMints) {
-        require(checkSig(artistSig, pubkey(artist)));
+    // fork: DECL-lowered 1:2 auth transition.
+    // Exposed params (sig,int,int) match v11 handwritten fork(sig,int,int).
+    #[covenant(binding = auth, from = 1, to = 2, mode = transition, name = fork)]
+    function forkPolicy(State prev_state, sig artistSig, int leftMints, int rightMints) : (State[]) {
+        require(checkSig(artistSig, pubkey(prev_state.artist)));
         require(leftMints > 0 && rightMints > 0);
-        require(leftMints + rightMints == mints_left);
-        require(OpAuthOutputCount(this.activeInputIndex) == 2);
+        require(leftMints + rightMints == prev_state.mints_left);
         int leftIdx = OpAuthOutputIdx(this.activeInputIndex, 0);
         int rightIdx = OpAuthOutputIdx(this.activeInputIndex, 1);
         require(tx.outputs[leftIdx].value + tx.outputs[rightIdx].value >= tx.inputs[this.activeInputIndex].value);
-        validateOutputState(leftIdx, State {
-            program_hash: program_hash, artist: artist, price: price,
-            royalty_bips: royalty_bips, mints_left: leftMints,
-            engine_lang: engine_lang, render_hash: render_hash, treasury: treasury
-        });
-        validateOutputState(rightIdx, State {
-            program_hash: program_hash, artist: artist, price: price,
-            royalty_bips: royalty_bips, mints_left: rightMints,
-            engine_lang: engine_lang, render_hash: render_hash, treasury: treasury
-        });
+        return State[] {
+            State {
+                program_hash: prev_state.program_hash,
+                artist: prev_state.artist,
+                price: prev_state.price,
+                royalty_bips: prev_state.royalty_bips,
+                mints_left: leftMints,
+                engine_lang: prev_state.engine_lang,
+                render_hash: prev_state.render_hash,
+                treasury: prev_state.treasury
+            },
+            State {
+                program_hash: prev_state.program_hash,
+                artist: prev_state.artist,
+                price: prev_state.price,
+                royalty_bips: prev_state.royalty_bips,
+                mints_left: rightMints,
+                engine_lang: prev_state.engine_lang,
+                render_hash: prev_state.render_hash,
+                treasury: prev_state.treasury
+            }
+        };
     }
 
-    entry close(sig artistSig) {
-    require(OpAuthOutputCount(this.activeInputIndex) == 0);
-        require(checkSig(artistSig, pubkey(artist)));
+    // close: DECL-lowered 1:1 auth termination.
+    // Empty State[] return makes the wrapper enforce OpAuthOutputCount == 0.
+    #[covenant(binding = auth, from = 1, to = 1, mode = transition, termination = allowed, name = close)]
+    function closePolicy(State prev_state, sig artistSig) : (State[]) {
+        require(checkSig(artistSig, pubkey(prev_state.artist)));
+        return State[]{};
     }
 }

@@ -11,7 +11,8 @@ const path = require('path');
 const vm = require('vm');
 const { blake2b } = require('@noble/hashes/blake2b');
 const B = Buffer;
-const CAP = Number(process.env.RELIKS_ENGINE_CAP || 32768);
+const CAP = Number(process.env.RELIKS_ENGINE_CAP || 25641);
+if (process.env.PC_PRIV) { console.error("LENS SECURITY: PC_PRIV detected in env. Run lens from a clean shell without sourced secrets."); process.exit(1); }
 const hex = (b) => B.from(b).toString('hex');
 const TESTS = [1, 42, 999, 8675309, 4294967295, 5056484704985813865];
 function seedLanes(serial) {
@@ -39,7 +40,7 @@ function scan(SRC) {
   return { bad, notes };
 }
 function massFee(nb) {
-  const bc = nb + 7109, ss = bc + 46, tx = ss + 546, mass = 2 * tx;
+  const bc = 2 * nb + 7129, ss = bc + 46, tx = ss + 546, mass = 2 * tx;
   return { bc, ss, tx, mass, feeSompi: BigInt(mass) * 100n };
 }
 function gates(enginePath) {
