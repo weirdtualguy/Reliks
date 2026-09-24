@@ -16,9 +16,21 @@ function bh(s){return hx(ReliksBlake2b.blake2b(enc(s),32));}
 function cat(a){var n=0,i;for(i=0;i<a.length;i++)n+=a[i].length;var o=new Uint8Array(n),p=0;for(i=0;i<a.length;i++){o.set(a[i],p);p+=a[i].length;}return o;}
 function seedLanes(serial){var le=new Uint8Array(8);new DataView(le.buffer).setBigUint64(0,BigInt(serial),true);var h=ReliksBlake2b.blake2b(cat([enc('ReliksSeedV10'),le]),32);var dv=new DataView(h.buffer,h.byteOffset,h.byteLength);var o=[];for(var i=0;i<8;i++)o.push(dv.getInt32(i*4,true));return o;}
 function seed32(s){return Number(BigInt(s)&0xFFFFFFFFn);}
-function compile(src){return new Function('L','serial',src+'\nreturn reliks(L,serial);');}
+// compile: replaced by worker-based renderAtAsync
 function liveSrc(){return PRELUDE+'\n'+editor.value;}
-function renderAt(serialStr){var s=seed32(serialStr);var f=compile(liveSrc());return f(seedLanes(s),s|0);}
+function renderAtAsync(serialStr){
+  return new Promise(function(resolve, reject){
+    var s=seed32(serialStr);
+    var lanes=seedLanes(s);
+    var src=liveSrc();
+    var workerCode='self.onmessage=function(e){var fn=new Function("L","serial",e.data.engine+"\\nreturn reliks(L,serial);");try{var svg=fn(e.data.lanes,e.data.serial);self.postMessage({svg:svg});}catch(e){self.postMessage({error:e.message});}};';
+    var blob=new Blob([workerCode],{type:'application/javascript'});
+    var worker=new Worker(URL.createObjectURL(blob));
+    var timeout=setTimeout(function(){worker.terminate();reject(new Error('Engine execution timed out (5s). Possible infinite loop.'));},5000);
+    worker.onmessage=function(e){clearTimeout(timeout);worker.terminate();if(e.data.error)reject(new Error(e.data.error));else resolve(e.data.svg);};
+    worker.postMessage({engine:src,lanes:lanes,serial:s|0});
+  });
+}
 
 var BANNED=[
 [/\bMath\s*\.\s*(random|sin|cos|tan|asin|acos|atan2?|pow|sqrt|hypot|exp|log2?|log10)\b/,'Math transcendental/random'],
@@ -28,33 +40,33 @@ var BANNED=[
 [/\bwindow\b/,'window'],[/\bdocument\b/,'document'],[/\blocalStorage\b/,'localStorage'],
 [/\bsetTimeout\b|\bsetInterval\b/,'timer'],[/\bprocess\b/,'process'],[/\bglobalThis\b/,'globalThis']];
 
-function runGates(){
+async function runGatesAsync(){
   var src=liveSrc(),out=[],ok=true;
   function chk(name,pass,info){out.push((pass?'PASS ':'FAIL ')+name+(info?' | '+info:''));if(!pass)ok=false;}
   chk('L1 size <= cap',blen(src)<=CAP,blen(src)+'/'+CAP+' B (incl. prelude '+PRELUDE.length+' B)');
   var bad=[],i;for(i=0;i<BANNED.length;i++){if(src.match(BANNED[i][0]))bad.push(BANNED[i][1]);}
   chk('L2 no banned constructs',bad.length===0,bad.join(','));
   var a=null,b=null,c=null,err='';
-  try{a=renderAt('42');b=renderAt('42');var s=seed32('42');c=compile(liveSrc())(seedLanes(s),s|0);}catch(e){err=e.message;}
+  try{a=await renderAtAsync('42');b=await renderAtAsync('42');c=await renderAtAsync('42');}catch(e){err=e.message;}
   chk('L3 determinism x3',err===''&&a===b&&b===c,err);
   var svgOk=false,serr='';
   try{svgOk=!!a&&a.indexOf('<svg')===0&&a.indexOf('xmlns=')>-1&&a.slice(-6)==='</svg>'&&!/NaN|undefined|Infinity|null/.test(a);if(!svgOk)serr='malformed svg';}catch(e){serr=e.message;}
   chk('L8 svg well-formed',svgOk,serr);
-  var conv=false;try{conv=renderAt('7')===renderAt('4294967303');}catch(e){conv=false;}
+  var conv=false;try{var r7=await renderAtAsync('7');var r4294967303=await renderAtAsync('4294967303');conv=(r7===r4294967303);}catch(e){conv=false;}
   chk('L5 seed mod 2^32 convention',conv);
   gatesEl.textContent=out.join('\n');
   statusEl.textContent=(ok?'GATES GREEN':'GATES FAILED')+' | '+(ok?'cleared for export':'fix failures before export');
   return ok;
 }
 
-function show(){
+async function show(){
   var serial=serialEl.value.trim()||'1';var svg='';
-  try{svg=renderAt(serial);}catch(e){statusEl.textContent='ERROR: '+e.message;return;}
+  try{svg=await renderAtAsync(serial);}catch(e){statusEl.textContent='ERROR: '+e.message;return;}
   prev.srcdoc='<!doctype html><html><head><meta charset=utf-8><style>html,body{margin:0;height:100%;background:#000}svg{display:block;width:100vw;height:100vh}</style></head><body>'+svg+'</body></html>';
   var src=liveSrc();
   hashEl.textContent='engine_hash '+bh(src)+'\nrender_hash '+bh(svg)+'\nengine_bytes '+blen(src)+' / '+CAP;
   statusEl.textContent='rendered serial '+serial+' | svg '+svg.length+' bytes';
-  runGates();
+  await runGatesAsync();
 }
 
 function download(fn,text){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));a.download=fn;a.click();}
