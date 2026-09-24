@@ -11,6 +11,11 @@ if (typeof covIdGenesis !== 'function') { console.error('covIdGenesis unavailabl
 const B = Buffer;
 const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v11.json'), 'utf8')));
 const args = JSON.parse(fs.readFileSync((process.env.RELIKS_ARGS || 'data/factory-args-v11.json'), 'utf8'));
+
+  // H1-BAKE inline bake assertion
+  const ENGINE=require(process.env.RELIKS_ENGINE||"./reliks-engine-v10.js");
+  const engineBytes=B.from(ENGINE.ENGINE_SRC,"utf8");
+  if(F.bc.indexOf(engineBytes)===-1){console.error("BAKE ASSERTION FAILED: compiled bytecode does not embed ENGINE_SRC");process.exit(1)}
 const hxb = (i) => B.from(args[i].value).toString('hex');
 const series = { program_hash: hxb(0), artist: hxb(1), price: args[2].value, royalty_bips: args[3].value, mints_left: args[4].value, engine_lang: args[6].value, render_hash: hxb(7), treasury: hxb(8) };
 const redeem = B.concat([F.prefix, V.encState(F, series), F.suffix]);

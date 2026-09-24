@@ -17,3 +17,8 @@ lens-out/
 reliks-v10-edition-*.svg
 whitelist.txt
 prune.txt
+HANDOFF-LOCAL.md
+
+docs/audit-log/
+data/*ledger*.json
+secrets*.env

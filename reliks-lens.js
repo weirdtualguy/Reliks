@@ -75,7 +75,7 @@ function gates(enginePath) {
     const m2 = o.match(/NaN|undefined|Infinity|null/); if (m2) { svgOk = false; svgErr = m2[0] + ' @' + s; break; } }
   check('L8 svg well-formed, no NaN/undefined/Infinity/null', svgOk, svgErr);
   const mf = massFee(nb);
-  check('L9 mint mass within consensus 100000', mf.mass <= 100000, 'mass ' + mf.mass + ' | est fee ' + (Number(mf.feeSompi) / 1e8).toFixed(5) + ' KAS');
+  check('L9 mint fee-mass within policy 100000', mf.mass <= 100000, 'mass ' + mf.mass + ' | est fee ' + (Number(mf.feeSompi) / 1e8).toFixed(5) + ' KAS');
   if (typeof M.features === 'function') {
     let fok = true; const dist = {};
     for (const s of TESTS.concat([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18])) {
