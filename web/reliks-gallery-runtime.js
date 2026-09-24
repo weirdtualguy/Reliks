@@ -68,21 +68,28 @@
     for (var i = 0; i < 8; i++) lanes.push(dv.getInt32(i * 4, true));
     return lanes;
   }
-  var _compiled = null;
-  function engineFn() {
-    if (!_compiled) _compiled = new Function('L', 'serial', REG.engineSrc + '\nreturn reliks(L,serial);');
-    return _compiled;
-  }
   function renderSeed(serialStr) { return Number(BigInt(serialStr) & 0xFFFFFFFFn); }
-  function render(serialStr) { var s = renderSeed(serialStr); return engineFn()(seedLanes(s), s | 0); }
+  function renderAsync(serialStr) {
+    return new Promise(function(resolve, reject) {
+      var s = renderSeed(serialStr);
+      var lanes = seedLanes(s);
+      var workerCode = 'self.onmessage=function(e){var fn=new Function("L","serial",e.data.engine+"\\nreturn reliks(L,serial);");try{var svg=fn(e.data.lanes,e.data.serial);self.postMessage({svg:svg});}catch(e){self.postMessage({error:e.message});}};';
+      var blob = new Blob([workerCode], { type: 'application/javascript' });
+      var worker = new Worker(URL.createObjectURL(blob));
+      var timeout = setTimeout(function() { worker.terminate(); reject(new Error('Engine execution timed out (5s).')); }, 5000);
+      worker.onmessage = function(e) { clearTimeout(timeout); worker.terminate(); if (e.data.error) reject(new Error(e.data.error)); else resolve(e.data.svg); };
+      worker.postMessage({ engine: REG.engineSrc, lanes: lanes, serial: s | 0 });
+    });
+  }
+  function render(serialStr) { return renderAsync(serialStr); } // async wrapper
 
   /* ---- gates + chain checks ---- */
-  function runGates() {
+  async function runGates() {
     var g = [];
     g.push(['blake2b self-test ("abc")', blakeHex(utf8('abc')) === 'bddd813c634239723171ef3fee98579b94964e3bb1cb3e427262c8c068d52319']);
     g.push(['engine anchored: blake2b(bundled engine) == on-chain program_hash', blakeHex(utf8(REG.engineSrc)) === REG.series.program_hash]);
     var conf = false;
-    try { conf = blakeHex(utf8(render(String(REG.testSerial)))) === REG.series.render_hash; } catch (e) { conf = false; }
+    try { var svg = await render(String(REG.testSerial)); conf = blakeHex(utf8(svg)) === REG.series.render_hash; } catch (e) { conf = false; }
     g.push(['render conformance: blake2b(render(' + REG.testSerial + ')) == on-chain render_hash', conf]);
     return g;
   }
@@ -172,7 +179,7 @@
     return h + ':' + i;
   }
   async function verifyAll() {
-    var gates = runGates();
+    var gates = await runGates();
     var gateOk = gates.every(function (x) { return x[1]; });
     var globalChecks = [];
     var perEd = [];
@@ -215,7 +222,7 @@
     document.getElementById('status').innerHTML = html;
     var cards = document.getElementById('editions');
     cards.innerHTML = '';
-    res.perEd.forEach(function (item) {
+    for (var __ei = 0; __ei < res.perEd.length; __ei++) { var item = res.perEd[__ei];
       var ok = !item.skip && item.checks.length > 0 && item.checks.every(function (c) { return c[1]; });
       var card = document.createElement('div');
       card.className = 'card';
@@ -228,7 +235,8 @@
         var frame = document.createElement('iframe');
         frame.setAttribute('sandbox', '');
         frame.className = 'art';
-        frame.srcdoc = '<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}svg{display:block;width:100vw;height:100vh}</style></head><body><!-- SVG_WRAP -->' + render(String(item.ed.serial)).replace('<svg ', '<svg width="100%" height="100%" ') + '</body></html>';
+        var svg = await render(String(item.ed.serial));
+        frame.srcdoc = '<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}svg{display:block;width:100vw;height:100vh}</style></head><body><!-- SVG_WRAP -->' + svg.replace('<svg ', '<svg width="100%" height="100%" ') + '</body></html>';
         card.appendChild(frame);
       } else {
         var warn = document.createElement('div');
@@ -237,7 +245,7 @@
         card.appendChild(warn);
       }
       cards.appendChild(card);
-    });
+    }
   }
 
   root.ReliksGallery = { runAll: runAll, verifyAll: verifyAll, runGates: runGates, render: render, renderSeed: renderSeed, serialOfV10: serialOfV10, encFactoryState: encFactoryState, encEditionState: encEditionState, editionState: editionState, factorySpk: factorySpk, editionSpk: editionSpk, p2shHex: p2shHex, p2pkAddress: p2pkAddress, p2shAddress: p2shAddress, liveSpk: liveSpk, blakeHex: blakeHex, hexToBytes: hexToBytes, bytesToHex: bytesToHex, utf8: utf8, concat: concat };
