@@ -1,4 +1,6 @@
 var ReliksWallet = (function() {
+  function getKaspaChainId(){var hrp=(window.REG&&window.REG.hrp)||"kaspa";if(hrp==="kaspatest")return"kaspa:testnet";return"kaspa:mainnet";}
+
   var connected = false;
   var pubkey = null;
   var address = null;
@@ -49,7 +51,7 @@ var ReliksWallet = (function() {
       var connectResult = await signClient.connect({
         requiredNamespaces: {
           kaspa: {
-            chains: ["kaspa:mainnet"],
+            chains: [getKaspaChainId()],
             methods: ["kaspa_getAccounts", "kaspa_getPublicKey"],
             events: []
           }
@@ -86,7 +88,7 @@ var ReliksWallet = (function() {
     try {
       var pubKeyRes = await signClient.request({
         topic: session.topic,
-        chainId: "kaspa:mainnet",
+        chainId: getKaspaChainId(),
         request: { method: "kaspa_getPublicKey", params: {} }
       });
       if (pubKeyRes) {
@@ -95,7 +97,7 @@ var ReliksWallet = (function() {
 
       var accRes = await signClient.request({
         topic: session.topic,
-        chainId: "kaspa:mainnet",
+        chainId: getKaspaChainId(),
         request: { method: "kaspa_getAccounts", params: {} }
       });
       if (accRes && accRes.length > 0) {
