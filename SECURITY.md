@@ -28,7 +28,7 @@
    - hard-stop provenance guard: RELIKS_ENGINE hash != ledger
      program_hash => exit(1) before any rendering
 4. Economics:
-   - checkPayments: exact royalty to artist, >= price-royalty to owner,
+   - checkPayments: exact royalty to artist, >= price-royalty to owner (enforcement is opt-in: transfer and sell-at-0 bypass royalties by design for OTC/custody moves),
      platform 0 on secondary (Model B); escrow exact royalty + mktFee,
      >= owner net; zero surplus to burn or steal
 <!-- EOF-SEC-1 -->
@@ -52,6 +52,23 @@
   review via local bridge; logs in docs/audit-log/ (gitignored).
 - On-chain rehearsal: testnet-10 Series B-G including the ~25.6 KB TITAN
   at the PUSHDATA2 boundary; fee/mass law verified at every stop.
+
+## Carrier value conservation
+- All edition outputs enforce `value >= input value` (carrier conservation).
+- Factory mint enforces `editionOut.value >= 1 KAS` (initial carrier floor).
+- Escrow accept enforces `editionOut.value >= editionIn.value`.
+- This prevents the carrier-skim attack where a seller strips value from the edition.
+
+## Seed predictability
+- The next serial is computable from the lane outpoint before minting.
+- A minter can tweak fee/change by 1 sompi to grind the txid and preview the serial.
+- This is a design choice: Reliks is deterministic generative art, not a gacha/loot-box system.
+- Seed space is 32 bits; birthday collisions reach ~1% at 10k editions (aesthetic trade-off).
+
+## Covenant binding enforcement
+- `validateOutputStateWithTemplate` validates script and state but does NOT check covenant bindings.
+- Covenant bindings (authorizingInput + covenantId) are enforced by the JS builders, not the contract.
+- An edition minted without a binding would still function but would lack a covenant ID for indexing.
 
 ## Known limitations
 - Engine ceiling ~25.6 KB (PUSHDATA2; engine carried twice in mint redeem).

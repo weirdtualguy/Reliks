@@ -14,7 +14,7 @@ const le64 = n => { const b = B.alloc(8); b.writeBigUInt64LE(BigInt(n)); return 
 const sm8 = n => { const b = B.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; };
 function pushExp(p) { const n = p.length; if (n === 0) return B.from([0x00]); if (n <= 75) return B.concat([B.from([n]), p]); if (n <= 255) return B.concat([B.from([0x4c, n]), p]); return B.concat([B.from([0x4d]), le16(n), p]); }
 function pushMin(b) { const n = b.length; if (n === 0) return B.from([0x00]); if (n === 1) { if (b[0] >= 1 && b[0] <= 16) return B.from([0x50 + b[0]]); if (b[0] === 0x81) return B.from([0x4f]); return B.concat([B.from([1]), b]); } if (n <= 75) return B.concat([B.from([n]), b]); if (n <= 255) return B.concat([B.from([0x4c, n]), b]); return B.concat([B.from([0x4d]), le16(n), b]); }
-function pushMinInt(v) { if (v === 0) return B.from([0x00]); if (v >= 1 && v <= 16) return B.from([0x50 + v]); if (v === -1) return B.from([0x4f]); let h = v.toString(16); if (h.length % 2) h = '0' + h; let b = B.from(h, 'hex').reverse(); if (b[b.length - 1] & 0x80) b = B.concat([b, B.from([0])]); return B.concat([B.from([b.length]), b]); }
+function pushMinInt(v) { const n = typeof v === "bigint" ? Number(v) : v; if (n === 0) return B.from([0x00]); if (n >= 1 && n <= 16) return B.from([0x50 + n]); if (v === -1) return B.from([0x4f]); let h = v.toString(16); if (h.length % 2) h = '0' + h; let b = B.from(h, 'hex').reverse(); if (b[b.length - 1] & 0x80) b = B.concat([b, B.from([0])]); return B.concat([B.from([b.length]), b]); }
 const SIGHASH_KEY = B.from('TransactionSigningHash', 'utf8');
 const ZERO32 = B.alloc(32, 0);
 const Hash = d => B.from(blake2b(Uint8Array.from(d), { dkLen: 32, key: Uint8Array.from(SIGHASH_KEY) }));
@@ -35,7 +35,7 @@ function broadcast(rpcTx) {
   return new Promise(resolve => {
     const tryUrl = k => {
       if (k >= urls.length) return resolve(null);
-      const ws = new WebSocket(urls[k], { rejectUnauthorized: false, headers: { 'User-Agent': 'Mozilla/5.0', 'Origin': 'https://wallet.kaspanet.io' } });
+      const ws = new WebSocket(urls[k], { headers: { 'User-Agent': 'Mozilla/5.0', 'Origin': 'https://wallet.kaspanet.io' } });
       const t = setTimeout(() => { console.log('WRPC TIMEOUT [' + N.wrpc[k] + '] after 15s'); ws.terminate(); tryUrl(k + 1); }, 15000);
       ws.on('open', () => ws.send(JSON.stringify({ id: 1, method: 'submitTransaction', params: { transaction: rpcTx, allowOrphan: true } })));
       ws.on('message', d => { const s = d.toString(); clearTimeout(t); console.log('recv', s.substring(0, 300)); let txId = null; try { txId = (JSON.parse(s).params || JSON.parse(s).result || {}).transactionId || null; } catch (e) {} ws.close(); resolve(txId); });
@@ -187,8 +187,8 @@ async function waitForConfirmation(txId, maxWait = 60000) {
     } catch (e) {}
     await new Promise(r => setTimeout(r, 2000));
   }
-  console.warn('  WARN: tx ' + txId + ' not confirmed within ' + maxWait + 'ms. Ledger may need manual reconciliation if orphaned.');
-  return false;
+  console.error('  FATAL: tx ' + txId + ' NOT confirmed within ' + maxWait + 'ms. Refusing to write ledger.');
+  process.exit(1);
 }
 
 module.exports.pickUtxo = pickUtxoSafe;

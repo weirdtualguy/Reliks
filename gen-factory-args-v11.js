@@ -1,5 +1,6 @@
 const fs = require('fs');
-const ENGINE = require(process.env.RELIKS_ENGINE || './reliks-engine-v10.js');
+if (!process.env.RELIKS_ENGINE) { console.error('FATAL: RELIKS_ENGINE env var is required. No default engine.'); process.exit(1); }
+const ENGINE = require(process.env.RELIKS_ENGINE);
 const cfg = JSON.parse(fs.readFileSync(process.argv[2] || 'data/series-testnet-v11.json', 'utf8'));
 // E-1 GUARD (audit): royalty_bips == 0 bricks paid secondary sales.
 // ReliksEdition.checkPayments requires tx.outputs[artistOutIdx].value == roy;
@@ -13,14 +14,8 @@ if (Number.isInteger(cfg.royalty_bips) === false || cfg.royalty_bips < 0 || cfg.
   process.exit(1);
 }
 if (cfg.royalty_bips === 0) {
-  if (process.argv.includes('--allow-otc-only')) {
-    console.warn('E-1 WARNING: royalty_bips=0 baked. Editions are OTC-only (transfer / sell at price 0); buy and priced sell are impossible by consensus (zero-value artist output).');
-  } else {
-    console.error('E-1 GUARD: refusing to bake royalty_bips=0.');
-    console.error('Reason: checkPayments demands an artist output with value == roy == 0; zero-value outputs are consensus-invalid, so listed editions could never be bought or sold.');
-    console.error('Fix: set royalty_bips >= 1 in the series config, or pass --allow-otc-only for an intentionally OTC-only series.');
-    process.exit(1);
-  }
+  console.error("E-1 GUARD: royalty_bips=0 is forbidden. The factory contract requires >= 1. A 0% series would brick on mint.");
+  process.exit(1);
 }
 // F-M2 GUARD (audit): price and mints_left are constant-folded at deploy; a dead
 // configuration bakes a series where every mint reverts (recoverable only via close()).
@@ -48,7 +43,7 @@ const hash = Buffer.from(c.compiled.template_hash);
 const B = (b) => ({ kind: 'bytes', value: Array.from(b) });
 const I = (n) => ({ kind: 'int', value: n });
 const args = [
-  B(Buffer.from(ENGINE.engineHashHex, 'hex')),          // program_hash
+  B(Buffer.from(require('@noble/hashes/blake2b').blake2b(Buffer.from(ENGINE.ENGINE_SRC, 'utf8'), { dkLen: 32 }))), // program_hash (recomputed)
   B(Buffer.from(cfg.artist, 'hex')),                    // artist
   I(cfg.price),                                         // price (0 = free series)
   I(cfg.royalty_bips),                                  // royalty (cap 2000 enforced at mint)
