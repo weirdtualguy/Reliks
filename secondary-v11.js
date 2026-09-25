@@ -34,7 +34,7 @@ const k = parseInt(kArg || '0', 10);
       ];
       const rawSig = secp.schnorr.signSync(sighash(inputs, outputs, 0), V.PRIV);
     const sigW1 = '41' + hex(secp.schnorr.signSync(sighash(inputs, outputs, 1), V.PRIV)) + '01';
-      const ss = B.concat([pushMinInt(newPrice), pushMin(B.concat([rawSig, B.from([0x01])])), pushMinInt(0), pushMin(TAG('list')), pushMin(curRedeem)]);
+      const ss = B.concat([pushMinInt(newPrice), pushMin(B.concat([rawSig, B.from([0x01])])), pushMin(TAG('list')), pushMin(curRedeem)]);
       return rpc(inputs, outputs, hex(ss), sigW1);
     }
     const { txId } = await feeLoop(build);
@@ -89,7 +89,7 @@ const k = parseInt(kArg || '0', 10);
       ];
       const ownerSigRaw = secp.schnorr.signSync(sighash(inputs, outputs, 0), V.PRIV);
       const sigW1 = '41' + hex(secp.schnorr.signSync(sighash(inputs, outputs, 1), V.PRIV)) + '01';
-      const ss = B.concat([pushMin(H(buyer)), pushMinInt(askPrice), pushMinInt(1), pushMinInt(2), pushMin(B.concat([ownerSigRaw, B.from([0x01])])), pushMinInt(0), pushMin(TAG('sell')), pushMin(curRedeem)]);
+      const ss = B.concat([pushMin(H(buyer)), pushMinInt(askPrice), pushMinInt(1), pushMinInt(2), pushMin(B.concat([ownerSigRaw, B.from([0x01])])), pushMin(TAG('sell')), pushMin(curRedeem)]);
       return rpc(inputs, outputs, hex(ss), sigW1);
     }
     const { txId } = await feeLoop(build);

@@ -72,7 +72,7 @@ contract OfferEscrow(
         byte[36] mktSpk = new ScriptPubKeyP2PK(pubkey(marketplace));
 
         // Model B split: owner (askPrice - roy), artist (roy), marketplace (mktFee)
-        require(tx.outputs[paymentOutIdx].value >= askPrice - roy - 10000000); // audit4: allow fee deduction from owner proceeds
+        require(tx.outputs[paymentOutIdx].value == askPrice - roy); // Hardened: exact equality for owner net
         require(tx.outputs[paymentOutIdx].scriptPubKey == byte[](ownerSpk));
         require(tx.outputs[royaltyOutIdx].value == roy);
         require(tx.outputs[royaltyOutIdx].scriptPubKey == byte[](artistSpk));
