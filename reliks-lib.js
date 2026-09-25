@@ -195,3 +195,10 @@ module.exports.pickUtxo = pickUtxoSafe;
 module.exports.broadcastWithMsg = broadcastWithMsg;
 module.exports.feeLoop = feeLoop;
 module.exports.waitForConfirmation = waitForConfirmation;
+
+
+// --- Consolidated from v7-lib.js ---
+const covIdGenesis = (authTxId, authIdx, outs) => hex(blake2b(B.concat([H(authTxId), le32(authIdx), le64(outs.length), ...outs.map(o => B.concat([le32(o.idx), le64(o.value), le16(0), le64(H(o.script).length), H(o.script)]))]), { dkLen: 32, key: B.from("CovenantID") }));
+module.exports.blake2b = blake2b;
+module.exports.covIdGenesis = covIdGenesis;
+module.exports.DUST = 100000000n;

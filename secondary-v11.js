@@ -1,4 +1,4 @@
-const V = require('./v8-lib.js');
+const V = require('./reliks-lib.js');
 const { B, hex, H, pushMin, pushMinInt, sighash, parts, encState, pickUtxo, secp, fs, feeLoop, waitForConfirmation } = V;
 const [,, cmd, kArg, priceArg] = process.argv;
 const k = parseInt(kArg || '0', 10);

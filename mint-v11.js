@@ -1,9 +1,9 @@
 const fs = require('fs');
-const OL = require('./offer-lib.js');
-const V = require('./v8-lib.js');
+const OL = require('./reliks-lib.js');
+const V = require('./reliks-lib.js');
 const secp = (() => { try { const s = require('@noble/secp256k1'); if (s.schnorr && s.schnorr.signSync) return s; } catch (e) {} const c = require('@noble/curves/secp256k1'); return { schnorr: { signSync: (m, p) => c.schnorr.sign(m, p) } }; })();
 const { feeLoop, waitForConfirmation, pickUtxo, sighash, hex, pushMin, pushMinInt } = OL;
-const covIdGenesis = require('./v7-lib.js').covIdGenesis || V.covIdGenesis || OL.covIdGenesis;
+const covIdGenesis = require('./reliks-lib.js').covIdGenesis || V.covIdGenesis || OL.covIdGenesis;
 if (typeof covIdGenesis !== 'function') { console.error('covIdGenesis unavailable in v7/v8/offer libs'); process.exit(1); }
 const B = Buffer;
 const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v11.json'), 'utf8')));
