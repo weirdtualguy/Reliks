@@ -51,9 +51,10 @@ if (V.WALLET !== RG.p2pkAddress('20' + V.USER + 'ac')) { console.error('WALLET/P
   console.log('funding mint with 1 UTXO(s) totaling', (Number(wIn.amount) / 1e8), 'KAS');
   const covEd = covHex(covIdGenesis(wIn.txId, wIn.index, [{ idx: 1, value: Number(CARRIER), script: V.p2sh(edRedeem) }]));
   const price = BigInt(LD.series.price);
-  const artistCut = price > 0n ? price - MINT_FEE : 0n;
-  const artistOutIdx = artistCut > 0n ? 3 : 2;   // unused by contract when cut == 0
-  const platformOutIdx = 2;
+  const isPaid = price > 0n;
+  const artistCut = isPaid ? price - MINT_FEE : 0n;
+  const artistOutIdx = isPaid ? 3 : 2;   // dummy when free
+  const platformOutIdx = 2;              // dummy when free
   const hsInputs = [
     { txId: laneTxId, index: 0, sequence: 0, spk: laneSpk, amount: laneAmt },
     { txId: wIn.txId, index: wIn.index, sequence: 0, spk: wIn.spk, amount: wIn.amount }
@@ -65,11 +66,12 @@ if (V.WALLET !== RG.p2pkAddress('20' + V.USER + 'ac')) { console.error('WALLET/P
   function build(fee) {
     const outputs = [
       { amount: laneAmt, scriptPublicKey: V.p2sh(B.concat([F.prefix, V.encState(F, { ...LD.series, mints_left: LD.series.mints_left - LD.editions.length - 1 }), F.suffix])), covenant: { authorizingInput: 0, covenantId: LD.C } },
-      { amount: CARRIER, scriptPublicKey: V.p2sh(edRedeem), covenant: { authorizingInput: 1, covenantId: covEd } },
-      { amount: MINT_FEE, scriptPublicKey: '20' + LD.series.treasury + 'ac' }
+      { amount: CARRIER, scriptPublicKey: V.p2sh(edRedeem), covenant: { authorizingInput: 1, covenantId: covEd } }
     ];
+    if (isPaid) outputs.push({ amount: MINT_FEE, scriptPublicKey: '20' + LD.series.treasury + 'ac' });
     if (artistCut > 0n) outputs.push({ amount: artistCut, scriptPublicKey: '20' + LD.series.artist + 'ac' });
-    outputs.push({ amount: BigInt(wIn.amount) - MINT_FEE - artistCut - CARRIER - fee, scriptPublicKey: wIn.spk });
+    const changeAmt = BigInt(wIn.amount) - (isPaid ? MINT_FEE : 0n) - artistCut - CARRIER - fee;
+    outputs.push({ amount: changeAmt, scriptPublicKey: wIn.spk });
     const ss = B.concat([pushMin(B.from(V.USER, 'hex')), pushMin(B.from([BUYER_SCHEME])), pushMinInt(1), pushMinInt(artistOutIdx), pushMinInt(platformOutIdx), pushMin(TAG('mint')), pushMin(B.concat([F.prefix, V.encState(F, { ...LD.series, mints_left: LD.series.mints_left - LD.editions.length }), F.suffix]))]);
     inputs[0].signatureScript = hex(ss);
     inputs[1].signatureScript = '41' + hex(secp.schnorr.signSync(sighash(hsInputs, outputs, 1), V.PRIV)) + '01';
@@ -79,5 +81,5 @@ if (V.WALLET !== RG.p2pkAddress('20' + V.USER + 'ac')) { console.error('WALLET/P
   await waitForConfirmation(txId);
   LD.editions.push({ txId, index: 1, mintTxId: txId, mintIndex: 1, cov: covEd, serial, owner: V.USER, price: 0, amount: Number(CARRIER), spk: hex(V.p2sh(edRedeem)) });
   fs.writeFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v11.json'), JSON.stringify(LD, null, 2));
-  console.log('RELIKS V11 MINT:', txId, '| serial', serial, '| artistCut', artistCut.toString(), '| platformFee', MINT_FEE.toString(), '| edition', covEd.slice(0, 16) + '...');
+  console.log('RELIKS V11 MINT:', txId, '| serial', serial, '| artistCut', artistCut.toString(), '| platformFee', (isPaid ? MINT_FEE : 0n).toString(), '| edition', covEd.slice(0, 16) + '...');
 })().catch(e => { console.error(e); process.exit(1); });

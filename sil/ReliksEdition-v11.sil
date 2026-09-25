@@ -26,18 +26,12 @@ contract ReliksEdition(
     int serial = init_serial;
 
     byte constant IDENTIFIER_PUBKEY = 0x00;
-    byte constant IDENTIFIER_COVENANT_ID = 0x02;
     int constant MIN_PRICE = 100000000;       // 1 KAS listing floor (v11)
     int constant MAX_PRICE = 922337203685477; // i64 overflow guard for price*bips
 
-    function ownerAuthorized(sig ownerSig, int witnessIdx) {
-        if (identifierType == IDENTIFIER_PUBKEY) {
-            require(checkSig(ownerSig, pubkey(ownerIdentifier)));
-        } else if (identifierType == IDENTIFIER_COVENANT_ID) {
-            require(OpInputCovenantId(witnessIdx) == ownerIdentifier);
-        } else {
-            require(false);
-        }
+    function ownerAuthorized(sig ownerSig) {
+        require(identifierType == IDENTIFIER_PUBKEY);
+        require(checkSig(ownerSig, pubkey(ownerIdentifier)));
     }
 
     // Royalty-only exact-equality split. Marketplace fee is NOT deducted here.
@@ -75,8 +69,8 @@ contract ReliksEdition(
     }
 
     #[covenant(binding = auth, from = 1, to = 1, mode = transition, name = list)]
-    function listPolicy(State prev_state, int newPrice, sig ownerSig, int witnessIdx) : (State) {
-        ownerAuthorized(ownerSig, witnessIdx);
+    function listPolicy(State prev_state, int newPrice, sig ownerSig) : (State) {
+        ownerAuthorized(ownerSig);
         carrierConserved();
         require(newPrice >= MIN_PRICE && newPrice <= MAX_PRICE);
         return State {
@@ -92,8 +86,8 @@ contract ReliksEdition(
     }
 
     #[covenant(binding = auth, from = 1, to = 1, mode = transition, name = unlist)]
-    function unlistPolicy(State prev_state, sig ownerSig, int witnessIdx) : (State) {
-        ownerAuthorized(ownerSig, witnessIdx);
+    function unlistPolicy(State prev_state, sig ownerSig) : (State) {
+        ownerAuthorized(ownerSig);
         carrierConserved();
         return clearedState(prev_state.ownerIdentifier);
     }
@@ -108,8 +102,8 @@ contract ReliksEdition(
     }
 
     #[covenant(binding = auth, from = 1, to = 1, mode = transition, name = sell)]
-    function sellPolicy(State prev_state, byte[32] buyer, int salePrice, int ownerOutIdx, int artistOutIdx, sig ownerSig, int witnessIdx) : (State) {
-        ownerAuthorized(ownerSig, witnessIdx);
+    function sellPolicy(State prev_state, byte[32] buyer, int salePrice, int ownerOutIdx, int artistOutIdx, sig ownerSig) : (State) {
+        ownerAuthorized(ownerSig);
         carrierConserved();
         require(salePrice == 0 || (salePrice >= MIN_PRICE && salePrice <= MAX_PRICE));
         if (salePrice > 0) {
@@ -119,15 +113,15 @@ contract ReliksEdition(
     }
 
     #[covenant(binding = auth, from = 1, to = 1, mode = transition, name = transfer)]
-    function transferPolicy(State prev_state, byte[32] newOwner, sig ownerSig, int witnessIdx) : (State) {
-        ownerAuthorized(ownerSig, witnessIdx);
+    function transferPolicy(State prev_state, byte[32] newOwner, sig ownerSig) : (State) {
+        ownerAuthorized(ownerSig);
         carrierConserved();
         return clearedState(newOwner);
     }
 
     #[covenant(binding = auth, from = 1, to = 1, mode = transition, termination = allowed, name = spend)]
-    function spendPolicy(State prev_state, sig ownerSig, int witnessIdx) : (State[]) {
-        ownerAuthorized(ownerSig, witnessIdx);
+    function spendPolicy(State prev_state, sig ownerSig) : (State[]) {
+        ownerAuthorized(ownerSig);
         return State[]{};
     }
 }
