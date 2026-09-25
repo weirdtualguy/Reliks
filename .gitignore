@@ -22,3 +22,4 @@ HANDOFF-LOCAL.md
 docs/audit-log/
 data/*ledger*.json
 secrets*.env
+reliks-*.zip
