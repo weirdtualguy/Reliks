@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { blake2b } = require('@noble/hashes/blake2b');
-const V = require('./v8-lib.js');
+const V = require('./reliks-lib.js');
 
 const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v11.json'), 'utf8')));
 const Ed = V.parts(JSON.parse(fs.readFileSync('data/edition-abi-v6.json', 'utf8')));

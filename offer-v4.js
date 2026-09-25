@@ -1,6 +1,6 @@
 const fs = require('fs');
-const OL = require('./offer-lib.js');
-const V = require('./v8-lib.js');
+const OL = require('./reliks-lib.js');
+const V = require('./reliks-lib.js');
 const { feeLoop, waitForConfirmation, pickUtxo, sighash, hex, pushMin, pushMinInt } = OL;
 const secp = (() => { try { const s = require('@noble/secp256k1'); if (s.schnorr && s.schnorr.signSync) return s; } catch (e) {} const c = require('@noble/curves/secp256k1'); return { schnorr: { signSync: (m, p) => c.schnorr.sign(m, p) } }; })();
 const B = Buffer;

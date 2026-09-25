@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { execSync } = require('child_process');
-const V = require('./v8-lib.js');
+const V = require('./reliks-lib.js');
 const trePriv = require('crypto').randomBytes(32).toString('hex');
 const trePub = execSync('PC_PRIV=' + trePriv + ' PC_NET=testnet node -e "console.log(require(\'./v8-lib.js\').USER)"').toString().trim();
 fs.appendFileSync('secrets-v11.env', '\nexport PC_TREASURY_PRIV=' + trePriv + '\n');

@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const N = require('./network.js');
 const { blake2b: noble } = require('@noble/hashes/blake2b');
 const RB = require('./web/gallery-blake2b.js');
-const V = require('./v8-lib.js');
+const V = require('./reliks-lib.js');
 const ENGINE = require(process.env.RELIKS_ENGINE || './reliks-engine-v10.js');
 
 const hx = (b) => Buffer.from(b).toString('hex');
