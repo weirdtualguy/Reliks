@@ -53,7 +53,7 @@ const renderSeed = (serial) => Number(BigInt(serial) & 0xFFFFFFFFn); // canonica
 
     check('[#' + i + '] mint consumes lane ' + consumedLaneTxId.slice(0, 8) + '...:0', prevOutpoint(mintTx.inputs[0]) === consumedLaneTxId + ':0');
     check('[#' + i + '] serial recomputes from lane outpoint', serialOfV10(consumedLaneTxId, 0) === String(ed.serial));
-    const edState = { ownerIdentifier: ed.owner, identifierType: 0, price: ed.price, artist: LD.series.artist, royalty_bips: LD.series.royalty_bips, program_hash: LD.series.program_hash, factory_covid: LD.C, serial: ed.serial };
+    const edState = { ownerIdentifier: ed.owner, identifierType: 0, price: 0, /* mint-time */ artist: LD.series.artist, royalty_bips: LD.series.royalty_bips, program_hash: LD.series.program_hash, factory_covid: LD.C, serial: ed.serial };
     const edSpk = p2shHex(B.concat([Ed.prefix, V.encState(Ed, edState), Ed.suffix]));
     check('[#' + i + '] edition covenant_id == mintTx.outputs[1].covenant_id', (mintTx.outputs[1].covenant_id || '') === ed.cov);
     check('[#' + i + '] edition spk == mintTx.outputs[1].scriptPubKey', edSpk === spkHex(mintTx.outputs[1]));
