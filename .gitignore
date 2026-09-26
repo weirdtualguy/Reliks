@@ -11,3 +11,4 @@ secrets*.env
 *.html
 *.svg
 reliks-gallery-*.html
+HANDOFF-LOCAL.md
