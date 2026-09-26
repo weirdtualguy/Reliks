@@ -1,3 +1,6 @@
+# Dependencies
+node_modules/
+
 # Local state and caches (Regenerable from on-chain data)
 data/*-ledger*.json
 data/*-args*.json
@@ -11,4 +14,25 @@ secrets*.env
 *.html
 *.svg
 reliks-gallery-*.html
-HANDOFF-LOCAL.md
+
+# Temporary Dev Artifacts & Archives
+.attic/
+*.zip
+prune.txt
+whitelist.txt
+patch-*.js
+fix-*.js
+diag-*.js
+verify-v12-*.js
+update-*.js
+list-via-rest.js
+wait-for-list.js
+seed-*.js
+HANDOFF.md
+# Legacy build artifacts & generated art
+titan-*.svg
+HANDOFF.md
+accept-v5
+offer-v5
+secondary-v12
+reliks-audit-*.js
