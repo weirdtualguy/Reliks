@@ -2,8 +2,8 @@ const fs = require('fs');
 const { blake2b } = require('@noble/hashes/blake2b');
 const V = require('./reliks-lib.js');
 
-const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v11.json'), 'utf8')));
-const Ed = V.parts(JSON.parse(fs.readFileSync('data/edition-abi-v6.json', 'utf8')));
+const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v12.json'), 'utf8')));
+const Ed = V.parts(JSON.parse(fs.readFileSync('data/edition-abi-v12.json', 'utf8')));
 const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v11.json'), 'utf8'));
 const ENGINE = require(process.env.RELIKS_ENGINE || './reliks-engine-v10.js');
 if (LD.series && LD.series.program_hash && ENGINE.engineHashHex && ENGINE.engineHashHex !== LD.series.program_hash) {

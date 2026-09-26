@@ -4,7 +4,7 @@ const NET = process.env.PC_NET || 'testnet';
 const PROFILES = {
   testnet: {
     rest: 'https://api-tn10.kaspa.org',
-    wrpc: ['wss://electron-10.kaspa.stream/kaspa/testnet-10/wrpc/json', 'wss://testnet-10.kaspa.org/wrpc'],
+    wrpc: ['wss://electron-10.kaspa.stream/kaspa/testnet-10/wrpc/json', 'wss://vector-10.kaspa.green/kaspa/testnet-10/wrpc/json'],
     kascov: 'https://kascov.io/data/testnet-10',
     explorer: 'https://kascov.io/testnet-10/tx/',
     hrp: 'kaspatest', label: 'testnet-10'

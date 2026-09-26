@@ -1,25 +1,13 @@
-# Secrets
+# Local state and caches (Regenerable from on-chain data)
+data/*-ledger*.json
+data/*-args*.json
+data/series-*.json
+
+# Secrets and Environment Variables
+*.env
 secrets*.env
 
-# Ephemeral chain state (ledgers are generated locally at runtime)
-data/*ledger*.json
-
-# Generated local HTML (docs/index.html is tracked for GitHub Pages)
-reliks-studio.html
+# Generated Outputs (Regenerable via gen-gallery-v10.js)
+*.html
+*.svg
 reliks-gallery-*.html
-
-# Local archives, temp, and node modules
-.attic/
-tmp/
-node_modules/
-reliks-lens.html
-lens-out/
-reliks-v10-edition-*.svg
-whitelist.txt
-prune.txt
-HANDOFF-LOCAL.md
-
-docs/audit-log/
-data/*ledger*.json
-secrets*.env
-reliks-*.zip

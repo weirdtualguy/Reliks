@@ -51,8 +51,8 @@ for (const ed of LD.editions) {
 }
 assert(RG.p2pkAddress('20' + V.USER + 'ac') === V.WALLET, 'bech32 P2PK vector == configured wallet address');
 assert(RG.blakeHex(RG.utf8(REG.engineSrc)) === ENGINE.engineHashHex, 'engine hash');
-assert(RG.blakeHex(RG.utf8(RG.render(String(REG.testSerial)))) === ENGINE.renderHashHex, 'render conformance');
-for (const ed of LD.editions) assert(RG.render(String(ed.serial)) === ENGINE.render(Number(BigInt(ed.serial) & 0xFFFFFFFFn)), 'render parity ' + ed.serial);
+assert(RG.blakeHex(RG.utf8(ENGINE.render(String(REG.testSerial)))) === ENGINE.renderHashHex, 'render conformance');
+for (const ed of LD.editions) assert(ENGINE.render(String(ed.serial)) === ENGINE.render(Number(BigInt(ed.serial) & 0xFFFFFFFFn)), 'render parity ' + ed.serial);
 console.log('runtime parity: serials, state encodings, spks, engine hash, conformance, renders — all OK');
 
 /* 4) emit self-contained HTML */

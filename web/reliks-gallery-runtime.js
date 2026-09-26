@@ -27,14 +27,14 @@
   }
   function pushByte1(v) { return Uint8Array.of(1, Number(v) & 0xff); }
   function encFactoryState(s) {
-    return concat([pushBytes(s.program_hash), pushBytes(s.artist), pushInt(s.price), pushInt(s.royalty_bips), pushInt(s.mints_left), pushInt(s.engine_lang), pushBytes(s.render_hash), pushBytes(s.treasury)]);
+    return concat([pushBytes(s.program_hash), pushBytes(s.artist), pushInt(s.price), pushInt(s.royalty_bips), pushInt(s.mints_left), pushInt(s.engine_lang), pushBytes(s.render_hash)]);
   }
   function encEditionState(s) {
     return concat([pushBytes(s.ownerIdentifier), pushByte1(s.identifierType), pushInt(s.price), pushBytes(s.artist), pushInt(s.royalty_bips), pushBytes(s.program_hash), pushBytes(s.factory_covid), pushInt(s.serial)]);
   }
   function p2shHex(redeemBytes) { return 'aa20' + blakeHex(redeemBytes, 32) + '87'; }
   function factorySpk(mintsLeft) {
-    var st = { program_hash: REG.series.program_hash, artist: REG.series.artist, price: REG.series.price, royalty_bips: REG.series.royalty_bips, mints_left: mintsLeft, engine_lang: REG.series.engine_lang, render_hash: REG.series.render_hash, treasury: REG.series.treasury };
+    var st = { program_hash: REG.series.program_hash, artist: REG.series.artist, price: REG.series.price, royalty_bips: REG.series.royalty_bips, mints_left: mintsLeft, engine_lang: REG.series.engine_lang, render_hash: REG.series.render_hash };
     return p2shHex(concat([hexToBytes(REG.factoryPrefix), encFactoryState(st), hexToBytes(REG.factorySuffix)]));
   }
   function editionState(ed) {

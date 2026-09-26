@@ -71,13 +71,38 @@ async function broadcastWithMsg(rpcTx) {
   let WsCtor;
   try { WsCtor = require('ws'); } catch (e) { WsCtor = WebSocket; }
   return new Promise((resolve) => {
+    let lastMsg = 'all endpoints failed';
     const tryUrl = (k) => {
-      if (k >= N.wrpc.length) { resolve({ txId: null, msg: 'all endpoints failed' }); return; }
+      if (k >= N.wrpc.length) { resolve({ txId: null, msg: lastMsg }); return; }
       const ws = new WsCtor(N.wrpc[k], { headers: { 'User-Agent': 'Mozilla/5.0', 'Origin': 'https://wallet.kaspanet.io' } });
       const t = setTimeout(() => { console.log('  wrpc timeout [' + N.wrpc[k] + ']'); ws.terminate(); tryUrl(k + 1); }, 15000);
       ws.on('open', () => ws.send(JSON.stringify({ id: 1, method: 'submitTransaction', params: { transaction: rpcTx, allowOrphan: true } })));
-      ws.on('message', d => { const s = d.toString(); clearTimeout(t); let txId = null, msg = ''; try { const j = JSON.parse(s); txId = (j.params || j.result || {}).transactionId || null; msg = (j.error && j.error.message) || s.substring(0, 240); } catch (e) { msg = s.substring(0, 240); } ws.close(); resolve({ txId, msg }); });
-      ws.on('error', (e) => { clearTimeout(t); console.error('  wrpc error [' + N.wrpc[k] + ']:', e.message); tryUrl(k + 1); });
+      ws.on('message', d => {
+        const s = d.toString(); clearTimeout(t);
+        let txId = null, msg = '';
+        try {
+          const j = JSON.parse(s);
+          txId = (j.params || j.result || {}).transactionId || null;
+          msg = (j.error && j.error.message) || s.substring(0, 240);
+        } catch (e) { msg = s.substring(0, 240); }
+        ws.close();
+        
+        // FIX: If we got a txId, resolve successfully.
+        // If we got an error (txId is null), log it and rotate to the next endpoint!
+        if (txId) {
+          resolve({ txId, msg });
+        } else {
+          lastMsg = msg; // Preserve the rejection reason for feeLoop
+          console.log('  wrpc [' + N.wrpc[k] + '] rejected, rotating to next endpoint...');
+          tryUrl(k + 1);
+        }
+      });
+      ws.on('error', (e) => {
+        clearTimeout(t);
+        lastMsg = e.message || 'network error';
+        console.error('  wrpc error [' + N.wrpc[k] + ']:', e.message);
+        tryUrl(k + 1);
+      });
     };
     tryUrl(0);
   });
@@ -170,24 +195,46 @@ async function feeLoop(buildFn, initialFee = 3000000n, opts = {}) {
 }
 
 // F-07: Confirmation gate (prevents ledger writes for orphaned txs)
-async function waitForConfirmation(txId, maxWait = 60000) {
+async function waitForConfirmation(txId, maxWait = 120000) {
   const start = Date.now();
   while (Date.now() - start < maxWait) {
+    // --- Layer 1: REST /transactions/{txid} ---
     try {
       const res = await fetch(N.rest + '/transactions/' + txId);
       if (res.ok) {
         const tx = await res.json();
         if (tx.is_accepted || tx.block_hash) {
-          console.log('  confirmed in block:', tx.block_hash ? tx.block_hash[0].slice(0, 8) + '...' : 'accepted');
+          console.log('  confirmed via REST' + (tx.block_hash ? ' in block ' + tx.block_hash[0].slice(0, 8) + '...' : ' (mempool-accepted)'));
           console.log('  waiting 10s to clear orphan window...');
           await new Promise(r => setTimeout(r, 10000));
           return true;
         }
       }
-    } catch (e) {}
-    await new Promise(r => setTimeout(r, 2000));
+      // 404 or empty → REST is broken, fall through to kascov
+    } catch (e) {
+      // Network error → fall through to kascov
+    }
+
+    // --- Layer 2: kascov /tx/{txid}.json ---
+    try {
+      const kres = await fetch(N.kascov + '/tx/' + txId + '.json');
+      if (kres.ok) {
+        const ktx = await kres.json();
+        if (ktx.accepting_block) {
+          console.log('  confirmed via kascov in block ' + ktx.accepting_block.slice(0, 8) + '... (daa ' + ktx.accepting_daa + ')');
+          console.log('  waiting 10s to clear orphan window...');
+          await new Promise(r => setTimeout(r, 10000));
+          return true;
+        }
+      }
+      // 404 → tx not yet indexed by kascov
+    } catch (e) {
+      // kascov network error — retry
+    }
+
+    await new Promise(r => setTimeout(r, 5000));
   }
-  console.error('  FATAL: tx ' + txId + ' NOT confirmed within ' + maxWait + 'ms. Refusing to write ledger.');
+  console.error('  FATAL: tx ' + txId + ' NOT confirmed within ' + maxWait + 'ms via REST or kascov. Refusing to write ledger.');
   process.exit(1);
 }
 
