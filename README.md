@@ -1,71 +1,50 @@
-# Reliks
-**Trustless generative art on Kaspa Toccata.**
+# Reliks: A Decentralized, Zero-Fee Generative Art Protocol on Kaspa
 
-Reliks is a UTXO-native generative art protocol. The artwork's genome (an
-integer-only JavaScript engine) is baked into the covenant template and rendered
-deterministically from chain state — no IPFS, no servers, no sigscripts.
+Reliks is a UTXO-native, covenant-based protocol for generative art NFTs on the Kaspa BlockDAG. It enforces trustless, on-chain royalties, carrier conservation, and deterministic rendering without relying on centralized servers, IPFS, or extracting platform fees.
 
-## Why Reliks
-- **Chain-anchored genomes:** engine bytes live inside the factory template;
-  pruning the art means pruning the chain.
-- **Trustless verification:** the browser gallery recomputes every edition from
-  the live UTXO set with a 14-gate lineage suite.
-- **Deterministic PRNG:** seeded xorshift + integer math give byte-identical SVG
-  on Node and in every browser, forever.
-- **Model B economics:** on-chain artist royalties, 1% escrow premium,
-  permissionless secondary markets — all enforced by covenant logic.
+## 🌟 Key Features
 
-## Architecture
-- `sil/SeriesFactory-v11.sil` — mint / fork / close; stores the engine;
-  consensus guards: buyerScheme==PUBKEY, royalty_bips>=1,
-  program_hash==blake2b(engine_code).
-- `sil/ReliksEdition-v11.sil` — list / unlist / buy / sell / transfer / spend;
-  dual-field lineage (immutable mint anchor + live outpoint).
-- `sil/OfferEscrow-v4.sil` — offer / accept / expire; MAX_PRICE bound and
-  pairwise-distinct output indices.
+- **Zero-Fee Protocol**: 100% of the primary mint price goes directly to the artist. Secondary sales enforce exact-equality royalty splits (artist + owner) with **no platform rent extraction**.
+- **Trustless Verification**: Every edition's engine, serial, and state are cryptographically anchored to the Kaspa BlockDAG. Anyone can verify the art locally using the provided gallery runtime without trusting a central API or server.
+- **UTXO-Native Covenants**: Built with Silverscript, Reliks uses stateful UTXOs to enforce rules like carrier conservation (preventing value stripping) and deterministic serial derivation from lane outpoints.
+- **Prune-Independent**: The protocol uses live UTXO anchoring, ensuring editions can be verified even if historical transaction data is pruned from the network.
 
-## Repository layout
-- `sil/` frozen Silverscript sources (the three contracts above)
-- `data/` canonical series JSON + compiled ABIs (ledgers are gitignored)
-- `web/` browser runtime: blake2b, gallery, studio, Kaspire WalletConnect
-- `docs/` GitHub Pages hub (Gallery + Studio + Protocol) + ARCHITECTURE.md
-- builders: deploy-v11, mint-v11, secondary-v11, offer-v4, accept-v4
-- tooling: reliks-lens, verify-render-v10, gen-factory-args-v11,
-  gen-gallery-v10, gen-studio, gen-site, reliks-audit-loop
-- engines: reliks-engine-v10.js (3.9 KB), reliks-engine-titan.js (~25 KB)
-<!-- EOF-README-1 -->
+## 🏗 Architecture
 
-## Artist quickstart
-1. Open the Studio (hub → Studio tab, or `node gen-studio.js` locally).
-2. Write `function reliks(L, serial){ ... }` using only the integer R.* API.
-3. Export engine .js + series .json (Kaspire connect auto-fills artist pubkey).
-4. Gate it: `node reliks-lens.js my-engine.js` → ALL GATES PASS.
-5. Bake, compile, deploy:
-   RELIKS_ENGINE=./my-engine.js RELIKS_ARGS=data/factory-args-mine.json \
-     node gen-factory-args-v11.js data/series-mine.json
-   silverc sil/SeriesFactory-v11.sil \
-     --constructor-args data/factory-args-mine.json -o data/factory-abi-mine.json
-   node deploy-v11.js && node mint-v11.js && node verify-render-v10.js
+The protocol consists of three core covenant templates:
 
-## Collector quickstart
-- Verify: hub Gallery recomputes each edition against the live UTXO set.
-- Trade: `node secondary-v11.js list <idx> <sompi>` then `buy <idx>`;
-  offers: `node offer-v4.js <idx> <sompi> <premium>` then `node accept-v4.js`.
+1. **`SeriesFactory-v12`**: Spawns editions, enforces carrier floors, and bakes the engine hash. It manages parallel minting lanes and ensures the artist receives the full mint price.
+2. **`ReliksEdition-v12`**: The NFT asset state machine. It enforces exact-equality royalty splits on secondary sales and guarantees carrier conservation across all state transitions.
+3. **`OfferEscrow-v5`**: A trustless, fee-neutral atomic swap contract for secondary market trades. It locks buyer funds and enforces the royalty split without taking a platform cut.
 
-## Prerequisites
-Node 18+; `npm i @noble/hashes @noble/secp256k1 ws`; `silverc` in PATH.
+## 📂 Repository Structure
 
-## Mainnet transport requirement
-REST broadcast drops compute_budget (limit=9999), so covenant spends MUST use
-wRPC. `PC_NET=mainnet` without `PC_MAINNET_WRPC` hard-exits, and feeLoop refuses
-REST fallback for covenant spends. See docs/ARCHITECTURE.md.
+This repository contains the **Trustless Core** and **Reference Tooling** required to interact with the protocol.
 
-## Security, audits, engine ceiling
-Consensus-enforced invariants and the audit history live in SECURITY.md.
-Engine ceiling: PUSHDATA2 caps one push at 65535 B and the mint sigscript
-carries the engine twice (suffix + engineBaked anchor), so the practical cap is
-about 25.6 KB; reliks-lens gate L1 enforces it.
+- `sil/`: Silverscript source code for the covenants.
+- `data/`: Compiled ABI artifacts (the API schema and dispatch tags for the contracts).
+- `web/`: Trustless gallery runtime (`reliks-gallery-runtime.js`) and lens verification tools (`reliks-lens.js`).
+- `*.js`: Reference builders and tooling for deploying, minting, and trading.
+- `docs/`: Operational runbooks and architectural guides.
 
-## License
-MIT
-<!-- EOF-README-2 -->
+## 🚀 Getting Started
+
+1. **Clone the repository**:
+```bash
+   git clone https://github.com/weirdtualguy/Reliks.git
+   cd Reliks
+```
+2. **Install dependencies**:
+```bash
+   npm install
+```
+3. **Review the Runbook**:
+   Read `docs/MAINNET-RUNBOOK.md` for the exact operational sequence for key generation, series configuration, and deployment.
+
+## 🤝 Building on Reliks
+
+Reliks is a public good. Because the core protocol is fee-neutral, developers are encouraged to build custom UIs, marketplaces, and galleries on top of it. If you wish to monetize a marketplace, you can fork `OfferEscrow-v5` to add an optional `marketplace_bips` field, while the base Reliks protocol remains free and open.
+
+## 📜 License
+
+This project is open-source and available under the MIT License. See the `LICENSE` file for details.

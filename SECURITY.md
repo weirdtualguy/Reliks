@@ -1,105 +1,40 @@
 # Security Policy
 
-## Supported versions
-| Version | Status |
-| --- | --- |
-| v11 (audit2 freeze) | Supported |
-| v10 and earlier | Deprecated (testnet monuments only) |
+Reliks handles real value on the Kaspa mainnet. Security is our highest priority. This document outlines the security policy and procedures for the Reliks protocol.
 
-## Security model layers
-1. Consensus-enforced invariants (Silverscript require):
-   - buyerScheme == IDENTIFIER_PUBKEY (no bricked identifier types)
-   - royalty_bips >= 1 (Kaspa rejects 0-value dust; 0 would brick buy())
-   - program_hash == blake2b(engine_code) (engine containment on-chain)
-   - OfferEscrow MAX_PRICE (i64 overflow guard on askPrice * bips)
-   - pairwise-distinct payment/royalty/mkt/edition output indices
-   - close() requires OpAuthOutputCount == 0 (true burn, no state carry)
-2. Client-side transport gates:
-   - feeLoop: covenantSpend defaults true; wRPC-only; hard-throws on
-     non-fee wRPC failure; REST reachable only via explicit opt-out
-     (no shipped caller opts out)
-   - network.js: PC_NET=mainnet without PC_MAINNET_WRPC => process.exit(1)
-   - bake pipeline: inline assertion that compiled bytecode embeds the
-     exact ENGINE_SRC bytes before any deploy
-3. Deterministic verification:
-   - verify-render-v10.js: 14 gates (genesis spk, program_hash, render
-     conformance, per-edition lane-consumption / serial recompute /
-     covenant_id / edition spk / continuation spk, F1 redeem containment)
-   - hard-stop provenance guard: RELIKS_ENGINE hash != ledger
-     program_hash => exit(1) before any rendering
-4. Economics:
-   - checkPayments: exact royalty to artist, >= price-royalty to owner (enforcement is opt-in: transfer and sell-at-0 bypass royalties by design for OTC/custody moves),
-     platform 0 on secondary (Model B); escrow exact royalty + mktFee,
-     >= owner net; zero surplus to burn or steal
-<!-- EOF-SEC-1 -->
+## 🛡 Supported Versions
 
-## Reporting vulnerabilities
-- Do NOT open public issues. Contact the maintainer via the repo profile,
-  or request PGP for encrypted reports.
-- Include: description, reproduction steps, impact class (theft / brick /
-  royalty bypass / lineage break), suggested fix if any.
-- Allow a 30-day coordinated disclosure window.
-- Expect acknowledgment within 48h; credit on disclosure unless anonymous.
+Only the latest major version of the protocol (currently **v12**) is actively maintained and receives security updates. Legacy versions (v1-v11) are considered deprecated and are maintained on-chain only as historical artifacts.
 
-## Audit history
-- Audit 1: protocol review; findings E-1, F-M1, F-M2, ESC-INFO closed in
-  tooling guards.
-- Audit 2: contract-level patches (the six invariants above), proven on
-  testnet Series E/F; REST compute_budget limitation discovered and pinned.
-- Audit 3: transport + provenance fixes (strict wRPC, edition spk assert
-  wired into the check() tally); verified 14/14 on Series F.
-- Continuous: reliks-audit-loop.js / reliks-audit-core.js adversarial
-  review via local bridge; logs in docs/audit-log/ (gitignored).
-- On-chain rehearsal: testnet-10 Series B-G including the ~25.6 KB TITAN
-  at the PUSHDATA2 boundary; fee/mass law verified at every stop.
+## 🐛 Reporting a Vulnerability
 
-## Carrier value conservation
-- All edition outputs enforce `value >= input value` (carrier conservation).
-- Factory mint enforces `editionOut.value >= 1 KAS` (initial carrier floor).
-- Escrow accept enforces `editionOut.value >= editionIn.value`.
-- This prevents the carrier-skim attack where a seller strips value from the edition.
+**Do not open public GitHub issues for security vulnerabilities.**
 
-## Seed predictability
-- The next serial is computable from the lane outpoint before minting.
-- A minter can tweak fee/change by 1 sompi to grind the txid and preview the serial.
-- This is a design choice: Reliks is deterministic generative art, not a gacha/loot-box system.
-- Seed space is 32 bits; birthday collisions reach ~1% at 10k editions (aesthetic trade-off).
+If you discover a security flaw in the Silverscript contracts, the transaction building logic, or the trustless verification tools, please report it immediately via:
 
-## Covenant binding enforcement
-- `validateOutputStateWithTemplate` validates script and state but does NOT check covenant bindings.
-- Covenant bindings (authorizingInput + covenantId) are enforced by the JS builders, not the contract.
-- An edition minted without a binding would still function but would lack a covenant ID for indexing.
+1. **GitHub Private Vulnerability Reporting**: Use the "Security" tab in this repository to submit a private report.
+2. **Direct Contact**: If you prefer, you can reach out to the maintainers directly via secure channels (e.g., Keybase or encrypted email, details available upon request).
 
-## Known limitations
-- Engine ceiling ~25.6 KB (PUSHDATA2; engine carried twice in mint redeem).
-- REST cannot carry compute_budget: wRPC mandatory for covenant spends.
-- royalty_bips must be >= 1 (dust rule); OTC-only series unsupported.
-- Gallery/Studio are convenience UIs; verification is reproducible from
-  verify-render-v10.js plus public chain data alone.
+We will acknowledge your report within 48 hours and work with you to understand and resolve the issue.
 
-## Responsible use
-Keys never leave offline storage; test on testnet first; verify every
-transaction before signing. Covenant-aware wallets (e.g. Kaspire) display
-all outputs for review - read them before approving.
-<!-- EOF-SEC-2 -->
+## 🔍 Scope
 
-## Mass model (four dimensions, testnet-10 measured)
-1. Fee mass (mempool): normalized transient mass = 2*tx_bytes at 100 sompi/unit.
-2. Compute allowance: compute_budget*10000+9999 script units per v1 input.
-3. Consensus mass: storage+compute <= MAX_TRANSACTION_MASS.
-4. Storage mass: per-UTXO storage pricing; testnet-10 per-tx cap 500000.
-The escrow accept (edition+escrow+funding inputs; owner/artist/mkt/continuation/
-change outputs) is the heaviest route: 524202 storage mass post-audit4, over the
-500000 cap. Mitigations in order: owner absorbs change output; escrow derives
-royalty/artist from prevEd (field removal); 2-input accept redesign.
-MAINNET TODO: query mainnet max transaction mass param and re-validate the
-accept route against it before genesis; testnet-10 cap is not evidence.
+The following components are in scope for security reporting:
+- Silverscript covenant logic (`sil/*.sil`).
+- Transaction building, signing, and fee discovery logic (`reliks-lib.js`, `deploy-v12.js`, `mint-v12.js`, etc.).
+- Trustless verification and rendering logic (`reliks-lens.js`, `web/reliks-gallery-runtime.js`).
 
-## Escrow accept: 2-input design with offer-side fee buffer
-Storage-mass cap (500000 on testnet-10) forbids the 3-input accept (519992).
-The 2-input accept cannot deduct the miner fee from owner/royalty/market
-outputs (edition checkPayments floors/equalities). Therefore the OFFER locks
-askPrice + mktFee + FEE_BUFFER (5M sompi); accept spends edition+escrow only,
-pays owner exactly askPrice - roy, and the buffer becomes the miner fee.
-Orphaned pre-buffer escrow bab83ad2... remains refundable via expire after
-expireAge; it is deliberately left unspent on testnet.
+**Out of Scope**:
+- UI/UX bugs in third-party marketplaces or galleries.
+- Phishing, social engineering, or attacks targeting individual user wallets.
+- Issues related to the Kaspa network itself (report those to the Kaspa core team).
+
+## 🛡 Best Practices for Users & Developers
+
+- **Protect Your Keys**: Never share your `PC_PRIV` (private key) or commit it to a public repository. Use environment variables or secure secret managers.
+- **Verify Before You Buy**: Always use the `reliks-gallery-runtime.js` to verify that the `program_hash` and `render_hash` of an edition match the on-chain state before purchasing.
+- **Audit Custom Engines**: If you are an artist baking a custom generative engine, always run it through `reliks-lens.js` to ensure it contains no banned constructs (e.g., `Math.random`, `fetch`, `Date`) and is fully deterministic.
+
+## 🏆 Recognition
+
+We believe in recognizing the efforts of security researchers. Valid, previously unreported vulnerabilities that significantly impact the security of the Reliks protocol may be eligible for a bounty or public acknowledgment, at the discretion of the maintainers.

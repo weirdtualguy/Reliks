@@ -1,37 +1,36 @@
 # Contributing to Reliks
 
-## Engines
-An engine is `function reliks(L, serial)` returning an SVG string.
-L = 8 int32 lanes; serial = edition id (seed = serial mod 2^32).
+Reliks is a decentralized, open-source public good. We welcome contributions that enhance security, improve tooling, or build new user interfaces on top of the protocol.
 
-Rules (enforced by reliks-lens.js):
-- Integer-only: no Math.* transcendentals/random, no Date/performance,
-  no fetch/XHR/WebSocket, no eval/new Function, no window/document/
-  localStorage, no timers, no process/globalThis.
-- Use the R.* API: rnd, ri, pick, chance, hsl, sin, cos, dir, svg.
-- Deterministic: same serial → byte-identical SVG on Node and browsers.
-- Size: ENGINE_SRC ≤ ~25.6 KB (PUSHDATA2 ceiling; lens gate L1).
-- Output: viewBox-only SVG, no NaN/undefined/Infinity (lens gate L8).
+## 🧠 Philosophy
 
-Workflow:
-1. Prototype in the Studio (hub → Studio tab): live gates + preview.
-2. Export engine .js; `node reliks-lens.js <engine>.js` → ALL GATES PASS.
-3. Bake/compile/deploy per README; verify with verify-render-v10.js.
-4. Share novel engines under engines/ with a short README + lens output.
+- **UTXO-Native First**: Do not model covenants as account-style global mutable contracts. State lives in the redeem script preimage, and transitions must validate successor outputs.
+- **Zero-Fee Core**: The base protocol extracts no rent. If you are building a marketplace UI, your fees should be optional and implemented via forked escrow contracts, not baked into the core Reliks covenants.
+- **Security Over Speed**: Any changes to `.sil` contracts or `reliks-lib.js` must be accompanied by rigorous testing and, ideally, a formal audit.
 
-## Tooling and builders
-- const/let over var; explicit errors; comment covenant transitions.
-- `node --check <file>.js` before committing.
-- Keep testnet drills green: deploy → mint → verify-render.
-- Run `node reliks-audit-loop.js --last` before opening a PR; fix HIGHs.
+## 🛠 How to Contribute
 
-## Docs
-- Clarity fixes via PR; new guides go in docs/ and get linked from README.
-- Keep claims verifiable: cite gates, txids, or file:line. No marketing fluff.
+1. **Fork and Clone**: Start by forking the repository and cloning it to your local machine.
+2. **Understand the Stack**: Before writing code, read the reference documents in the repo (or the Kaspa Toccata documentation) to understand:
+   - Covenant State and Transaction V1 semantics.
+   - Silverscript syntax and DECL macro lowering.
+   - The KCC20 model for inter-covenant communication.
+3. **Make Your Changes**: 
+   - Keep changes focused and atomic.
+   - Ensure your code adheres to the existing style and naming conventions.
+   - Update the ABI artifacts (`data/*.json`) if you modify any contract state or entrypoints.
+4. **Test Thoroughly**: Run the reference builders and the `verify-render-v10.js` script to ensure your changes do not break the trustless verification chain.
+5. **Open a Pull Request**: 
+   - Clearly describe the problem you are solving.
+   - Explain your solution and how to test it.
+   - Link any relevant issues or audit reports.
 
-## Security
-Do NOT open public issues for vulnerabilities. See SECURITY.md.
+## 🚫 What We Won't Accept
 
-## Questions
-Open an issue labeled `question`, or ask in the Kaspa Discord.
-<!-- EOF-CONTRIB -->
+- Changes that introduce centralized dependencies or trust assumptions.
+- Modifications to the core economic model (e.g., adding hidden platform fees to the base contracts).
+- Code that fails the `reliks-lens.js` security gates (e.g., using `Math.random`, `Date`, or `eval` in generative engines).
+
+## 💬 Community
+
+For discussions, questions, or to propose new features, please open a GitHub Discussion or reach out via the Kaspa developer channels.
