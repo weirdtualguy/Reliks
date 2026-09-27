@@ -46,6 +46,9 @@ var ReliksWallet = (function() {
       });
       
       signClient.on("session_delete", function() { disconnect(); });
+      signClient.on("session_connect", function() {});
+      signClient.on("session_request", function() {});
+      signClient.on("session_event", function() {});
       signClient.on("session_expire", function() { disconnect(); });
       
       var sessions = signClient.session.getAll();
@@ -195,6 +198,10 @@ var ReliksWallet = (function() {
     if (typeof window.updateWalletUI === 'function') window.updateWalletUI();
   }
 
+  async function request(method, params) {
+    if (!signClient || !session) throw new Error('wallet not connected');
+    return await signClient.request({ topic: session.topic, chainId: getKaspaChainId(), request: { method: method, params: params } });
+  }
   function isConnected() { return connected; }
   function getPubkey() { return pubkey; }
   function getAddress() { return address; }
@@ -225,7 +232,7 @@ var ReliksWallet = (function() {
   }
 
   return { 
-    init: init, connect: connect, disconnect: disconnect, 
+    init: init, connect: connect, disconnect: disconnect, request: request, 
     isConnected: isConnected, getPubkey: getPubkey, getAddress: getAddress,
     getState: function() { return state; },
     getNetwork: function() { return network; },
