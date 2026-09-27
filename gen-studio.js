@@ -3,7 +3,7 @@ const path = require('path');
 const blakeSrc = fs.readFileSync(path.join(__dirname, 'web', 'gallery-blake2b.js'), 'utf8');
 const walletSrc = fs.readFileSync(path.join(__dirname, 'web', 'studio-wallet.js'), 'utf8');
 const runtime = fs.readFileSync(path.join(__dirname, 'web', 'reliks-studio-runtime.js'), 'utf8');
-const CAP = Number(process.env.RELIKS_ENGINE_CAP || 32768);
+const CAP = Number(process.env.RELIKS_ENGINE_CAP || 25641);
 const PRELUDE = [
 "var R=(function(L,serial){",
 "var x=(L[0]^serial)|0,y=L[1]|0,z=L[2]|0,w=L[3]|0;",
@@ -34,11 +34,11 @@ const wcScript = '<script type="module">\n' +
   'window.SignClient = SignClient;\n' +
   'window.dispatchEvent(new Event("signclient-loaded"));\n' +
   '</' + 'script>';
-const qrScript = '<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></' + 'script>';
+const qrScript = '<script>' + require('fs').readFileSync(require('path').join(__dirname, 'web', 'vendor', 'qrcode-generator.js'), 'utf8') + '</' + 'script>';
 
 const html = ['<!doctype html>', '<html lang="en"><head>', '<meta charset="utf-8">',
 '<meta name="viewport" content="width=device-width, initial-scale=1">',
-'<title>Reliks Studio</title>', 
+'<title>Reliks Studio</title><link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎨</text></svg>">', 
 wcScript, qrScript,
 '<style>' + css + '</style></head><body>',
 '<h1>RELIKS <span>// studio</span></h1>',

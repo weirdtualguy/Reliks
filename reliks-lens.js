@@ -151,7 +151,7 @@ function htmlMode(enginePath) {
 const argv = process.argv.slice(2);
 if (argv[0] === 'html') {
   if (!argv[1]) { console.error('usage: node reliks-lens.js html <engine.js>'); process.exit(1); }
-  htmlMode(argv[1]); console.log('reliks-lens.html written | open with: termux-open reliks-lens.html');
+  htmlMode(argv[1]); console.log('reliks-lens.html written | open with: open reliks-lens.html');
 } else {
   const json = argv.includes('--json');
   const eng = argv.find((a) => !a.startsWith('--'));

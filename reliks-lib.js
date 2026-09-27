@@ -1,10 +1,9 @@
 const N = require('./network.js');
 const fs = require('fs');
 const { blake2b } = require('@noble/hashes/blake2b');
-const secp = require('@noble/secp256k1');
-const crypto = require('crypto');
+const { schnorr, secp256k1 } = require('@noble/curves/secp256k1');
+const secp = { getPublicKey: (p, c) => secp256k1.getPublicKey(p, c), schnorr: { signSync: (m, p) => schnorr.sign(m, p) } };
 const WebSocket = require('ws');
-secp.utils.sha256Sync = (...m) => { const h = crypto.createHash('sha256'); m.forEach(b => h.update(b)); return h.digest(); };
 const B = Buffer;
 const hex = b => B.from(b).toString('hex');
 const H = s => B.from(s, 'hex');

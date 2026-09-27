@@ -87,4 +87,4 @@ const html = [
 ].join('\n');
 fs.writeFileSync('reliks-gallery-v10.html', html);
 console.log('reliks-gallery-v10.html written (' + html.length + ' bytes) | editions:', REG.editions.length);
-console.log('open with: termux-open reliks-gallery-v10.html');
+console.log('open with: open reliks-gallery-v10.html');

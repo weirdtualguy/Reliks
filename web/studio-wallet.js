@@ -2,6 +2,8 @@ var ReliksWallet = (function() {
   function getKaspaChainId(){var hrp=(window.REG&&window.REG.hrp)||"kaspa";if(hrp==="kaspatest")return"kaspa:testnet";return"kaspa:mainnet";}
 
   var connected = false;
+  var state = "idle"; // idle, connecting, connected, wrongnet, error
+  var network = null; // mainnet, testnet
   var pubkey = null;
   var address = null;
   var signClient = null;
@@ -9,11 +11,24 @@ var ReliksWallet = (function() {
   var projectId = '2f5b63e20302f9ce15971f44ff1cdfca';
   var qrContainer = null;
 
+  function renderQr(el, text) {
+    if (window.qrcode) {
+      var qr = window.qrcode(0, 'M');
+      qr.addData(text); qr.make();
+      el.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 4, scalable: true });
+      return true;
+    }
+    return false;
+  }
+
   async function init() {
     if (signClient) return signClient;
     if (!window.SignClient) {
-      console.warn('SignClient not loaded yet');
-      return null;
+      var loaded = await new Promise(function(res) {
+        var t = setTimeout(function() { res(false); }, 10000);
+        window.addEventListener('signclient-loaded', function() { clearTimeout(t); res(true); }, { once: true });
+      });
+      if (!loaded || !window.SignClient) { console.warn('SignClient not loaded yet'); return null; }
     }
     try {
       signClient = await window.SignClient.init({
@@ -41,6 +56,8 @@ var ReliksWallet = (function() {
   }
 
   async function connect() {
+    state = "connecting";
+    if (typeof window.updateWalletUI === "function") window.updateWalletUI();
     await init();
     if (!signClient) {
       alert('WalletConnect is still loading. Please try again in a moment.');
@@ -76,6 +93,8 @@ var ReliksWallet = (function() {
       return true;
     } catch (err) {
       console.error('Connection failed:', err);
+      state = "error";
+      if (typeof window.updateWalletUI === 'function') window.updateWalletUI();
       if (err.message && err.message.toLowerCase().indexOf('cancelled') === -1 && err.message.toLowerCase().indexOf('rejected') === -1) {
         alert('Connection failed: ' + err.message);
       }
@@ -105,6 +124,13 @@ var ReliksWallet = (function() {
       }
       
       connected = true;
+      if (address && address.startsWith("kaspatest:")) {
+        network = "testnet";
+        state = "wrongnet";
+      } else {
+        network = "mainnet";
+        state = "connected";
+      }
       if (typeof window.updateWalletUI === 'function') window.updateWalletUI();
     } catch (err) {
       console.error('Failed to fetch account info:', err);
@@ -120,7 +146,9 @@ var ReliksWallet = (function() {
       var qrBox = document.createElement('div');
       qrBox.style.cssText = 'background:#fff;padding:24px;border-radius:12px;text-align:center;max-width:90%;';
       
-      var qrCanvas = document.createElement('canvas');
+      var qrCanvas = document.createElement('div');
+      qrCanvas.id = 'qr-art';
+      qrCanvas.style.cssText = 'width:256px;margin:0 auto;';
       qrBox.appendChild(qrCanvas);
       
       var info = document.createElement('p');
@@ -138,17 +166,13 @@ var ReliksWallet = (function() {
       qrContainer.onclick = function(e) { if (e.target === qrContainer) hideQrCode(); };
       document.body.appendChild(qrContainer);
       
-      if (window.QRCode) {
-        window.QRCode.toCanvas(qrCanvas, link, { width: 256, margin: 2 });
-      } else {
-        qrBox.innerHTML = '<p style="color:#000;">Loading QR Code...</p><p style="color:#000;word-break:break-all;font-size:12px;">' + link + '</p>';
+      if (!renderQr(qrCanvas, link)) {
+        qrCanvas.innerHTML = '<p style="color:#000;">QR unavailable — copy this link:</p><p style="color:#000;word-break:break-all;font-size:12px;">' + link + '</p>';
       }
     } else {
       qrContainer.style.display = 'flex';
-      var qrCanvas = qrContainer.querySelector('canvas');
-      if (window.QRCode && qrCanvas) {
-        window.QRCode.toCanvas(qrCanvas, link, { width: 256, margin: 2 });
-      }
+      var qrArt = qrContainer.querySelector('#qr-art');
+      if (qrArt) renderQr(qrArt, link);
     }
   }
 
@@ -158,6 +182,8 @@ var ReliksWallet = (function() {
 
   function disconnect() {
     connected = false;
+    state = "idle";
+    network = null;
     pubkey = null;
     address = null;
     session = null;
@@ -169,8 +195,114 @@ var ReliksWallet = (function() {
   function getPubkey() { return pubkey; }
   function getAddress() { return address; }
 
+  
+  // --- Node Error Translator ---
+  var NODE_ERR = [
+    [/orphan where orphan is disallowed/i, 'Node hasn\'t seen the parent tx yet. Wait ~10s and retry — funds are safe.'],
+    [/already in the mempool/i,            'Already submitted. Waiting for a block…'],
+    [/required (?:fee|amount) of (\d+)/i,  m => 'Adjusting fee to ' + ((BigInt(m[1]) * 11n / 10n + 1n) / 100000000n) + ' KAS…'],
+    [/sequence locks/i,                    'Escrow not expired yet.'],
+    [/script units exceeded/i,             'REST dropped compute_budget — routing via wRPC…'],
+  ];
+  function translateError(msg) {
+    for (var i = 0; i < NODE_ERR.length; i++) {
+      var m = msg.match(NODE_ERR[i][0]);
+      if (m) return typeof NODE_ERR[i][1] === 'function' ? NODE_ERR[i][1](m) : NODE_ERR[i][1];
+    }
+    return msg;
+  }
+
+  // --- Pre-Sign Review Sheet (Exact Covenant Math) ---
+  function computeSplit(price, bips) {
+    var p = BigInt(price);
+    var b = BigInt(bips);
+    var roy = (p * b) / 10000n; // floor division, identical to Silverscript int
+    return { price: p, royalty: roy, ownerNet: p - roy };
+  }
+
   return { 
     init: init, connect: connect, disconnect: disconnect, 
-    isConnected: isConnected, getPubkey: getPubkey, getAddress: getAddress 
+    isConnected: isConnected, getPubkey: getPubkey, getAddress: getAddress,
+    getState: function() { return state; },
+    getNetwork: function() { return network; },
+    translateError: translateError,
+    computeSplit: computeSplit 
   };
 })();
+
+// --- TX LIFECYCLE (appended: generators inline studio-wallet.js) ---
+var TxLifecycle = (function() {
+  var rail = null;
+  var toastContainer = null;
+
+  function init() {
+    if (rail) return;
+    // Toast Container (top right)
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'tx-toasts';
+    toastContainer.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10000;display:flex;flex-direction:column;gap:10px;pointer-events:none;';
+    document.body.appendChild(toastContainer);
+
+    // Bottom Rail
+    rail = document.createElement('div');
+    rail.id = 'tx-rail';
+    rail.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;background:var(--surface, #12141a);border-top:1px solid var(--border, #23282e);padding:16px;display:none;align-items:center;justify-content:center;gap:12px;font-family:var(--font-mono, monospace);z-index:9999;box-shadow:0 -4px 12px rgba(0,0,0,0.3);';
+    document.body.appendChild(rail);
+    
+    if (!document.getElementById('tx-rail-styles')) {
+      var style = document.createElement('style');
+      style.id = 'tx-rail-styles';
+      style.textContent = `
+        .rail-step { padding: 4px 8px; border-radius: 4px; font-size: 12px; text-transform: uppercase; opacity: 0.4; transition: all 0.3s; }
+        .rail-step.done { opacity: 1; color: var(--success, #7fd1ae); }
+        .rail-step.active { opacity: 1; background: var(--accent-glow, rgba(73, 197, 177, 0.15)); color: var(--accent, #49c5b1); font-weight: bold; }
+        .rail-arrow { opacity: 0.2; font-size: 12px; }
+        .rail-msg { margin-left: 16px; font-size: 13px; color: var(--text-dim, #8a9199); font-family: var(--font-ui, sans-serif); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+
+  function setStep(step, msg) {
+    init();
+    rail.style.display = 'flex';
+    var steps = ['building', 'signing', 'broadcasting', 'mempool', 'confirmed'];
+    var idx = steps.indexOf(step);
+    
+    var html = steps.map(function(s, i) {
+      var cls = i < idx ? 'done' : (i === idx ? 'active' : 'pending');
+      return '<span class="rail-step ' + cls + '">' + s + '</span>';
+    }).join('<span class="rail-arrow">→</span>');
+    
+    rail.innerHTML = html + '<span class="rail-msg">' + (msg || '') + '</span>';
+  }
+
+  function hide() {
+    if (rail) rail.style.display = 'none';
+  }
+
+  function toast(msg, type) { // type: 'info', 'success', 'error'
+    init();
+    var t = document.createElement('div');
+    var colors = { info: 'var(--accent, #49c5b1)', success: 'var(--success, #7fd1ae)', error: '#ff6b6b' };
+    t.style.cssText = 'background:var(--surface-2, #1a1c24);color:#fff;padding:12px 16px;border-radius:8px;border-left:4px solid ' + (colors[type] || colors.info) + ';font-family:var(--font-ui, sans-serif);font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.4);max-width:320px;animation:fadeIn 0.3s ease-out;pointer-events:auto;';
+    t.textContent = msg;
+    toastContainer.appendChild(t);
+    setTimeout(function() {
+      t.style.opacity = '0';
+      t.style.transition = 'opacity 0.3s';
+      setTimeout(function() { t.remove(); }, 300);
+    }, 5000);
+  }
+
+  function error(errMsg) {
+    var translated = window.ReliksWallet ? ReliksWallet.translateError(errMsg) : errMsg;
+    toast(translated, 'error');
+    setStep('building', 'Transaction failed'); // Reset to start but show error state via toast
+    setTimeout(hide, 4000);
+  }
+
+  return { init: init, setStep: setStep, hide: hide, toast: toast, error: error };
+})();
+

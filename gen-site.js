@@ -7,7 +7,7 @@ const walletSrc = fs.readFileSync(path.join(__dirname, 'web', 'studio-wallet.js'
 const studioRuntime = fs.readFileSync(path.join(__dirname, 'web', 'reliks-studio-runtime.js'), 'utf8');
 
 // 2. Define Studio Engine Config (must match gen-studio.js)
-const CAP = 32768;
+const CAP = 25641;
 const PRELUDE = `var R=(function(L,serial){
 var x=(L[0]^serial)|0,y=L[1]|0,z=L[2]|0,w=L[3]|0;
 function rnd(){var t=(x^(x<<11))|0;x=y;y=z;z=w;w=(w^(w>>>19))^(t^(t>>>8));return w>>>0;}
@@ -26,7 +26,7 @@ const TEMPLATES = require('./web/studio-templates.js');
 
 // 3. External CDNs for WalletConnect & QR
 const wcScript = '<script type="module">\nimport SignClient from "https://esm.sh/@walletconnect/sign-client@2.13.0";\nwindow.SignClient = SignClient;\nwindow.dispatchEvent(new Event("signclient-loaded"));\n</' + 'script>';
-const qrScript = '<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></' + 'script>';
+const qrScript = '<script>' + require('fs').readFileSync(require('path').join(__dirname, 'web', 'vendor', 'qrcode-generator.js'), 'utf8') + '</' + 'script>';
 
 // 4. Assemble HTML
 const { blake2b } = require('@noble/hashes/blake2b');
@@ -43,6 +43,7 @@ const html = `<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Reliks // Trustless Generative Art</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎨</text></svg>"><rect width=%2716%27 height=%2716%27 fill=%27%230a0b10%27/><circle cx=%278%27 cy=%278%27 r=%275%27 fill=%27%2349c5b1%27/></svg>'>
   ${wcScript}
   ${qrScript}
   <style>
@@ -151,11 +152,11 @@ const html = `<!doctype html>
             ${svgB}
           </div>
           <div class="card-info">
-            <span class="badge">Testnet Rehearsal</span>
-            <div class="card-title">Series B: Reliks v10</div>
-            <div class="card-meta">engine_hash: 8ad0717d...</div>
+            <span class="badge">Mainnet Live</span>
+            <div class="card-title">Genesis Series: Reliks v12</div>
+            <div class="card-meta">engine_hash: 16440384...</div>
             <div class="card-stats">
-              <div class="stat"><span class="stat-label">Size</span><span class="stat-value">901 B</span></div>
+              <div class="stat"><span class="stat-label">Size</span><span class="stat-value">Zero-Fee</span></div>
               <div class="stat"><span class="stat-label">Gates</span><span class="stat-value">12/12</span></div>
               <div class="stat"><span class="stat-label">Status</span><span class="stat-value">Anchored</span></div>
             </div>

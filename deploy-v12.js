@@ -1,7 +1,8 @@
 const fs = require('fs');
 const OL = require('./reliks-lib.js');
 const V = require('./reliks-lib.js');
-const secp = (() => { try { const s = require('@noble/secp256k1'); if (s.schnorr && s.schnorr.signSync) return s; } catch (e) {} const c = require('@noble/curves/secp256k1'); return { schnorr: { signSync: (m, p) => c.schnorr.sign(m, p) } }; })();
+const { schnorr } = require('@noble/curves/secp256k1');
+const secp = { schnorr: { signSync: (m, p) => schnorr.sign(m, p) } };
 const need = ['feeLoop','waitForConfirmation','pickUtxo','sighash','hex','pushMin','pushMinInt'];
 const missing = need.filter(k => typeof OL[k] !== 'function');
 if (missing.length) { console.error('offer-lib missing exports:', missing.join(', ')); process.exit(1); }

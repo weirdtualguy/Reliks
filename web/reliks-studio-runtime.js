@@ -103,16 +103,35 @@ function exportSeries(){
 }
 
 function updateWalletUI() {
-  if (ReliksWallet.isConnected()) {
-    walletBtn.textContent = 'Disconnect Kaspire';
-    var addr = ReliksWallet.getAddress() || '';
-    var shortAddr = addr.length > 12 ? addr.slice(0, 12) + '...' : addr;
-    walletStatus.textContent = 'Connected: ' + shortAddr;
-    walletStatus.className = 'wallet-connected';
-  } else {
+  var st = ReliksWallet.getState();
+  var net = ReliksWallet.getNetwork();
+  var addr = ReliksWallet.getAddress();
+  
+  if (st === 'connecting') {
+    walletBtn.textContent = 'Connecting…';
+    walletBtn.disabled = true;
+    walletStatus.textContent = 'Awaiting Kaspire…';
+    walletStatus.className = 'status-busy';
+  } else if (st === 'connected') {
+    walletBtn.textContent = 'Disconnect';
+    walletBtn.disabled = false;
+    walletStatus.textContent = '✓ ' + addr.slice(0,10) + '…' + addr.slice(-6) + ' (Mainnet)';
+    walletStatus.className = 'status-ok';
+  } else if (st === 'wrongnet') {
+    walletBtn.textContent = 'Disconnect';
+    walletBtn.disabled = false;
+    walletStatus.textContent = '⚠ Wrong Network (' + net + ')';
+    walletStatus.className = 'status-warn';
+  } else if (st === 'error') {
+    walletBtn.textContent = 'Retry Connect';
+    walletBtn.disabled = false;
+    walletStatus.textContent = 'Connection Failed';
+    walletStatus.className = 'status-warn';
+  } else { // idle
     walletBtn.textContent = 'Connect Kaspire';
-    walletStatus.textContent = window.SignClient ? 'Ready' : 'Loading WalletConnect...';
-    walletStatus.className = 'wallet-disconnected';
+    walletBtn.disabled = false;
+    walletStatus.textContent = window.SignClient ? 'Ready' : 'Loading…';
+    walletStatus.className = 'status-idle';
   }
 }
 window.updateWalletUI = updateWalletUI;
