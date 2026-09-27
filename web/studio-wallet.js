@@ -1,3 +1,7 @@
+// Browser WebSocket lacks Node-ws terminate(); WC relayer ping-timeout calls it.
+if (typeof WebSocket !== 'undefined' && !WebSocket.prototype.terminate) {
+  WebSocket.prototype.terminate = function () { try { this.close(); } catch (e) {} };
+}
 var ReliksWallet = (function() {
   function getKaspaChainId(){var hrp=(window.REG&&window.REG.hrp)||"kaspa";if(hrp==="kaspatest")return"kaspa:testnet";return"kaspa:mainnet";}
 
