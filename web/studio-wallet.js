@@ -8,7 +8,7 @@ var ReliksWallet = (function() {
   var address = null;
   var signClient = null;
   var session = null;
-  var projectId = '2f5b63e20302f9ce15971f44ff1cdfca';
+  var projectId = '<YOUR_NEW_REOWN_PROJECT_ID>';
   var qrContainer = null;
 
   function renderQr(el, text) {
