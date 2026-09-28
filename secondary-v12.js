@@ -4,9 +4,6 @@ const [,, cmd, kArg, priceArg] = process.argv;
 const k = parseInt(kArg || '0', 10);
 (async () => {
 
-  // ESC-INFO FIX (audit): wallet/priv preflight guard (same as deploy/mint)
-  const RG = (() => { const fs2 = require('fs'); const src = fs2.readFileSync(__dirname + '/web/reliks-gallery-runtime.js', 'utf8'); return new Function('RB2B', 'REG', 'self', src + ';return self.ReliksGallery;')(require('@noble/hashes/blake2b').blake2b, { hrp: require('./network.js').hrp }, {}); })();
-  if (V.WALLET !== RG.p2pkAddress('20' + V.USER + 'ac')) { console.error('WALLET/PRIV mismatch — stale PC_WALLET in env?'); process.exit(1); }
 
   const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v12.json'), 'utf8'));
   const Ed = parts(JSON.parse(fs.readFileSync('data/edition-abi-v12.json', 'utf8')));

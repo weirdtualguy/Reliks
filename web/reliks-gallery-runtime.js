@@ -1,5 +1,5 @@
 /* Reliks v10 generative gallery runtime. Browser globals: RB2B, REG, fetch, document.
-   Pure functions are exported so gen-gallery-v10.js can parity-test them in Node. */
+   Pure functions are exported so gen-gallery.js can parity-test them in Node. */
 (function (root) {
   'use strict';
   function hexToBytes(h) { var b = new Uint8Array(h.length / 2); for (var i = 0; i < b.length; i++) b[i] = parseInt(h.substr(i * 2, 2), 16); return b; }

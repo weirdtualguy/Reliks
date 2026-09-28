@@ -27,6 +27,21 @@ const PRIV = require('./config').PRIV;
 const USER = hex(B.from(secp.getPublicKey(B.from(PRIV, 'hex'), true)).subarray(1, 33)); // derived from PC_PRIV; no hardcoded identity
 const WALLET = process.env.PC_WALLET || (N.NET === 'testnet' ? 'kaspatest:qqelufw3s9rqemzktcyvamuqwcwzewvs6k2lgvvn5rrkydasm8xxssk52j3kd' : (() => { console.error('FATAL: PC_WALLET required on ' + N.NET); process.exit(1); })());
 if (!WALLET.startsWith(N.hrp + ':')) { console.error('FATAL: PC_WALLET prefix mismatch for PC_NET=' + N.NET + ' (wallet: ' + WALLET.slice(0, 12) + '..., expected prefix ' + N.hrp + ':)'); process.exit(1); }
+// Cross-check WALLET against the address actually derived from PRIV. A stale
+// PC_WALLET pointing at a different key than PC_PRIV is a silent footgun
+// (funding lookups and change outputs go to a wallet the signing key may not
+// control). Every builder gets this for free by requiring this file, instead
+// of each one re-deriving it ad hoc.
+{
+  const expectedWallet = require('./bech32-kaspa.js').encodeP2PK(N.hrp, USER);
+  if (WALLET !== expectedWallet) {
+    console.error('FATAL: PC_WALLET does not match the address derived from PC_PRIV.');
+    console.error('  PC_WALLET : ' + WALLET);
+    console.error('  derived   : ' + expectedWallet);
+    console.error('This usually means a stale PC_WALLET from a different key. Refusing to proceed.');
+    process.exit(1);
+  }
+}
 const FEE = 2000000n;
 async function fetchRetry(u, o, n) { n = n || 4; for (let i = 0; i < n; i++) { try { return await fetch(u, o); } catch (e) { if (i === n - 1) throw e; await new Promise(r => setTimeout(r, 2500)); } } }
 function broadcast(rpcTx) {

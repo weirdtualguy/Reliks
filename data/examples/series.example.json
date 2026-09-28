@@ -1,0 +1,6 @@
+{
+  "artist": "<64-hex x-only artist pubkey>",
+  "price": 100000000,
+  "royalty_bips": 500,
+  "mints_left": 8
+}

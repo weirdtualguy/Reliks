@@ -22,7 +22,7 @@ We will acknowledge your report within 48 hours and work with you to understand 
 The following components are in scope for security reporting:
 - Silverscript covenant logic (`sil/*.sil`).
 - Transaction building, signing, and fee discovery logic (`reliks-lib.js`, `deploy-v12.js`, `mint-v12.js`, etc.).
-- Trustless verification and rendering logic (`reliks-lens.js`, `web/reliks-gallery-runtime.js`).
+- Trustless verification and rendering logic (`reliks-lens.js`, `verify-render.js`, `web/reliks-gallery-runtime.js`).
 
 **Out of Scope**:
 - UI/UX bugs in third-party marketplaces or galleries.

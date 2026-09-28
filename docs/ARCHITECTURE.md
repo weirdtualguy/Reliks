@@ -1,64 +1,27 @@
-# Reliks Architecture
+# Architecture
 
-Deep dive into the UTXO-native covenant design. Companions: README (overview),
-SECURITY.md (model), and the Kaspa Toccata references (agent brief,
-Silverscript tutorial/declarations, KCC-20 book, lib.rs codec).
+## Model
+State lives in P2SH redeem scripts (`prefix || state || suffix`); covenant IDs (32 B) track lineage across changing script hashes. No IPFS, no servers, no state in sigscripts.
 
-## UTXO-native design
-- Engines and state live in redeem scripts (P2SH live outputs); no IPFS,
-  no servers, no sigscripts for state.
-- Covenant IDs (32B) track lineage across changing script hashes.
-- 10s confirmation gate before ledger writes (orphan window).
+## Contracts
+- **SeriesFactory-v12** (`mint` handwritten, `fork`/`close` DECL-lowered; state span 135). `mint(buyer, buyerScheme, editionOutIdx, artistOutIdx)`: requires `mints_left > 0`, scheme 0, `price == 0 || price >= 1 KAS`, `1 <= royalty_bips <= 2000`; pays `artistCut == price` to the artist; spawns an Edition via `validateOutputStateWithTemplate`; continues the lane with `mints_left - 1`. Serial derives from the consumed lane outpoint. Engine bytes are baked into the template and anchored by `program_hash == blake2b(engine_code)`.
+- **ReliksEdition-v12** (span 161). Routes: `list`, `unlist`, `buy`, `sell`, `transfer`, `spend`. Owner is a Schnorr pubkey. `checkPayments`: `owner >= salePrice - roy`, `artist == roy`, distinct output indices. Carrier value never decreases (except `spend`, the dust-recovery exit).
+- **OfferEscrow-v5** (span 161). `accept` (owner sig, 2-input): owner receives exactly `askPrice - roy`, artist exactly `roy`, edition passes to the offerer; `expire` refunds the offerer in full after `expireAge`. Royalty and artist are bound to the edition's authenticated state.
 
-## Contracts and transitions
-- SeriesFactory-v11: mint (lane -> edition + lane continuation,
-  mints_left-1), fork (lane split), close (artist burn,
-  OpAuthOutputCount==0).
-- ReliksEdition-v11: list/unlist/buy/sell/transfer/spend; ownerAuthorized
-  via IDENTIFIER_PUBKEY schnorr; checkPayments enforces Model B splits.
-- OfferEscrow-v4: offer (lock askPrice+mktFee), accept (distribute exact
-  royalty+mktFee, >= owner net), expire (return funds).
+## Lineage
+- Immutable: `mintTxId`, `mintIndex` (serial recomputation, engine containment).
+- Mutable: `txId`, `index` (live outpoint for spending and live-UTXO anchoring).
 
-## Dual-field lineage
-- Immutable: mintTxId, mintIndex (genesis anchor) => serial recompute.
-- Mutable: txId, index (live outpoint) => next spend.
-- serial = ReliksSerialV10: LE63 polynomial of blake2b(domain||lane
-  outpoint); art depends only on serial (resale-invariant).
+## Determinism
+`seed = serial mod 2^32`; `lanes = blake2b("ReliksSeedV10" || le64(seed))` as 8 int32 LE; engines are integer-only and emit SVG. `render_hash = blake2b(render(1))` is anchored at genesis.
 
-## State encoding (KCC-1 push-per-leaf)
-- int: 8B fixed LE push; byte[32]: 33B (push32+opcode); byte: 2B.
-- template_hash = blake3(len||prefix||len||suffix).
-- Dispatch tags resolved at runtime from ABI as blake3(name(types))[0..4];
-  never hardcoded in JS builders.
-<!-- EOF-ARCH-1 -->
+## Fees and limits
+Mempool fee is about 200 sompi per tx byte; `feeLoop` discovers it from rejections. The mint sigscript carries the engine twice, so engines are capped by PUSHDATA2 at roughly 25.6 KB. Details in [ENGINEERING-NOTES.md](ENGINEERING-NOTES.md).
 
-## Determinism pipeline
-- seed = serial mod 2^32; lanes = blake2b("ReliksSeedV10"||le64(seed))
-  -> 8 x int32 LE.
-- Engines: integer-only xorshift PRNG + integer trig LUTs; SVG string out.
-- program_hash = blake2b(ENGINE_SRC); render_hash = blake2b(render(1));
-  both anchored at genesis and re-checked by verify-render plus the F1
-  gate (engine bytes read back from the mint redeem).
-
-## Mass and fee model
-- Consensus mass (storage+compute) <= 100000 (MAX_TRANSACTION_MASS).
-- Mempool fee metric: normalized transient mass = 2*tx_bytes at 100
-  sompi/unit; feeLoop discovers fee from rejection text.
-- Mint sigscript carries the engine twice (template suffix + engineBaked()
-  anchor) => bytecode ~ 2*E+7.1K; PUSHDATA2 (65535/push) bounds E; policy
-  cap 25.6K enforced by lens L1. Measured on testnet-10: 901B -> 0.023 KAS,
-  3.9KB -> 0.031 KAS, 25.6KB -> 0.130 KAS mint fees.
-
-## Transport layer
-- wRPC carries compute_budget; REST drops it (limit=9999), so REST cannot
-  broadcast covenant spends (proven by "script units exceeded" rejections).
-- feeLoop: wRPC-first; covenantSpend=true default hard-throws on non-fee
-  failure; REST remains only for non-covenant flows (none shipped).
-- network.js profiles: testnet default; mainnet requires PC_MAINNET_WRPC
-  (hard exit otherwise).
+## Transport
+Covenant spends are wRPC-only. `network.js` profiles: testnet by default; mainnet requires `PC_MAINNET_WRPC` (hard exit otherwise). Confirmation uses REST, then kascov.
 
 ## Verification surface
-- Browser: gallery recomputes editions from public REST + anchored bytes.
-- Node: verify-render-v10.js (14 gates) and reliks-lens.js (L0-L10).
-- Everything reproducible from public chain data + repo code alone.
-<!-- EOF-ARCH-2 -->
+- Browser: gallery gates, per-edition lineage checks, live-UTXO anchoring via bech32 P2SH addresses (`web/reliks-gallery-runtime.js`).
+- Node: `verify-render.js` (lineage, serial, spk, F1 engine containment) and `reliks-lens.js` (L0-L10).
+- Offline: `npm test`.

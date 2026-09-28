@@ -1,5 +1,5 @@
 /* Reliks gallery BLAKE2b (unkeyed, dkLen<=64). Cross-validated against
-   @noble/hashes by gen-gallery-v10.js before it is ever inlined. */
+   @noble/hashes by gen-gallery.js before it is ever inlined. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.ReliksBlake2b = factory();

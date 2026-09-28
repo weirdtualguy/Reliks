@@ -1,42 +1,117 @@
-const CH='qpzry9x8gf2tvdw0s3jn54khce6mua7l';
-const GEN_STD=[0x3b6a57b2,0x26508e6d,0x1ea119fa,0x3d4233dd,0x2a1462b3];
-const GEN_KAS=[0x98f2ffff8,0x7f0ef1070,0x2493d6628,0x81a3500c8,0x8755401c0];
-const H=s=>{const t=s.replace(/\s/g,'');const o=Buffer.alloc(t.length/2);for(let i=0;i<o.length;i++)o[i]=parseInt(t.substr(i*2,2),16);return o;};
-function pmW(vals,shift,G){const M=Math.pow(2,shift);let c=1;for(const v of vals){const t=Math.floor(c/M);c=((c-t*M)*32)^v;for(let i=0;i<5;i++)if((t>>i)&1)c^=G[i];}return c;}
-function cvd(d,f,t,p){let a=0,b=0,o=[];const m=(1<<t)-1;for(const v of d){a=(a<<f)|v;b+=f;while(b>=t){b-=t;o.push((a>>b)&m);}}if(p&&b>0)o.push((a<<(t-b))&m);return o;}
-function syms(S,clen,order){const o=[];if(order==='msb'){for(let i=clen-1;i>=0;i--)o.push(Math.floor(S/Math.pow(2,5*i))&31);}else{for(let i=0;i<clen;i++)o.push(Math.floor(S/Math.pow(2,5*i))&31);}return o;}
-function hrpExp(mode,hrp){const cs=[...hrp].map(c=>c.charCodeAt(0));
-  if(mode==='bip173')return cs.map(c=>c>>5).concat([0],cs.map(c=>c&31));
-  if(mode==='raw')return cs; if(mode==='raw31')return cs.map(c=>c&31); return [];}
-function tryRecipe(r,hrp,v8){const d5=cvd(v8,8,5,true);let feed;
-  if(r.fam==='S'){feed=hrpExp(r.mode,hrp).concat(d5);}
-  else if(r.fam==='C'){const pb=[...hrp].map(c=>c.charCodeAt(0));if(r.colon)pb.push(58);feed=pb.concat(v8);}
-  else {feed=hrpExp(r.mode,hrp).concat(v8);}
-  if(r.zeros)feed=feed.concat(new Array(r.clen).fill(0));
-  let S=pmW(feed,r.shift,r.G)^r.xor;
-  return hrp+r.sep+[...d5,...syms(S,r.clen,r.order)].map(x=>CH[x]).join('');}
-const RECIPES=[];
-for(const G of [GEN_KAS,GEN_STD])
- for(const sep of [':','1'])for(const clen of [8,6])for(const shift of [35,25])for(const zeros of [true,false])for(const xor of [1,0])for(const order of ['msb','lsb'])for(const mode of ['bip173','raw','raw31','none'])RECIPES.push({fam:'S',G,sep,clen,shift,zeros,xor,order,mode});
-for(const G of [GEN_KAS,GEN_STD])
- for(const sep of [':','1'])for(const clen of [8,6])for(const shift of [35,25])for(const zeros of [true,false])for(const xor of [1,0])for(const order of ['msb','lsb'])for(const colon of [false,true])RECIPES.push({fam:'C',G,sep,clen,shift,zeros,xor,order,colon});
-for(const G of [GEN_KAS,GEN_STD])
- for(const sep of [':','1'])for(const clen of [8,6])for(const shift of [35,25])for(const zeros of [true,false])for(const xor of [1,0])for(const order of ['msb','lsb'])for(const mode of ['bip173','raw'])RECIPES.push({fam:'E',G,sep,clen,shift,zeros,xor,order,mode});
-const CAL_PK='33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68';
-const CAL_ADDR='kaspatest:qqelufw3s9rqemzktcyvamuqwcwzewvs6k2lgvvn5rrkydasm8xxssk52j3kd';
-let W=null;
-function calibrate(){ if(W)return W; const v8=[0,...H(CAL_PK)];
-  for(const r of RECIPES){ const rr=Object.assign({},r); delete rr.G; rr.Gname=(r.G===GEN_KAS?'kas':'std');
-    if(tryRecipe(r,'kaspatest',v8)===CAL_ADDR){W=r;return W;} }
-  console.error('debug:'); RECIPES.slice(0,2).forEach(r=>console.error(JSON.stringify({G:r.G===GEN_KAS?'kas':'std',fam:r.fam,shift:r.shift,zeros:r.zeros}),tryRecipe(r,'kaspatest',v8)));
-  throw new Error('calibration failed'); }
-function encodePub(pkHex){ calibrate(); return tryRecipe(W,'kaspatest',[0,...H(pkHex)]); }
-function decode(addr){ calibrate(); const p=addr.lastIndexOf(W.sep); const groups=[...addr.slice(p+1)].map(c=>CH.indexOf(c));
-  if(groups.some(g=>g<0))throw new Error('bad charset');
-  const v8=cvd(groups.slice(0,groups.length-W.clen),5,8,false);
-  return {hrp:addr.slice(0,p),version:v8[0],payload:Buffer.from(v8.slice(1))}; }
-module.exports={calibrate,encodePub,decode};
-if(require.main===module){ calibrate();
-  const o=Object.assign({},W); o.G=(W.G===GEN_KAS?'kas':'std'); delete o.G;
-  console.log('recipe:',JSON.stringify(Object.assign({},W,{G:W.G===GEN_KAS?'kas':'std'})));
-  console.log('self-test:',encodePub(CAL_PK)===CAL_ADDR?'OK':'FAIL'); }
+// Kaspa bech32 address codec — Node/CLI counterpart to the browser
+// implementation in web/reliks-gallery-runtime.js (kept byte-for-byte
+// identical on purpose; see the self-test below).
+//
+// This replaces an earlier version of this file that "discovered" the
+// correct encoding by brute-forcing ~150k parameter combinations against a
+// single known address. That approach worked but nobody could say *why* it
+// worked, which is a bad property for anything that derives where money
+// goes. The scheme below is the actual algorithm (CashAddr-style 40-bit
+// BCH checksum over the Bech32 charset — see rusty-kaspa's
+// crypto/addresses/src/bech32.rs), implemented directly and verified
+// against the same known-good vector.
+'use strict';
+
+const CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+const GENERATOR = [0x98f2bc8e61n, 0x79b76d99e2n, 0xf33e5fb3c4n, 0xae2eabe2a8n, 0x1e4f43e470n];
+const MASK40 = 0x07ffffffffn;
+
+function polymod(values) {
+  let c = 1n;
+  for (const v of values) {
+    const top = c >> 35n;
+    c = ((c & MASK40) << 5n) ^ BigInt(v);
+    for (let i = 0; i < 5; i++) if ((top >> BigInt(i)) & 1n) c ^= GENERATOR[i];
+  }
+  return c;
+}
+
+function convertBits(data, fromBits, toBits, pad) {
+  let acc = 0, bits = 0;
+  const maxv = (1 << toBits) - 1;
+  const out = [];
+  for (const value of data) {
+    if (value < 0 || value >> fromBits !== 0) throw new Error('invalid data for convertBits');
+    acc = (acc << fromBits) | value;
+    bits += fromBits;
+    while (bits >= toBits) { bits -= toBits; out.push((acc >> bits) & maxv); }
+  }
+  if (pad) { if (bits > 0) out.push((acc << (toBits - bits)) & maxv); }
+  else if (bits >= fromBits || ((acc << (toBits - bits)) & maxv)) throw new Error('invalid padding in convertBits');
+  return out;
+}
+
+function prefixValues(prefix) {
+  return [...prefix].map(c => c.charCodeAt(0) & 0x1f);
+}
+
+// 8 checksum symbols = 40 bits, computed the same way Bech32's 6-symbol/
+// 30-bit checksum is, just with a wider generator polynomial (this is
+// exactly CashAddr's scheme, reused by Kaspa with the Bech32 charset).
+function checksum(prefix, payload5) {
+  const values = [...prefixValues(prefix), 0, ...payload5, 0, 0, 0, 0, 0, 0, 0, 0];
+  const mod = polymod(values) ^ 1n;
+  const out = [];
+  for (let i = 7; i >= 0; i--) out.push(Number((mod >> BigInt(5 * i)) & 0x1fn));
+  return out;
+}
+
+/**
+ * Encode a Kaspa address.
+ * @param {string} prefix   'kaspa' or 'kaspatest'
+ * @param {number} version  0 = P2PK (32-byte x-only schnorr pubkey), 8 = P2SH (32-byte script hash)
+ * @param {Buffer|Uint8Array} payload  version-specific payload bytes
+ */
+function encode(prefix, version, payload) {
+  const data8 = [version, ...payload];
+  const data5 = convertBits(data8, 8, 5, true);
+  const cksum = checksum(prefix, data5);
+  return prefix + ':' + [...data5, ...cksum].map(d => CHARSET[d]).join('');
+}
+
+function encodeP2PK(prefix, pubkeyHex) {
+  return encode(prefix, 0, Buffer.from(pubkeyHex, 'hex'));
+}
+
+function encodeP2SH(prefix, scriptHashHex) {
+  return encode(prefix, 8, Buffer.from(scriptHashHex, 'hex'));
+}
+
+/** Decode + verify a Kaspa address. Throws on bad checksum/charset. */
+function decode(address) {
+  const sep = address.lastIndexOf(':');
+  if (sep < 1) throw new Error('missing hrp separator');
+  const prefix = address.slice(0, sep);
+  const chars = address.slice(sep + 1);
+  const values = [...chars].map(c => {
+    const idx = CHARSET.indexOf(c);
+    if (idx < 0) throw new Error('invalid character: ' + c);
+    return idx;
+  });
+  if (values.length < 8) throw new Error('address too short');
+  if (polymod([...prefixValues(prefix), 0, ...values]) !== 1n) throw new Error('invalid checksum');
+  const data8 = convertBits(values.slice(0, -8), 5, 8, false);
+  return { prefix, version: data8[0], payload: Buffer.from(data8.slice(1)) };
+}
+
+// Known-good vector (from the original hand-derived calibration; kept as a
+// regression check rather than as the source of truth).
+const SELF_TEST_PUBKEY = '33fe25d181460cec565e08ceef80761c2cb990d595f43193a0c76237b0d9cc68';
+const SELF_TEST_ADDR = 'kaspatest:qqelufw3s9rqemzktcyvamuqwcwzewvs6k2lgvvn5rrkydasm8xxssk52j3kd';
+
+function selfTest() {
+  const enc = encodeP2PK('kaspatest', SELF_TEST_PUBKEY);
+  if (enc !== SELF_TEST_ADDR) throw new Error('self-test FAILED: ' + enc + ' != ' + SELF_TEST_ADDR);
+  const dec = decode(SELF_TEST_ADDR);
+  if (dec.prefix !== 'kaspatest' || dec.version !== 0 || dec.payload.toString('hex') !== SELF_TEST_PUBKEY) {
+    throw new Error('self-test FAILED on decode');
+  }
+  return true;
+}
+
+module.exports = { encode, encodeP2PK, encodeP2SH, decode, selfTest };
+
+if (require.main === module) {
+  selfTest();
+  console.log('self-test: OK (' + SELF_TEST_ADDR + ')');
+}

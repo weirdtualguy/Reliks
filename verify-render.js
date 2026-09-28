@@ -4,14 +4,14 @@ const V = require('./reliks-lib.js');
 
 const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v12.json'), 'utf8')));
 const Ed = V.parts(JSON.parse(fs.readFileSync('data/edition-abi-v12.json', 'utf8')));
-const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v11.json'), 'utf8'));
-const ENGINE = require(process.env.RELIKS_ENGINE || './reliks-engine-v10.js');
+const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v12.json'), 'utf8'));
+const ENGINE = require(process.env.RELIKS_ENGINE || './reliks-engine-mainnet.js');
 if (LD.series && LD.series.program_hash && ENGINE.engineHashHex && ENGINE.engineHashHex !== LD.series.program_hash) {
   console.error('PROVENANCE MISMATCH: RELIKS_ENGINE engine_hash ' + ENGINE.engineHashHex.slice(0,16) + '... != ledger program_hash ' + LD.series.program_hash.slice(0,16) + '...');
   console.error('This ledger was baked with a different engine. Point RELIKS_ENGINE at the matching engine, or redeploy with matching args/ABI.');
   process.exit(1);
 }
-const INIT_MINTS = JSON.parse(fs.readFileSync((process.env.RELIKS_ARGS || 'data/factory-args-v11.json'), 'utf8'))[4].value;
+const INIT_MINTS = JSON.parse(fs.readFileSync((process.env.RELIKS_ARGS || 'data/factory-args-v12.json'), 'utf8'))[4].value;
 const B = V.B, H = V.H;
 
 const serialOfV10 = (txId, idx) => {
@@ -60,7 +60,7 @@ const renderSeed = (serial) => Number(BigInt(serial) & 0xFFFFFFFFn); // canonica
     const contSpk = p2shHex(B.concat([F.prefix, V.encState(F, { ...LD.series, mints_left: INIT_MINTS - (i + 1) }), F.suffix]));
     check('[#' + i + '] continuation spk (mints_left=' + (INIT_MINTS - (i + 1)) + ') == mintTx.outputs[0]', contSpk === spkHex(mintTx.outputs[0]));
 
-    const outFile = 'reliks-v10-edition-' + ed.serial + '.svg';
+    const outFile = 'reliks-edition-' + ed.serial + '.svg';
     fs.writeFileSync(outFile, ENGINE.render(renderSeed(ed.serial)));
     console.log('[#' + i + '] rendered -> ' + outFile);
   }

@@ -4,7 +4,7 @@ const N = require('./network.js');
 const { blake2b: noble } = require('@noble/hashes/blake2b');
 const RB = require('./web/gallery-blake2b.js');
 const V = require('./reliks-lib.js');
-const ENGINE = require(process.env.RELIKS_ENGINE || './reliks-engine-v10.js');
+const ENGINE = require(process.env.RELIKS_ENGINE || './reliks-engine-mainnet.js');
 
 const hx = (b) => Buffer.from(b).toString('hex');
 function assert(cond, msg) { if (!cond) { console.error('PARITY FAIL: ' + msg); process.exit(1); } }
@@ -17,10 +17,10 @@ for (const v of vectors) assert(hx(noble(v, { dkLen: 32 })) === hx(RB.blake2b(v,
 console.log('blake2b cross-validation:', vectors.length, 'vectors OK (incl. engine bytes)');
 
 /* 2) artifacts + registry */
-const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v11.json'), 'utf8'));
-const INIT_MINTS = JSON.parse(fs.readFileSync((process.env.RELIKS_ARGS || 'data/factory-args-v11.json'), 'utf8'))[4].value;
-const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v11.json'), 'utf8')));
-const Ed = V.parts(JSON.parse(fs.readFileSync('data/edition-abi-v6.json', 'utf8')));
+const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v12.json'), 'utf8'));
+const INIT_MINTS = JSON.parse(fs.readFileSync((process.env.RELIKS_ARGS || 'data/factory-args-v12.json'), 'utf8'))[4].value;
+const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v12.json'), 'utf8')));
+const Ed = V.parts(JSON.parse(fs.readFileSync('data/edition-abi-v12.json', 'utf8')));
 const tHash = (c) => (Array.isArray(c.compiled.template_hash) ? Buffer.from(c.compiled.template_hash) : Buffer.from(c.compiled.template_hash, 'hex')).toString('hex');
 const REG = {
   rest: N.rest, explorer: N.explorer, hrp: N.hrp,
@@ -72,9 +72,9 @@ const regJson = JSON.stringify(REG).replace(/</g, '\\u003c');
 const html = [
   '<!doctype html>', '<html lang="en"><head>', '<meta charset="utf-8">',
   '<meta name="viewport" content="width=device-width, initial-scale=1">',
-  '<title>Reliks — Generative Gallery v10</title>',
+  '<title>Reliks — Generative Gallery</title>',
   '<style>' + css + '</style></head><body>',
-  '<h1>RELIKS <span>// generative gallery v10</span></h1>',
+  '<h1>RELIKS <span>// generative gallery</span></h1>',
   '<div class="sub">Trustless render chain. The inlined registry is an untrusted hint: every field is re-anchored against live chain commitments by reconstructing each P2SH scriptPubKey from claimed state + template and comparing it to what the chain recorded. The 901-byte engine is bundled in this page and anchored to the on-chain program_hash. Art is withheld on any mismatch. No IPFS. No reveal sigscripts.</div>',
   '<div id="status">verifying against ' + N.rest + ' …</div>',
   '<h2>Editions</h2>', '<div id="editions"></div>',
@@ -85,6 +85,6 @@ const html = [
   '<script>ReliksGallery.runAll().catch(function(e){document.getElementById("status").textContent="FATAL: "+(e&&e.message||e);});<\/script>',
   '</body></html>'
 ].join('\n');
-fs.writeFileSync('reliks-gallery-v10.html', html);
-console.log('reliks-gallery-v10.html written (' + html.length + ' bytes) | editions:', REG.editions.length);
-console.log('open with: open reliks-gallery-v10.html');
+fs.writeFileSync('reliks-gallery.html', html);
+console.log('reliks-gallery.html written (' + html.length + ' bytes) | editions:', REG.editions.length);
+console.log('open with: open reliks-gallery.html');

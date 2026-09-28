@@ -5,7 +5,7 @@ const { schnorr } = require('@noble/curves/secp256k1');
 const secp = { schnorr: { signSync: (m, p) => schnorr.sign(m, p) } };
 const { feeLoop, waitForConfirmation, pickUtxo, sighash, hex, pushMin, pushMinInt } = OL;
 const covIdGenesis = require('./reliks-lib.js').covIdGenesis || V.covIdGenesis || OL.covIdGenesis;
-if (typeof covIdGenesis !== 'function') { console.error('covIdGenesis unavailable in v7/v8/offer libs'); process.exit(1); }
+if (typeof covIdGenesis !== 'function') { console.error('covIdGenesis unavailable in reliks-lib'); process.exit(1); }
 const B = Buffer;
 const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v12.json'), 'utf8')));
 const Ed = V.parts(JSON.parse(fs.readFileSync('data/edition-abi-v12.json', 'utf8')));
@@ -36,13 +36,11 @@ if (V.USER.length !== 64 || !/^[0-9a-fA-F]{64}$/.test(V.USER)) {
 }
 const BUYER_SCHEME = 0; // IDENTIFIER_PUBKEY
 
-const RG = (() => { const fs2 = require('fs'); const src = fs2.readFileSync(__dirname + '/web/reliks-gallery-runtime.js', 'utf8'); return new Function('RB2B', 'REG', 'self', src + ';return self.ReliksGallery;')(require('@noble/hashes/blake2b').blake2b, { hrp: require('./network.js').hrp }, {}); })();
-if (V.WALLET !== RG.p2pkAddress('20' + V.USER + 'ac')) { console.error('WALLET/PRIV mismatch — stale PC_WALLET in env?'); process.exit(1); }
 (async () => {
   const laneTxId = LD.editions.length ? LD.editions[LD.editions.length - 1].txId : LD.genesisTxId;
   const expectLane = V.p2sh(B.concat([F.prefix, V.encState(F, { ...LD.series, mints_left: LD.series.mints_left - LD.editions.length }), F.suffix]));
   // Fetch lane amount directly from kascov covenant endpoint (bypasses broken REST tx index and P2SH addr derivation)
-  const kascovCovRes = await fetch('https://kascov.io/data/mainnet/c/' + LD.C + '.json');
+  const kascovCovRes = await fetch(V.kascov + '/c/' + LD.C + '.json');
   const kascovCov = await kascovCovRes.json();
   const laneUtxo = kascovCov.utxos?.find(u => u.outpoint === laneTxId + ':0');
   if (!laneUtxo) { console.error('lane UTXO not found in kascov covenant data for ' + LD.C); process.exit(1); }

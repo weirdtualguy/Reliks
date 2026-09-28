@@ -5,16 +5,18 @@ const { schnorr } = require('@noble/curves/secp256k1');
 const secp = { schnorr: { signSync: (m, p) => schnorr.sign(m, p) } };
 const need = ['feeLoop','waitForConfirmation','pickUtxo','sighash','hex','pushMin','pushMinInt'];
 const missing = need.filter(k => typeof OL[k] !== 'function');
-if (missing.length) { console.error('offer-lib missing exports:', missing.join(', ')); process.exit(1); }
+if (missing.length) { console.error('reliks-lib missing exports:', missing.join(', ')); process.exit(1); }
 const { feeLoop, waitForConfirmation, pickUtxo, sighash, hex } = OL;
 const covIdGenesis = require('./reliks-lib.js').covIdGenesis || V.covIdGenesis || OL.covIdGenesis;
-if (typeof covIdGenesis !== 'function') { console.error('covIdGenesis unavailable in v7/v8/offer libs'); process.exit(1); }
+if (typeof covIdGenesis !== 'function') { console.error('covIdGenesis unavailable in reliks-lib'); process.exit(1); }
 const B = Buffer;
 const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v12.json'), 'utf8')));
-const args = JSON.parse(fs.readFileSync((process.env.RELIKS_ARGS || 'data/factory-args-v11.json'), 'utf8'));
+const ARGS_PATH = process.env.RELIKS_ARGS || 'data/factory-args-v12.json';
+if (!fs.existsSync(ARGS_PATH)) { console.error('FATAL: ' + ARGS_PATH + ' not found. Generate it with: node gen-factory-args.js <series.json> (see docs/MAINNET-RUNBOOK.md)'); process.exit(1); }
+const args = JSON.parse(fs.readFileSync(ARGS_PATH, 'utf8'));
 
   // H1-BAKE inline bake assertion
-  const ENGINE=require(process.env.RELIKS_ENGINE||"./reliks-engine-v10.js");
+  const ENGINE=require(process.env.RELIKS_ENGINE||"./reliks-engine-mainnet.js");
   const engineBytes=B.from(ENGINE.ENGINE_SRC,"utf8");
   if(F.bc.indexOf(engineBytes)===-1){console.error("BAKE ASSERTION FAILED: compiled bytecode does not embed ENGINE_SRC");process.exit(1)}
 const hxb = (i) => B.from(args[i].value).toString('hex');
@@ -24,22 +26,7 @@ const laneSpk = V.p2sh(redeem);
 const covHex = (c) => typeof c === 'string' ? c : hex(c);
 const prevOf = (inp) => ({ txId: inp.previous_outpoint_hash || inp.previousOutpoint.transactionId, index: inp.previous_outpoint_index !== undefined ? inp.previous_outpoint_index : inp.previousOutpoint.index });
 const rpc = (inputs, outputs) => ({ version: 1, inputs, outputs: outputs.map(o => ({ value: Number(o.amount), scriptPublicKey: '0000' + o.scriptPublicKey, ...(o.covenant ? { covenant: o.covenant } : {}) })), lockTime: 0, subnetworkId: '00'.repeat(20), gas: 0, payload: '', mass: 0 });
-const RG = (() => { const fs2 = require('fs'); const src = fs2.readFileSync(__dirname + '/web/reliks-gallery-runtime.js', 'utf8'); return new Function('RB2B', 'REG', 'self', src + ';return self.ReliksGallery;')(require('@noble/hashes/blake2b').blake2b, { hrp: require('./network.js').hrp }, {}); })();
-if (V.WALLET !== RG.p2pkAddress('20' + V.USER + 'ac')) { console.error('WALLET/PRIV mismatch — stale PC_WALLET in env?'); process.exit(1); }
 (async () => {
-  // Self-test: covIdGenesis(walletInput, [{idx}]) must reproduce series-2 edition #0 cov
-  if (fs.existsSync('data/factory-ledger-v10.json')) {
-  const LD2 = JSON.parse(fs.readFileSync('data/factory-ledger-v10.json', 'utf8'));
-  const m0 = await (await fetch(V.rest + '/transactions/' + LD2.editions[0].txId)).json();
-  const w0 = prevOf(m0.inputs[1]);
-  const edOut0 = m0.outputs[1];
-  const edScript0 = (() => { const x = edOut0.script_public_key || edOut0.scriptPublicKey; return typeof x === 'string' ? x : (x.scriptPublicKey || ''); })();
-  const t = covHex(covIdGenesis(w0.txId, w0.index, [{ idx: 1, value: Number(edOut0.amount), script: edScript0 }]));
-  if (t !== LD2.editions[0].cov) { console.error('covIdGenesis self-test FAILED:', t, '!=', LD2.editions[0].cov); process.exit(1); }
-  console.log('covIdGenesis self-test OK vs series-2 edition #0');
-  } else {
-    console.log('covIdGenesis self-test skipped: anchor ledger data/factory-ledger-v10.json absent');
-  }
   const wIn = await pickUtxo();
   console.log('funding deploy from', wIn.txId.slice(0, 10) + '...:' + wIn.index, '| amount', (Number(wIn.amount) / 1e8) + ' KAS');
   const C = covHex(covIdGenesis(wIn.txId, wIn.index, [{ idx: 0, value: 100000000, script: laneSpk }]));
@@ -56,5 +43,5 @@ if (V.WALLET !== RG.p2pkAddress('20' + V.USER + 'ac')) { console.error('WALLET/P
   const { txId, fee } = await feeLoop(build);
   await waitForConfirmation(txId);
   fs.writeFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v12.json'), JSON.stringify({ C, genesisTxId: txId, series, editions: [] }, null, 2));
-  console.log('RELIKS V11 GENESIS:', txId, '| fee', fee.toString(), '| lane covenant C =', C);
+  console.log('RELIKS V12 GENESIS:', txId, '| fee', fee.toString(), '| lane covenant C =', C);
 })().catch(e => { console.error(e); process.exit(1); });

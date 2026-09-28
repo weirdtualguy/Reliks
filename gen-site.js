@@ -32,7 +32,7 @@ const qrScript = '<script>' + require('fs').readFileSync(require('path').join(__
 const { blake2b } = require('@noble/hashes/blake2b');
 function seedLanes(serial){const le=Buffer.alloc(8);le.writeBigUInt64LE(BigInt(serial));const h=blake2b(Buffer.concat([Buffer.from('ReliksSeedV10','utf8'),le]),{dkLen:32});const dv=new DataView(h.buffer,h.byteOffset,h.byteLength);const o=[];for(let i=0;i<8;i++)o.push(dv.getInt32(i*4,true));return o;}
 function renderEngine(src, serial){const f=new Function('L','serial',src+'\nreturn reliks(L,serial);');const sN=Number(BigInt(serial)&0xFFFFFFFFn);return f(seedLanes(sN), sN|0);}
-const ENG_B = require('./reliks-engine-v10.js');
+const ENG_B = require('./reliks-engine-mainnet.js');
 const ENG_C = require('./reliks-engine-mainnet.js');
 const svgB = ENG_B.render(449271923980672019);
 const svgC = ENG_C.render(5056484704985813865);

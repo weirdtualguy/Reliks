@@ -93,11 +93,11 @@ function exportEngine(){
 function exportSeries(){
   var name=(document.getElementById('name').value||'reliks-engine').replace(/[^a-z0-9-]/gi,'');
   var artistPubkey = ReliksWallet.isConnected() ? ReliksWallet.getPubkey() : '<64-hex artist pubkey>';
-  var series={artist:artistPubkey,price:100000000,royalty_bips:500,mints_left:8,treasury:'<64-hex treasury pubkey>'};
+  var series={artist:artistPubkey,price:100000000,royalty_bips:500,mints_left:8};
   if (artistPubkey === '<64-hex artist pubkey>') {
-    statusEl.textContent='exported series-'+name+'.json | WARNING: wallet not connected; fill artist/treasury pubkeys manually';
+    statusEl.textContent='exported series-'+name+'.json | WARNING: wallet not connected; fill artist pubkey manually';
   } else {
-    statusEl.textContent='exported series-'+name+'.json | artist pubkey auto-filled from Kaspire; fill treasury pubkey';
+    statusEl.textContent='exported series-'+name+'.json | artist pubkey auto-filled from Kaspire';
   }
   download('series-'+name+'.json',JSON.stringify(series,null,2)+'\n');
 }

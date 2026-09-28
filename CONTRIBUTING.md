@@ -19,7 +19,7 @@ Reliks is a decentralized, open-source public good. We welcome contributions tha
    - Keep changes focused and atomic.
    - Ensure your code adheres to the existing style and naming conventions.
    - Update the ABI artifacts (`data/*.json`) if you modify any contract state or entrypoints.
-4. **Test Thoroughly**: Run the reference builders and the `verify-render-v10.js` script to ensure your changes do not break the trustless verification chain.
+4. **Test Thoroughly**: Run `npm test` and `verify-render.js` (and the reference builders on testnet) to ensure your changes do not break the trustless verification chain.
 5. **Open a Pull Request**: 
    - Clearly describe the problem you are solving.
    - Explain your solution and how to test it.

@@ -20,9 +20,6 @@ const spk = V.p2sh(redeem);
 const rpc = (inputs, outputs) => ({ version: 1, inputs, outputs: outputs.map(o => ({ value: Number(o.amount), scriptPublicKey: '0000' + o.scriptPublicKey, ...(o.covenant ? { covenant: o.covenant } : {}) })), lockTime: 0, subnetworkId: '00'.repeat(20), gas: 0, payload: '', mass: 0 });
 (async () => {
 
-  // ESC-INFO FIX (audit): wallet/priv preflight guard (same as deploy/mint)
-  const RG = (() => { const fs2 = require('fs'); const src = fs2.readFileSync(__dirname + '/web/reliks-gallery-runtime.js', 'utf8'); return new Function('RB2B', 'REG', 'self', src + ';return self.ReliksGallery;')(require('@noble/hashes/blake2b').blake2b, { hrp: require('./network.js').hrp }, {}); })();
-  if (V.WALLET !== RG.p2pkAddress('20' + V.USER + 'ac')) { console.error('WALLET/PRIV mismatch — stale PC_WALLET in env?'); process.exit(1); }
 
   const wIn = await pickUtxo();
   const FEE_BUFFER = 10000000n; // audit: 10M for headroom on large engines // audit4: 2-input accept pays miner fee from this buffer

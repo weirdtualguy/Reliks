@@ -1,81 +1,45 @@
-# Kaspa Mainnet Genesis — v12 Zero-Fee Protocol
+# Mainnet runbook (v12)
 
 ## Prerequisites
-
-1. **Trusted mainnet wRPC endpoint** (set `PC_MAINNET_WRPC`):
+1. A trusted mainnet wRPC endpoint (own node recommended). Covenant spends cannot use REST.
 ```bash
-   # Example: own full node
-   export PC_MAINNET_WRPC="ws://localhost:9013"
-   
-   # Example: multiple trusted nodes (comma-separated)
-   export PC_MAINNET_WRPC="wss://node1.kaspa.org/wrpc,wss://node2.kaspa.org/wrpc"
+export PC_NET=mainnet
+export PC_MAINNET_WRPC="ws://localhost:17110"      # comma-separate multiple
+export PC_PRIV=<64-hex mainnet key>
+export PC_WALLET=<address of that key>             # checked against PC_PRIV at startup
 ```
-   **Critical for covenant spends**: The previous testnet list was copy-pasted public nodes that turned out to be testnet-only. Mainnet requires your own or trusted endpoints.
-
-2. **Mainnet keys**:
-```bash
-   export PC_NET=mainnet
-   export PC_PRIV=<64-hex-mainnet-private-key>
-   export PC_WALLET=<mainnet-kaspa-address>
-```
-
-3. **Series config** (create `data/series-mainnet-v12.json`):
+2. Series config (`data/examples/series.example.json` is the template):
 ```json
-   {
-     "artist": "<artist-pubkey-32-bytes-hex>",
-     "price": 1000000000,
-     "royalty_bips": 500,
-     "mints_left": 1000
-   }
+{ "artist": "<64-hex x-only pubkey>", "price": 100000000, "royalty_bips": 500, "mints_left": 8 }
 ```
+   Price is 0 or at least 1 KAS; `royalty_bips` is 1 to 2000.
+3. The Silverscript compiler `silverc`. Compile against fixed template args in `data/edition-args.json` and `data/escrow-args.json`.
 
-## Deployment Steps
-
-### 1. Generate mainnet factory args
+## Steps
 ```bash
-node gen-factory-args-v11.js data/series-mainnet-v12.json data/factory-args-v12.json
-# (Note: gen-factory-args-v11.js still has treasury logic; manually remove the
-# treasury arg from the generated JSON, or create a v12 generator)
+node reliks-lens.js reliks-engine-mainnet.js            # 1. engine must be green
+node gen-factory-args.js data/series-mainnet.json       # 2. writes data/factory-args-v12.json
+# 3. compile sil/SeriesFactory-v12.sil with those args -> data/factory-abi-v12.json
+node deploy-v12.js                                      # 4. genesis; writes data/factory-ledger-v12.json
+node mint-v12.js                                        # 5. mint next edition
+node verify-render.js                                   # 6. all gates must PASS
+node gen-gallery.js                                     # 7. self-contained gallery HTML
 ```
-
-### 2. Deploy factory
+Secondary market:
 ```bash
-export RELIKS_ENGINE="./reliks-engine-mainnet.js"
-export RELIKS_LEDGER="data/factory-ledger-v12.json"
-export RELIKS_FACTORY_ABI="data/factory-abi-v12.json"
-export RELIKS_ARGS="data/factory-args-v12.json"
-
-node deploy-v12.js
-```
-
-### 3. Mint first edition
-```bash
-node mint-v12.js
-```
-
-### 4. List/Secondary/Offers
-```bash
-node secondary-v12.js list <edition-index> <price>
-node secondary-v12.js buy <edition-index>
-node offer-v5.js <edition-index> <ask-price> <expire-age>
+node secondary-v12.js list <edition-index> <price-sompi>
+node secondary-v12.js buy  <edition-index>
+node offer-v5.js <edition-index> <ask-sompi> <expire-daa>
 node accept-v5.js
 ```
-
-## Verification
-
-After each transaction, the builder will:
-- Broadcast via wRPC (rotating endpoints on rejection)
-- Confirm via kascov fallback (if REST /transactions/ returns 404)
-- Auto-update the ledger (no manual seeding needed)
+Defaults target the v12 files and `reliks-engine-mainnet.js`. Override with `RELIKS_ENGINE`, `RELIKS_ARGS`, `RELIKS_LEDGER`, `RELIKS_FACTORY_ABI`. `verify-render.js` fails fast if the engine hash differs from the ledger's `program_hash`.
 
 ## Monitoring
-
-- **Factory lane**: `https://kascov.io/mainnet/c/<lane-covenant-id>`
-- **Edition lineage**: `https://kascov.io/mainnet/c/<edition-covenant-id>`
-- **Transaction explorer**: `https://kascov.io/mainnet/tx/<txid>`
+`https://kascov.io/mainnet/c/<covenant-id>` and `https://kascov.io/mainnet/tx/<txid>`.
 
 ## Troubleshooting
-
-- **"orphan where orphan is disallowed"**: wRPC endpoint misclassification; the rotation fix will try the next endpoint.
-- **"NOT confirmed within 120000ms"**: Both REST and kascov failed; check endpoint connectivity.
-- **"covenant spend requires wRPC"**: All wRPC endpoints rejected; verify endpoints are mainnet-capable.
+- "orphan where orphan is disallowed": endpoint lag; rotation tries the next one. Wait ~10 s.
+- "already in the mempool": tx is valid and pending. Don't re-run; poll kascov.
+- "NOT confirmed within 120000ms": REST and kascov both silent. Check connectivity, then kascov before retrying.
+- "covenant spend requires wRPC": every endpoint rejected; verify they are mainnet-capable.
+- "PC_WALLET does not match": stale `PC_WALLET` from another key.
