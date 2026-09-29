@@ -28,7 +28,7 @@ t('bech32: checksum corruption rejected', () => {
 });
 
 // --- Browser BLAKE2b (zero-dep, shipped in the gallery) ---
-const RB = require(path.join(root, 'web', 'gallery-blake2b.js'));
+const RB = require(path.join(root, 'web', 'blake2b.js'));
 t('blake2b-256("") known vector', () => eq(hex(RB.blake2b(new Uint8Array(0), 32)), '0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8'));
 t('blake2b-256("abc") known vector', () => eq(hex(RB.blake2b(new TextEncoder().encode('abc'), 32)), 'bddd813c634239723171ef3fee98579b94964e3bb1cb3e427262c8c068d52319'));
 t('blake2b: parity vs @noble/hashes (0..600 B)', () => {

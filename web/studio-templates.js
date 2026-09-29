@@ -1,5 +1,5 @@
 // Single source of truth for Studio starter templates.
-// Both gen-studio.js and gen-site.js load this file, so an engine exported
+// gen-site.js loads this file, so an engine exported
 // from the local studio and the hosted studio hash identically.
 module.exports = {
 circles: [

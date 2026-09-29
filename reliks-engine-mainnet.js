@@ -1,4 +1,5 @@
-const { blake2b } = require('@noble/hashes/blake2b');
+const { blake2b: b2 } = require('./web/blake2b.js');
+const blake2b = (m, o) => b2(m, (o && o.dkLen) || 32);
 const B = Buffer;
 // "Reliks Genesis City v3" - dense isometric BlockDAG metropolis.
 // Integer-only; R=13 packed grid, plaza pads, 4 canals, teal/cream/charcoal.

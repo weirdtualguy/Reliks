@@ -110,7 +110,7 @@ function htmlMode(enginePath) {
   const sc = scan(SRC);
   const eh = hex(blake2b(B.from(SRC, 'utf8'), { dkLen: 32 }));
   const rh = hex(blake2b(B.from(M.render(M.TEST_SERIAL || 1), 'utf8'), { dkLen: 32 }));
-  const blakeSrc = fs.readFileSync(path.join(__dirname, 'web', 'gallery-blake2b.js'), 'utf8');
+  const blakeSrc = fs.readFileSync(path.join(__dirname, 'web', 'blake2b.js'), 'utf8');
   const STATIC = JSON.stringify({ bytes: nb, cap: CAP, bad: sc.bad, notes: sc.notes, engineHash: eh, renderHash: rh }).replace(/</g, '\\u003c');
   const srcJson = JSON.stringify(SRC).replace(/</g, '\\u003c');
   const page = ['<!doctype html>', '<html lang="en"><head><meta charset="utf-8">',

@@ -2,7 +2,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const N = require('./network.js');
 const { blake2b: noble } = require('@noble/hashes/blake2b');
-const RB = require('./web/gallery-blake2b.js');
+const RB = require('./web/blake2b.js');
 const V = require('./reliks-lib.js');
 const ENGINE = require(process.env.RELIKS_ENGINE || './reliks-engine-mainnet.js');
 
@@ -67,7 +67,7 @@ const css = 'body{background:#0b0d10;color:#e8e6e3;font-family:ui-monospace,Menl
 '.refuse{color:#ff6b6b;font-size:12px;margin-top:10px}' +
 'h2{font-size:14px;margin:18px 0 6px}h3{font-size:13px;margin:0 0 6px}' +
 '.note{color:#5c6670;font-size:11px;margin-top:24px;border-top:1px solid #23282e;padding-top:12px;max-width:760px;line-height:1.6}';
-const blakeSrc = fs.readFileSync('web/gallery-blake2b.js', 'utf8');
+const blakeSrc = fs.readFileSync('web/blake2b.js', 'utf8');
 const regJson = JSON.stringify(REG).replace(/</g, '\\u003c');
 const html = [
   '<!doctype html>', '<html lang="en"><head>', '<meta charset="utf-8">',

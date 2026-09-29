@@ -1,7 +1,7 @@
 {
   "name": "reliks",
-  "version": "12.0.0",
-  "description": "Reliks: a zero-fee, UTXO-native generative art NFT protocol on Kaspa.",
+  "version": "12.1.0",
+  "description": "Reliks: UTXO-native generative art NFTs on Kaspa. The art is a program whose hash lives in the contract.",
   "license": "MIT",
   "private": false,
   "type": "commonjs",
@@ -22,11 +22,10 @@
     "generative-art",
     "covenants",
     "utxo",
-    "blockdag",
-    "web3"
+    "blockdag"
   ],
   "scripts": {
-    "test": "node test/self-test.js",
+    "test": "node test/self-test.js && node test/chain-test.js && node test/wallet-test.js && node test/site-test.js",
     "args": "node gen-factory-args.js",
     "deploy": "node deploy-v12.js",
     "mint": "node mint-v12.js",
@@ -36,7 +35,6 @@
     "verify": "node verify-render.js",
     "gallery": "node gen-gallery.js",
     "site": "node gen-site.js",
-    "studio": "node gen-studio.js",
     "lens": "node reliks-lens.js"
   },
   "dependencies": {

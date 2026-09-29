@@ -1,0 +1,32 @@
+{
+  "_note": "Claims to be verified, not facts to be trusted. The site recomputes each of these from public chain data and shows PASS or FAIL.",
+  "network": "mainnet",
+  "hrp": "kaspa",
+  "rest": "https://api.kaspa.org",
+  "kascov": "https://kascov.io/data/mainnet",
+  "explorer": "https://kascov.io/mainnet/tx/",
+  "series": [
+    {
+      "id": "genesis-dag-city",
+      "title": "Genesis: DAG-City",
+      "laneCovenantId": "1569a69fd3e82b28ef32d9daea0d1a107cd26a586cf30458416889e689739c09",
+      "genesisTxId": "029c14e56034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb904",
+      "programHash": "16440384b2b00579d67e1366e8aa9c835e276fbf84a711d4920e87b134d7eaa4",
+      "renderHash": "836c15aecc078e0c19ae71467ff12cdd85a904d1c965a991af095a246dcc403c",
+      "artist": "25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b",
+      "engine": "reliks-engine-mainnet.js",
+      "editions": [
+        {
+          "index": 0,
+          "serial": "2884738305227171331",
+          "covenantId": "6f8f076f72ff39eab63b11cd5e5ee3f7d1a9f31e570c4ac3d1ba5e3394146999",
+          "mintTxId": "9d9342c69446e9d25881c23296b82671350350e3df0d0ec27e155fffea19939c",
+          "outputIndex": 1,
+          "ownerAtMint": "25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b"
+        }
+      ]
+    }
+  ],
+  "wrpc": [],
+  "_wrpc_note": "No public mainnet wRPC endpoints are pinned on purpose (audit finding). Kaspire Extension broadcasts with pushTx; others can paste their own node URL in the mint panel."
+}

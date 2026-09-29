@@ -21,5 +21,5 @@ fix and the deliberate decisions below. This is not a formal third-party audit.
 
 ## Known accepted risks
 - **Listing sniping:** an underpriced open listing can be bought by anyone first. Seller always receives the listed price.
-- **WalletConnect SDK** in the browser Studio/site loads from esm.sh at a pinned version. It is the one runtime CDN dependency; the verification path (gallery gates, BLAKE2b) is fully self-contained.
+- **WalletConnect SDK** is no longer part of the page. The default path (Kaspire Extension) uses an injected provider with no third-party code. The Kaspire Mobile path fetches one pinned `@walletconnect/sign-client` build from esm.sh only after the visitor chooses it; the verification path and the extension flow never load it. Vendoring it would remove the last CDN dependency (see docs/WALLET.md).
 - **Off-chain honesty of transfers:** `transfer` and zero-price `sell` are royalty-free by design (custody moves).

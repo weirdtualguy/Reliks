@@ -14,10 +14,12 @@ data/series-*.json
 *.env
 secrets*.env
 
-# Generated Outputs (Regenerable via gen-gallery-v10.js / gen-site.js)
-*.html
+# Generated Outputs (regenerable — gallery via gen-gallery.js)
+/reliks-gallery-*.html
 *.svg
-reliks-gallery-*.html
+# docs/index.html is tracked on purpose: GitHub Pages serves it directly,
+# and `npm test` (test/site-test.js) fails the build if it ever drifts
+# from what `npm run site` produces.
 
 # Internal engineering notes — not for public release
 HANDOFF-LOCAL.md

@@ -1,5 +1,15 @@
 # Changelog
 
+## 12.1.0: verified site, Kaspire wallet
+- New site (`docs/index.html`, built by `gen-site.js`): one self-contained file, no external scripts, styles or fonts. Recomputes engine hash, image hash, serials, contract scripts and covenant ids in the browser and withholds art on any mismatch. Fails closed when the chain is unreachable (shown as not fully verified, never as verified).
+- Wallet: Kaspire Extension (`window.kaspire`, default) and Kaspire Mobile (WalletConnect, pinned, loaded only on demand). Post-signature verification before broadcast. Never sees a key.
+- Mint builder in the browser (`web/reliks-chain.js`), tested against `mint-v12.js` semantics. Fixes two defects in the previous browser builder: it pushed the successor lane's redeem script instead of the current one, and it asked the wallet for `kaspa_signTransaction`, which Kaspire does not offer.
+- Site data now comes from `data/mainnet-anchors.json` (claims verified on load) and `reliks-templates.js` (templates derived from the compiled ABIs) instead of hand-pasted blobs.
+- Claims corrected: no "zero-fee" (network fees and a 1 KAS carrier apply), no "survives pruning", royalty scope stated, mainnet genesis described as a sold-out single edition at 1 KAS. Removed unverifiable "gates 12/12" and "market: proven" cards.
+- One shared zero-dependency BLAKE2b (`web/blake2b.js`, keyed mode added, cross-checked against Python hashlib) replaces two copies.
+- Removed: `gen-studio.js`, `web/mint-codec.js`, `web/mint-builder.js`, `web/mint-flow.js`, `web/tx-lifecycle.js`, `web/studio-wallet.js`, `refresh-mint-codec.js`. The Studio is now the site's Studio tab.
+- Tests: `chain-test.js`, `wallet-test.js`, `site-test.js` (drift, self-containment, wording). CI workflow added. No contract or template changes.
+
 ## 12.0.0: zero-fee protocol
 - Removed treasury and marketplace premium. Artist receives 100% of primary sales; secondaries enforce royalty-only exact splits.
 - Contracts: `SeriesFactory-v12` (span 135), `ReliksEdition-v12` (161), `OfferEscrow-v5` (161).
