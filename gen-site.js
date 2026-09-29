@@ -65,7 +65,7 @@ const studio = `
 <p>Write the engine in the browser and run the same determinism gates the command line uses. Publishing a series on chain still happens with the command-line tools (see the last card).</p></div>
 <div class="row" style="margin:20px 0 14px">
   <input id="name" value="my-engine" aria-label="Series name" style="max-width:220px" />
-  <select id="tpl" aria-label="Template" style="max-width:180px"><option value="circles">Circles</option><option value="flow">Flow field</option><option value="blank">Blank</option></select>
+  <select id="tpl" aria-label="Template" style="max-width:180px"><option value="dagcity" selected>DAG City (mainnet)</option><option value="circles">Circles</option><option value="flow">Flow field</option><option value="blank">Blank</option></select>
   <button class="btn" id="load">Load template</button>
 </div>
 <div class="studio">

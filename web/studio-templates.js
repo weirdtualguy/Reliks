@@ -1,7 +1,18 @@
 // Single source of truth for Studio starter templates.
 // gen-site.js loads this file, so an engine exported
 // from the local studio and the hosted studio hash identically.
+//
+// "dagcity" is the exact mainnet-anchored engine (reliks-engine-mainnet.js),
+// shown here as a worked example. It defines its own self-contained
+// reliks(L, serial) and doesn't use the R helper API the other templates
+// use, so exporting it unmodified from the Studio will NOT reproduce the
+// real anchored engine_hash (the Studio prelude gets prepended) -- it's for
+// reading and remixing, not for round-tripping the mainnet series.
+const path = require('path');
+const DAG_CITY = require(path.join(__dirname, '..', 'reliks-engine-mainnet.js')).ENGINE_SRC.trim();
+
 module.exports = {
+dagcity: DAG_CITY,
 circles: [
 "function reliks(L, serial) {",
 "  var n = R.ri(18, 48), out = [];",

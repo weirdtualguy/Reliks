@@ -434,12 +434,12 @@
       download('series-' + slug() + '.json', JSON.stringify({ artist: artist, price: Number(priceSompi), royalty_bips: Math.round(roy * 100), mints_left: n }, null, 2) + '\n');
       stat.textContent = 'Exported series-' + slug() + '.json';
     });
-    $('#load').addEventListener('click', function () { ed.value = D.studio.templates[tpl.value] || D.studio.templates.circles; show(); });
+    $('#load').addEventListener('click', function () { ed.value = D.studio.templates[tpl.value] || D.studio.templates.dagcity; show(); });
     $('#go').addEventListener('click', show);
     $('#rnd').addEventListener('click', function () { ser.value = String(Math.floor(Math.random() * 4294967296)); show(); });
     $('#run-gates').addEventListener('click', gates);
     K.on(function (st) { var a = $('#artist'); if (st.status === 'connected' && !a.value) a.placeholder = 'from Kaspire: ' + short(st.pubkey, 10, 6); });
-    ed.value = D.studio.templates.circles;
+    ed.value = D.studio.templates.dagcity;
     return { show: show };
   }
 
