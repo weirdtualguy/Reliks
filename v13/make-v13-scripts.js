@@ -25,6 +25,47 @@ patch('secondary-v12.js', 'v13/secondary-v13.js', [
   ['const redeemOf =', advDef],
   ['redeemOf(stateOf(V.USER, 0))', 'redeemOf(stateOf(V.USER, 0, advOf(V.USER)))'],
   ['ed.owner = V.USER; ed.price = 0; ed.txId = txId; ed.index = 0;', 'const nx = advOf(V.USER); ed.lineage = nx.lineage; ed.sales = nx.sales; ed.owner = V.USER; ed.price = 0; ed.txId = txId; ed.index = 0;'],
+  ["} else if (cmd === 'sell') {", `} else if (cmd === 'unlist') {
+    const wIn = await pickUtxo();
+    const inputs = [edIn, wIn];
+    function build(fee) {
+      const outputs = [
+        { amount: DUST, scriptPublicKey: V.p2sh(redeemOf(stateOf(ed.owner, 0))), covenant: { authorizingInput: 0, covenantId: ed.cov } },
+        { amount: wIn.amount - fee, scriptPublicKey: wIn.spk }
+      ];
+      const rawSig = secp.schnorr.signSync(sighash(inputs, outputs, 0), V.PRIV);
+      const sigW1 = '41' + hex(secp.schnorr.signSync(sighash(inputs, outputs, 1), V.PRIV)) + '01';
+      const ss = B.concat([pushMin(B.concat([rawSig, B.from([0x01])])), pushMin(TAG('unlist')), pushMin(curRedeem)]);
+      return rpc(inputs, outputs, hex(ss), sigW1);
+    }
+    const { txId } = await feeLoop(build);
+    await waitForConfirmation(txId);
+    ed.price = 0; ed.txId = txId; ed.index = 0;
+    ed.spk = hex(V.p2sh(redeemOf(stateOf(ed.owner, ed.price))));
+    fs.writeFileSync('v13/ledger-testnet-v13.json', JSON.stringify(LD, null, 2));
+    console.log('RELIKS UNLIST:', txId);
+  } else if (cmd === 'transfer') {
+    const newOwner = String(priceArg || '');
+    if (!/^[0-9a-f]{64}$/.test(newOwner)) throw new Error('transfer needs a 64-hex x-only pubkey as the 3rd argument');
+    const wIn = await pickUtxo();
+    const inputs = [edIn, wIn];
+    function build(fee) {
+      const outputs = [
+        { amount: DUST, scriptPublicKey: V.p2sh(redeemOf(stateOf(newOwner, 0))), covenant: { authorizingInput: 0, covenantId: ed.cov } },
+        { amount: wIn.amount - fee, scriptPublicKey: wIn.spk }
+      ];
+      const rawSig = secp.schnorr.signSync(sighash(inputs, outputs, 0), V.PRIV);
+      const sigW1 = '41' + hex(secp.schnorr.signSync(sighash(inputs, outputs, 1), V.PRIV)) + '01';
+      const ss = B.concat([pushMin(H(newOwner)), pushMin(B.concat([rawSig, B.from([0x01])])), pushMin(TAG('transfer')), pushMin(curRedeem)]);
+      return rpc(inputs, outputs, hex(ss), sigW1);
+    }
+    const { txId } = await feeLoop(build);
+    await waitForConfirmation(txId);
+    ed.owner = newOwner; ed.price = 0; ed.txId = txId; ed.index = 0;
+    ed.spk = hex(V.p2sh(redeemOf(stateOf(ed.owner, ed.price))));
+    fs.writeFileSync('v13/ledger-testnet-v13.json', JSON.stringify(LD, null, 2));
+    console.log('RELIKS TRANSFER:', txId, '| newOwner', newOwner.slice(0, 16));
+  } else if (cmd === 'sell') {`],
   ['if (askPrice !== 0n && askPrice < 100000000n)', 'if (askPrice < 100000000n)'],
   ['redeemOf(stateOf(buyer, 0))', 'redeemOf(stateOf(buyer, 0, advOf(buyer)))'],
   ['ed.owner = buyer; ed.price = 0; ed.txId = txId; ed.index = 0;', 'const nx = advOf(buyer); ed.lineage = nx.lineage; ed.sales = nx.sales; ed.owner = buyer; ed.price = 0; ed.txId = txId; ed.index = 0;'],
