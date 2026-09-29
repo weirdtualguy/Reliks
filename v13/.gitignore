@@ -1,0 +1,10 @@
+out/
+*-ledger*.json
+factory-args-*.json
+!escrow-args-v6.json
+!edition-args-v13.json
+deploy-v13.js
+mint-v13.js
+secondary-v13.js
+offer-v13.js
+accept-v13.js

@@ -1,0 +1,388 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}</style><style>:root{color-scheme:light dark;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}}:root[data-theme="dark"]{color-scheme:dark;--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}:root[data-theme="light"]{color-scheme:light}@media print{:root,:root[data-theme="dark"]{color-scheme:light;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}}body{background:var(--md-bg);color:var(--md-text);max-width:720px;margin:0 auto;padding:32px;display:flex;flex-direction:column;gap:10px;font:14px/1.55 -apple-system,BlinkMacSystemFont,'SF Pro','Segoe UI',sans-serif;overflow-wrap:break-word}body>:first-child{margin-top:0}h1,h2,h3,h4,h5,h6{margin:6px 0 0;line-height:1.25;font-weight:600;text-wrap:balance}h1{font-size:1.35em}h2{font-size:1.15em;color:var(--md-muted)}h3,h4,h5,h6{font-size:1em}p,ul,ol,blockquote,table,pre,hr{margin:0}strong{font-weight:600}a{color:var(--md-link);text-decoration:none}a:hover{text-decoration:underline}ul,ol{display:flex;flex-direction:column;gap:6px;padding-left:22px}ul{list-style:disc}ol{list-style:decimal}:is(li,td,th)>*+:is(p,ul,ol,blockquote){margin-top:6px}blockquote{display:flex;flex-direction:column;gap:10px;border-left:2px solid var(--md-rule);padding-left:10px;color:var(--md-muted)}:not(pre)>code{background:var(--md-fill);padding:1px 3px;border-radius:4px;font:.92em 'SF Mono',ui-monospace,Menlo,Consolas,monospace}a>code{background:none;color:inherit}pre{background:var(--md-fill);padding:10px 12px;border-radius:6px;overflow-x:auto;font:12px/1.5 'SF Mono',ui-monospace,Menlo,Consolas,monospace;margin-block:4px}pre code{background:none;padding:0;font:inherit}table{width:100%;border-collapse:separate;border-spacing:2px;font:inherit}th,td{padding:6px 8px;border-radius:3px;text-align:left;vertical-align:top}th{background:var(--md-fill-strong);font-weight:600}td{background:var(--md-fill)}:is(th,td) :not(pre)>code{background:transparent}hr{border:0;border-top:1px solid var(--md-rule-strong);margin-block:10px}img{max-width:100%;height:auto;border-radius:4px}</style>
+</head><body>
+<h1>Reliks-VM v1, revision 2 (draft specification)</h1>
+<p>Status: draft, revised after porting the DAG-City engine. Two independent interpreters (Python, JavaScript) agree on every vector in <code>vectors.json</code> (105 checks). No on-chain contract uses this yet; items marked &quot;proposed&quot; are Reliks 2 design decisions. The magic version byte stays <code>0x01</code> until genesis; until then any rule here can still change.</p>
+<h2>0. What the DAG-City port changed</h2>
+<p>I ported the mainnet engine (5,323 bytes of JS) to bytecode. The faithful port (1,615 bytes) produces <strong>element-for-element identical SVG</strong> on 310 serials (10 named, 300 random), with worst-case 127,617 fuel, 1,709 elements, 105 KB of SVG and stack depth 7, all far below the limits.</p>
+<p>The original engine could not be ported with revision 1. The gaps, and what closed them:</p>
+<table>
+<thead>
+<tr>
+<th>Gap found</th>
+<th>Why the engine needs it</th>
+<th>Change in rev 2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Indexed memory</td>
+<td>Water-cell lookup by computed (i, j), canal point lists</td>
+<td><code>LDX</code>, <code>STX</code>; memory 256 to 1024 cells</td>
+</tr>
+<tr>
+<td>Relative path segments and curves</td>
+<td>Every building face, window and door is drawn with <code>l</code>, <code>v</code>, <code>q</code></td>
+<td><code>LR</code>, <code>QR</code> (path code needs constants instead of coordinate arithmetic; I did not measure the saving separately)</td>
+</tr>
+<tr>
+<td>Group opacity</td>
+<td>Scatter lines and grid are drawn inside <code>&lt;g opacity&gt;</code>, which composites as a whole</td>
+<td><code>GOPEN</code>, <code>GCLOSE</code></td>
+</tr>
+<tr>
+<td>Gradient fill</td>
+<td>The glow uses a radial gradient</td>
+<td><code>GRADBEGIN</code>, <code>GRADSTOP</code>, <code>GRADEND</code>, fill ids</td>
+</tr>
+<tr>
+<td>32-bit modulo</td>
+<td>The engine does <code>(w &gt;&gt;&gt; 0) % n</code>; rev 1 used a 31-bit value</td>
+<td><code>RNDR</code> now uses the full uint32</td>
+</tr>
+</tbody>
+</table>
+<p>Two findings that are not op-set gaps:</p>
+<ol>
+<li><strong>The original engine has an accidental RNG alias.</strong> Its <code>var x,y</code> redeclarations reuse the xorshift state variables <code>x</code> and <code>y</code> as drawing coordinates, so the random stream depends on drawn positions. The faithful port reproduces this by implementing xorshift in bytecode (state in memory cells). That works, and proves the built-in RNG is optional for expressiveness. The <strong>clean port</strong> (1,567 bytes) uses the built-in RNG with separate variables, so it draws a different city for the same serial. Decision for you: keep the faithful stream (existing mainnet art keeps its look) or use the clean one for new series.</li>
+<li><strong>History inputs map naturally onto art.</strong> In the clean port, <code>PAT</code> shifts one building color family and <code>WEAR</code> fades window lights. Across <code>PAT</code> 0..63 and <code>WEAR</code> 0..255 the geometry is byte-identical; only colors and opacity change (checked for several combinations).</li>
+</ol>
+<h2>1. Purpose</h2>
+<p>A tiny deterministic machine that turns <code>(program, serial, lineage, sales)</code> into one canonical SVG string. Goals: safe to run untrusted programs, byte-identical output in any language, programs small enough to bake into a covenant template.</p>
+<p>Non-goals: floating point, text, images, transforms, filters, linear gradients. Anything not listed here does not exist.</p>
+<h2>2. Program encoding</h2>
+<pre><code>offset 0   4 bytes   magic &#34;RVM&#34; 0x01
+offset 4   u16 LE    canvas width   (1..4096)
+offset 6   u16 LE    canvas height  (1..4096)
+offset 8   code      1..65535 bytes
+</code></pre>
+<p><code>program_hash = blake2b-256(whole program bytes)</code>. Jump and call targets are u16 LE byte offsets <strong>relative to the start of <code>code</code></strong>.</p>
+<p>Immediates: <code>s</code> = signed LEB128 (at most 5 bytes, int32, <strong>minimal encoding only</strong>); <code>u8</code>; <code>u16</code> little endian.</p>
+<p>Load-time validation, in order: header (<code>E_HEADER</code>); linear decode of all code (<code>E_DECODE</code>: unknown opcode, truncated immediate, bad LEB128, <code>lane</code> index above 7); every jump/call target must be the start of a decoded instruction (<code>E_TARGET</code>; a target equal to the code length is invalid).</p>
+<h2>3. Machine</h2>
+<ul>
+<li>Values are int32 with wraparound. Data stack max 256, call stack max 64, memory 1024 cells (zero at start).</li>
+<li><strong>Fuel:</strong> at most 1,000,000 executed instructions (HALT counts). Before each instruction: pc past end of code gives <code>E_NOHALT</code>; otherwise fuel 0 gives <code>E_FUEL</code>.</li>
+<li>Binary operators pop <code>b</code> then <code>a</code> and push <code>a op b</code>.</li>
+<li>Style state, initially: fill <code>0x000000</code>, stroke none (<code>-1</code>), stroke width 1, opacity 100.</li>
+<li>Groups: at most 4 open. Gradients: at most 8 defined, at most 8 stops each.</li>
+<li>PRNG state is uninitialized until <code>RNGINIT</code>.</li>
+</ul>
+<h2>4. Instruction set</h2>
+<table>
+<thead>
+<tr>
+<th>Op</th>
+<th>Code</th>
+<th>Imm</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HALT</td>
+<td>00</td>
+<td></td>
+<td>Stop. Open path is <code>E_PATH</code>; open group is <code>E_GROUP</code>; open gradient is <code>E_GRAD</code></td>
+</tr>
+<tr>
+<td>PUSH</td>
+<td>01</td>
+<td>s</td>
+<td>Push immediate</td>
+</tr>
+<tr>
+<td>DUP DROP SWAP OVER</td>
+<td>02 03 04 05</td>
+<td></td>
+<td>OVER: (a b) becomes (a b a)</td>
+</tr>
+<tr>
+<td>ROT</td>
+<td>06</td>
+<td></td>
+<td>(a b c) becomes (b c a)</td>
+</tr>
+<tr>
+<td>ADD SUB MUL</td>
+<td>10 11 12</td>
+<td></td>
+<td>Wrapping int32</td>
+</tr>
+<tr>
+<td>DIV</td>
+<td>13</td>
+<td></td>
+<td>Truncates toward zero; <code>b = 0</code> is <code>E_DIV0</code>; INT_MIN / -1 = INT_MIN</td>
+</tr>
+<tr>
+<td>MOD</td>
+<td>14</td>
+<td></td>
+<td><code>a - b*trunc(a/b)</code>; <code>b = 0</code> is <code>E_DIV0</code>; INT_MIN mod -1 = 0</td>
+</tr>
+<tr>
+<td>NEG ABS</td>
+<td>15 16</td>
+<td></td>
+<td>Wrapping; INT_MIN stays INT_MIN</td>
+</tr>
+<tr>
+<td>MIN MAX</td>
+<td>17 18</td>
+<td></td>
+<td>Signed</td>
+</tr>
+<tr>
+<td>AND OR XOR NOT</td>
+<td>20 21 22 23</td>
+<td></td>
+<td>Bitwise</td>
+</tr>
+<tr>
+<td>SHL SHR USHR</td>
+<td>24 25 26</td>
+<td></td>
+<td>Count 0..31 else <code>E_RANGE</code>. SHR arithmetic, USHR logical</td>
+</tr>
+<tr>
+<td>EQ NE LT LE GT GE</td>
+<td>30..35</td>
+<td></td>
+<td>Signed, push 1 or 0</td>
+</tr>
+<tr>
+<td>JMP JZ JNZ</td>
+<td>40 41 42</td>
+<td>u16</td>
+<td>JZ/JNZ pop the condition</td>
+</tr>
+<tr>
+<td>CALL RET</td>
+<td>43 44</td>
+<td>u16</td>
+<td>Depth over 64 is <code>E_CALLDEPTH</code>; RET on empty is <code>E_UNDERFLOW</code></td>
+</tr>
+<tr>
+<td>LOAD STORE</td>
+<td>50 51</td>
+<td>u8</td>
+<td>Cells 0..255 (STORE pops)</td>
+</tr>
+<tr>
+<td><strong>LDX</strong></td>
+<td>52</td>
+<td></td>
+<td>Pop addr, push <code>mem[addr]</code>; addr outside 0..1023 is <code>E_RANGE</code></td>
+</tr>
+<tr>
+<td><strong>STX</strong></td>
+<td>53</td>
+<td></td>
+<td>Pop addr, pop value, <code>mem[addr] = value</code>; range as LDX</td>
+</tr>
+<tr>
+<td>LANE</td>
+<td>60</td>
+<td>u8</td>
+<td>Push base lane <code>k</code> (0..7)</td>
+</tr>
+<tr>
+<td>SERIAL</td>
+<td>61</td>
+<td></td>
+<td>Low 32 bits of the serial as int32</td>
+</tr>
+<tr>
+<td>PAT</td>
+<td>62</td>
+<td></td>
+<td>Patina, <strong>0..63</strong></td>
+</tr>
+<tr>
+<td>WEAR</td>
+<td>63</td>
+<td></td>
+<td>Wear, 0..255</td>
+</tr>
+<tr>
+<td>RNGINIT</td>
+<td>70</td>
+<td></td>
+<td>Pop <code>w z y x</code> (push order x y z w) as uint32; all zero becomes x=1</td>
+</tr>
+<tr>
+<td>RND</td>
+<td>71</td>
+<td></td>
+<td>Push next 31-bit value (<code>w &gt;&gt; 1</code>)</td>
+</tr>
+<tr>
+<td><strong>RNDR</strong></td>
+<td>72</td>
+<td></td>
+<td>Pop <code>hi</code>, <code>lo</code>; push <code>lo + (w mod (hi-lo+1))</code> where <code>w</code> is the <strong>full uint32</strong>. <code>hi &lt; lo</code> is <code>E_RANGE</code></td>
+</tr>
+<tr>
+<td>FILL</td>
+<td>80</td>
+<td></td>
+<td>Pop <code>-1</code>, 0..0xFFFFFF, or <strong>0x1000000 + id</strong> for a defined gradient; else <code>E_RANGE</code></td>
+</tr>
+<tr>
+<td>STROKE</td>
+<td>81</td>
+<td></td>
+<td>Pop <code>-1</code> or 0..0xFFFFFF</td>
+</tr>
+<tr>
+<td>SWIDTH</td>
+<td>82</td>
+<td></td>
+<td>Pop 1..64</td>
+</tr>
+<tr>
+<td>OPACITY</td>
+<td>83</td>
+<td></td>
+<td>Pop 0..100</td>
+</tr>
+<tr>
+<td>RECT CIRCLE LINE</td>
+<td>90 91 92</td>
+<td></td>
+<td>Push <code>x y w h</code> / <code>cx cy r</code> / <code>x1 y1 x2 y2</code>. Negative sizes <code>E_RANGE</code>; LINE needs a stroke (<code>E_STROKE</code>)</td>
+</tr>
+<tr>
+<td>PBEGIN M L Z PEND</td>
+<td>94 95 96 97 98</td>
+<td></td>
+<td>Absolute path. M first only; L and Z need a started path; PEND emits</td>
+</tr>
+<tr>
+<td><strong>LR</strong></td>
+<td>99</td>
+<td></td>
+<td>Pop <code>dy dx</code>; append relative line <code>l dx dy</code></td>
+</tr>
+<tr>
+<td><strong>QR</strong></td>
+<td>9A</td>
+<td></td>
+<td>Pop <code>dy dx cy cx</code>; append relative quadratic <code>q cx cy dx dy</code></td>
+</tr>
+<tr>
+<td><strong>GOPEN</strong></td>
+<td>9B</td>
+<td></td>
+<td>Pop group opacity 0..100; emit <code>&lt;g&gt;</code>; save fill, stroke, width, opacity; set opacity to 100 inside. Fails with <code>E_PATH</code> if a path is open, <code>E_GROUP</code> past depth 4</td>
+</tr>
+<tr>
+<td><strong>GCLOSE</strong></td>
+<td>9C</td>
+<td></td>
+<td>Emit <code>&lt;/g&gt;</code>; restore saved style. <code>E_GROUP</code> if none open</td>
+</tr>
+<tr>
+<td><strong>GRADBEGIN</strong></td>
+<td>9D</td>
+<td></td>
+<td>Start radial gradient (id = next free). <code>E_GRAD</code> if one is open or 8 exist</td>
+</tr>
+<tr>
+<td><strong>GRADSTOP</strong></td>
+<td>9E</td>
+<td></td>
+<td>Pop <code>opacity color offset</code> (offset 0..100 percent, non-decreasing, else <code>E_RANGE</code>). <code>E_GRAD</code> outside a gradient or past 8 stops</td>
+</tr>
+<tr>
+<td><strong>GRADEND</strong></td>
+<td>9F</td>
+<td></td>
+<td>Needs at least 2 stops (<code>E_GRAD</code>); emits <code>&lt;defs&gt;</code> element. Gradient is centered, radius 50%, object bounding box</td>
+</tr>
+</tbody>
+</table>
+<p>Stack checks: underflow (<code>E_UNDERFLOW</code>) before overflow (<code>E_OVERFLOW</code>); operations pop all operands before any other check.</p>
+<p>RNG (xorshift128): <code>t = x ^ (x &lt;&lt; 11)</code>, <code>x=y, y=z, z=w</code>, <code>w = (w ^ (w &gt;&gt; 19)) ^ (t ^ (t &gt;&gt; 8))</code>, all uint32.</p>
+<p>Element limits: 10,000 elements (<code>E_ELEMS</code>; <code>&lt;g&gt;</code> and gradient defs count, <code>&lt;/g&gt;</code> does not), 2,048 path segments (M, L, LR, QR and Z each count; <code>E_PATH</code>), final SVG at most 1,048,576 bytes (<code>E_SIZE</code>). Checked in that order at emission with a running byte total starting at the opening tag's length.</p>
+<h2>5. Inputs from the host</h2>
+<pre><code>lanes    = 8 x int32 LE from blake2b-256(&#34;ReliksSeedV2&#34; || le64(serial))   // full 63-bit serial
+serial32 = int32(serial mod 2^32)
+pat      = blake2b-256(&#34;ReliksPatinaV2&#34; || lineage[32])[0] &amp; 63
+wear     = min(sales, 255)
+</code></pre>
+<p>Why <code>pat</code> is one 6-bit value (proposed): a buyer can pick a pubkey offline and thereby steer <code>lineage</code>. Exposing only 64 values bounds that grinding by construction. <code>wear</code> is not grindable. Using the full serial (v12 used 32 bits) avoids birthday collisions near 65k editions.</p>
+<p>Note for the faithful port: it needs the <em>v12</em> lane derivation (<code>&quot;ReliksSeedV10&quot;</code> and the 32-bit serial) to reproduce mainnet art. That derivation is a host rule, not a VM rule.</p>
+<h2>6. Canonical SVG</h2>
+<p>ASCII, no whitespace between elements, no trailing newline:</p>
+<pre><code>&lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;0 0 W H&#34;&gt;ELEMENTS&lt;/svg&gt;
+</code></pre>
+<ul>
+<li>Integers in decimal; colors <code>#rrggbb</code> lowercase or <code>none</code>; gradient fill is <code>url(#gN)</code>.</li>
+<li><code>S</code> = <code> stroke=&quot;#rrggbb&quot; stroke-width=&quot;N&quot;</code> (only if stroke is set). <code>O</code> = <code> opacity=&quot;x&quot;</code> (only if not 100). Opacity text: 100 is <code>1</code>, 0 is <code>0</code>, else <code>0.</code> plus two digits with trailing zeros removed.</li>
+</ul>
+<pre><code>rect    &lt;rect x y width height fill S O/&gt;
+circle  &lt;circle cx cy r fill S O/&gt;
+line    &lt;line x1 y1 x2 y2 stroke stroke-width O/&gt;
+path    &lt;path d fill S O/&gt;
+group   &lt;g&gt;  or  &lt;g opacity=&#34;x&#34;&gt;  ...  &lt;/g&gt;
+defs    &lt;defs&gt;&lt;radialGradient id=&#34;gN&#34;&gt;&lt;stop offset=&#34;P%&#34; stop-color=&#34;#rrggbb&#34; [stop-opacity=&#34;x&#34;]/&gt;...&lt;/radialGradient&gt;&lt;/defs&gt;
+</code></pre>
+<p>Path <code>d</code>: segments concatenated with no separator: <code>M&lt;x&gt; &lt;y&gt;</code>, <code>L&lt;x&gt; &lt;y&gt;</code>, <code>l&lt;dx&gt; &lt;dy&gt;</code>, <code>q&lt;cx&gt; &lt;cy&gt; &lt;dx&gt; &lt;dy&gt;</code>, <code>Z</code>.</p>
+<p><code>render_hash = blake2b-256(svg bytes)</code>. Anchor rule (proposed): render at serial 1, lineage all zero, sales 0.</p>
+<h2>7. Faults</h2>
+<p>Any fault invalidates the render (no partial output): <code>E_HEADER E_DECODE E_TARGET E_UNDERFLOW E_OVERFLOW E_DIV0 E_RANGE E_FUEL E_ELEMS E_SIZE E_CALLDEPTH E_NOHALT E_PATH E_RNG E_STROKE E_GROUP E_GRAD</code>. Conformance means the same code, not just &quot;some fault&quot;.</p>
+<h2>8. Assembler (tooling only)</h2>
+<p>Free-form tokens, <code>;</code> comments, <code>label:</code>, numbers decimal or <code>0x</code>. Directives <code>.canvas W H</code>, <code>.byte N</code>, <code>.var NAME CELL</code>. Loads and stores accept variable names (<code>ld X</code>, <code>st X</code>). Macros: <code>show</code> (draw a 1x1 rect at the popped x, for tests), <code>next VAR LIMIT LABEL</code> and <code>nextle</code> (increment and loop while below / at most the limit).</p>
+<h2>9. DAG-City port results</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Original JS</th>
+<th>Faithful port</th>
+<th>Clean port</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Source / program size</td>
+<td>5,323 bytes</td>
+<td><strong>1,615 bytes</strong></td>
+<td><strong>1,567 bytes</strong></td>
+</tr>
+<tr>
+<td>Output vs original</td>
+<td></td>
+<td>identical elements, 310 of 310 serials</td>
+<td>different city (RNG alias fixed)</td>
+</tr>
+<tr>
+<td>Worst fuel / elements / SVG</td>
+<td></td>
+<td>127,617 / 1,709 / 105 KB</td>
+<td>about 84k / 1,499 / 92 KB (serial 1)</td>
+</tr>
+<tr>
+<td>History inputs</td>
+<td>none</td>
+<td>none</td>
+<td><code>PAT</code> tints one building family, <code>WEAR</code> fades window lights</td>
+</tr>
+</tbody>
+</table>
+<p>The faithful port's SVG is about 10% larger than the original's because canonical form spells out per-element stroke inside groups. Sources and comparison scripts are in <code>dagcity.py</code>, <code>verify_dagcity.py</code>, <code>sweep_dagcity.py</code>.</p>
+<p>Program hashes: faithful <code>792fed9b8c47d5fbc4f8c60d2929eb929fa8cd34e447317252fbd5821a59dd22</code>, clean <code>cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07</code>.</p>
+<h2>10. Test vectors</h2>
+<p><code>vectors.json</code>: 5 host-derivation vectors and 98 program cases: 62 fault cases (one per rule, including every new op), boundary passes at exactly 10,000 elements and 2,048 segments, arithmetic edges with hand-written expectations, PRNG sequences from a separate generator, indirect memory, relative paths, group and gradient rules, and DAG-City renders. <code>python3 gen_vectors.py</code> regenerates and self-checks; <code>node check.js</code> runs everything through the JS interpreter.</p>
+<h2>11. Remaining gaps and decisions</h2>
+<ol>
+<li><strong>Third implementation.</strong> Two agreeing interpreters written by the same author is weaker evidence than a Rust one written from this spec alone. Recommended before genesis.</li>
+<li><strong>Faithful or clean city?</strong> See section 0.</li>
+<li><strong>Limits are now measured, not guessed, for this one engine.</strong> Worst case was 13% of fuel and 17% of elements. Other engines may need more; nothing here argues for raising them.</li>
+<li><strong>Assembly ergonomics.</strong> The port used variables for everything; stack-only code would be unreadable. A small structured-language compiler is worth building before third-party artists write engines. <code>PICK</code> and <code>2DUP</code> would shorten hand-written code but were not needed.</li>
+<li><strong>Rasterization is not part of the spec.</strong> Identity was checked on parsed elements, not pixels. Two renderers can still differ in anti-aliasing, which is outside what the hash covers.</li>
+<li><strong>Lane derivation for legacy art</strong> (section 5) must be handled by the host if mainnet editions are to render unchanged.</li>
+</ol>
+
+</body></html>
