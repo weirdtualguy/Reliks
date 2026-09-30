@@ -1,0 +1,17 @@
+const fs=require('fs'),V=require('../reliks-lib.js'),B=Buffer;
+const LD=JSON.parse(fs.readFileSync('v13/ledger-testnet-v13.json','utf8')),ed=LD.editions[0];
+const Ed=V.parts(JSON.parse(fs.readFileSync('v13/out/v13.json','utf8')));
+const b2=a=>B.from(V.blake2b(B.concat(a),{dkLen:32})).toString('hex');
+const dom=B.from('ReliksLineageV2','utf8');
+const le32=n=>{const b=B.alloc(4);b.writeUInt32LE(n);return b;};
+const K2=fs.readFileSync('v13/key2.env','utf8').match(/KEY2_PUB=(\w+)/)[1];
+const laneTx=LD.editions.length>1?LD.editions[LD.editions.length-2].txId:LD.genesisTxId;
+const L0=b2([B.from('ReliksGenesisV2','utf8'),B.from(laneTx,'hex'),le32(0)]);
+const mv=(l,o)=>b2([dom,B.from(l,'hex'),B.from(o,'hex')]);
+const L1=mv(L0,K2),L2=mv(L1,V.USER);
+const st=(o,l)=>({ownerIdentifier:o,identifierType:0,price:0,artist:LD.series.artist,royalty_bips:LD.series.royalty_bips,program_hash:LD.series.program_hash,factory_covid:LD.C,serial:ed.serial,lineage:l,sales:0});
+const spk=s=>V.p2sh(B.concat([Ed.prefix,V.encState(Ed,s),Ed.suffix]));
+const exp=[['mint',spk(st(V.USER,L0))],['main->key2',spk(st(K2,L1))],['key2->main',spk(st(V.USER,L2))]];
+console.log('ledger lineage == recomputed L2:',ed.lineage===L2);
+(async()=>{const j=await (await fetch(V.kascov+'/c/'+ed.cov+'.json')).json();
+ for(const [n,s] of exp){const m=(j.utxos||[]).find(x=>x.script_hex===s);console.log(n.padEnd(11),m?'ON CHAIN '+m.outpoint.slice(0,12):'NOT FOUND');}})();

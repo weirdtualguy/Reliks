@@ -47,11 +47,12 @@ patch('secondary-v12.js', 'v13/secondary-v13.js', [
   } else if (cmd === 'transfer') {
     const newOwner = String(priceArg || '');
     if (!/^[0-9a-f]{64}$/.test(newOwner)) throw new Error('transfer needs a 64-hex x-only pubkey as the 3rd argument');
+    const nx = { ...advOf(newOwner), sales: ed.sales };
     const wIn = await pickUtxo();
     const inputs = [edIn, wIn];
     function build(fee) {
       const outputs = [
-        { amount: DUST, scriptPublicKey: V.p2sh(redeemOf(stateOf(newOwner, 0))), covenant: { authorizingInput: 0, covenantId: ed.cov } },
+        { amount: DUST, scriptPublicKey: V.p2sh(redeemOf(stateOf(newOwner, 0, nx))), covenant: { authorizingInput: 0, covenantId: ed.cov } },
         { amount: wIn.amount - fee, scriptPublicKey: wIn.spk }
       ];
       const rawSig = secp.schnorr.signSync(sighash(inputs, outputs, 0), V.PRIV);
@@ -61,7 +62,7 @@ patch('secondary-v12.js', 'v13/secondary-v13.js', [
     }
     const { txId } = await feeLoop(build);
     await waitForConfirmation(txId);
-    ed.owner = newOwner; ed.price = 0; ed.txId = txId; ed.index = 0;
+    ed.lineage = nx.lineage; ed.owner = newOwner; ed.price = 0; ed.txId = txId; ed.index = 0;
     ed.spk = hex(V.p2sh(redeemOf(stateOf(ed.owner, ed.price))));
     fs.writeFileSync('v13/ledger-testnet-v13.json', JSON.stringify(LD, null, 2));
     console.log('RELIKS TRANSFER:', txId, '| newOwner', newOwner.slice(0, 16));

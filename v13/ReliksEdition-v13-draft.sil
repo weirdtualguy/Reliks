@@ -1,6 +1,6 @@
 pragma silverscript ^0.1.0;
 
-// DRAFT v13 (UNCOMPILED): adds lineage + sales; buy/sell advance them, transfer/list/unlist copy them;
+// DRAFT v13 (transfer advances lineage, not sales): adds lineage + sales; buy/sell advance them, transfer/list/unlist copy them;
 // sell's zero-price branch removed (use transfer). Not verified with silverc.
 // Mint (SeriesFactory) must also add lineage/sales to EditionState:
 //   lineage = blake2b(byte[]("ReliksGenesisV2") + OpOutpointTxId(this.activeInputIndex) + (OpOutpointIndex(this.activeInputIndex) as byte[4])), sales = 0
@@ -88,6 +88,23 @@ contract ReliksEdition(
         };
     }
 
+    // Free handover: advances lineage (provenance) but NOT sales (royalty-paying sales only).
+    function movedState(byte[32] newOwner): State {
+        byte[] domain = byte[]("ReliksLineageV2");
+        return State {
+            ownerIdentifier: newOwner,
+            identifierType: IDENTIFIER_PUBKEY,
+            price: 0,
+            artist: artist,
+            royalty_bips: royalty_bips,
+            program_hash: program_hash,
+            factory_covid: factory_covid,
+            serial: serial,
+            lineage: blake2b(domain + lineage + newOwner),
+            sales: sales
+        };
+    }
+
     // Carrier value conservation: edition output >= edition input
     function carrierConserved() {
         int outIdx = OpAuthOutputIdx(this.activeInputIndex, 0);
@@ -142,7 +159,7 @@ contract ReliksEdition(
     function transferPolicy(State prev_state, byte[32] newOwner, sig ownerSig) : (State) {
         ownerAuthorized(ownerSig);
         carrierConserved();
-        return clearedState(newOwner);
+        return movedState(newOwner);
     }
 
     #[covenant(binding = auth, from = 1, to = 1, mode = transition, termination = allowed, name = spend)]
