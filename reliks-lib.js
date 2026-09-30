@@ -246,6 +246,22 @@ async function waitForConfirmation(txId, maxWait = 120000) {
       // kascov network error — retry
     }
 
+    // --- Layer 3: wallet UTXO set (a plain-P2SH output, e.g. an escrow offer, is never indexed by kascov) ---
+    try {
+      const wres = await fetch(N.rest + '/addresses/' + WALLET + '/utxos');
+      if (wres.ok) {
+        const wu = await wres.json();
+        if (Array.isArray(wu) && wu.some(u => u.outpoint.transactionId === txId && u.utxoEntry.blockDaaScore)) {
+          console.log('  confirmed via wallet UTXO set (change output mined)');
+          console.log('  waiting 10s to clear orphan window...');
+          await new Promise(r => setTimeout(r, 10000));
+          return true;
+        }
+      }
+    } catch (e) {
+      // network error - retry
+    }
+
     await new Promise(r => setTimeout(r, 5000));
   }
   console.error('  FATAL: tx ' + txId + ' NOT confirmed within ' + maxWait + 'ms via REST or kascov. Refusing to write ledger.');
