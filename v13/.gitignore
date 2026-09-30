@@ -11,3 +11,6 @@ accept-v13.js
 ledger-*.json
 key2.env
 *.env
+vm-engine-shim.js
+vm-render-*.svg
+dagcity-clean.hex
