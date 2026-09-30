@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 function fromAbi(file) {
-  const abi = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', file), 'utf8'));
+  const abi = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'data', file), 'utf8'));
   const name = Object.keys(abi.contracts)[0];
   const c = abi.contracts[name].compiled;
   const bc = Buffer.from(c.bytecode);
@@ -24,9 +24,10 @@ function fromAbi(file) {
   };
 }
 
-module.exports = function templates() {
+module.exports = function templates(opts) {
+  opts = opts || {};
   const f = fromAbi('factory-abi-v12.json');
-  const e = fromAbi('edition-abi-v12.json');
+  const e = fromAbi(opts.editionAbi || 'edition-abi-v12.json');
   return {
     factory: { prefixHex: f.prefixHex, suffixHex: f.suffixHex, span: f.span, templateHashHex: f.templateHashHex, entries: f.entries, fields: f.fields },
     edition: { prefixHex: e.prefixHex, suffixHex: e.suffixHex, span: e.span, templateHashHex: e.templateHashHex, entries: e.entries, fields: e.fields }

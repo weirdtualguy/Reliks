@@ -76,6 +76,10 @@
   /* ------------------------------------------------------------ state codec */
   // Field order and widths are frozen with the v12 contracts (spans 135 / 161).
   var ED = [['ownerIdentifier', 32], ['identifierType', 1], ['price', 8], ['artist', 32], ['royalty_bips', 8], ['program_hash', 32], ['factory_covid', 32], ['serial', 8]];
+  // v13 appends lineage (32) and sales (8); chosen automatically when the loaded edition template has a 'lineage' field.
+  var ED13 = ED.concat([['lineage', 32], ['sales', 8]]);
+  function edTable() { var f = TPL && TPL.edition && TPL.edition.fields; return (f && f.indexOf('lineage') >= 0) ? ED13 : ED; }
+  function editionHasLineage() { return edTable() === ED13; }
   var FC = [['program_hash', 32], ['artist', 32], ['price', 8], ['royalty_bips', 8], ['mints_left', 8], ['engine_lang', 8], ['render_hash', 32]];
   function encFields(tbl, s) {
     var out = [];
@@ -96,7 +100,7 @@
     return cat(out);
   }
   function encFactoryState(s) { return encFields(FC, s); }
-  function encEditionState(s) { return encFields(ED, s); }
+  function encEditionState(s) { return encFields(edTable(), s); }
 
   var TPL = null;
   function init(templates) {
@@ -119,6 +123,9 @@
     for (var i = 0; i < 7; i++) s += BigInt(h[i]) * (256n ** BigInt(i));
     return (s + BigInt(h[7] % 128) * 72057594037927936n).toString();
   }
+  // v13 provenance chain: genesis = blake2b('ReliksGenesisV2' || lane txid || le32(lane index)); each ownership change = blake2b('ReliksLineageV2' || prev || newOwner).
+  function genesisLineage(txId, index) { return u8hex(hash(cat([utf8('ReliksGenesisV2'), hex2u8(txId), le32(index)]))); }
+  function advanceLineage(prevHex, ownerHex) { return u8hex(hash(cat([utf8('ReliksLineageV2'), hex2u8(prevHex), hex2u8(ownerHex)]))); }
   // KIP-20 genesis covenant id: keyed blake2b("CovenantID") over the authorizing outpoint and the bound outputs.
   function covenantIdGenesis(authTxId, authIndex, outs) {
     var parts = [hex2u8(authTxId), le32(authIndex), le64(outs.length)];
@@ -206,8 +213,11 @@
   function decodeEditionState(revealedHex) {
     var span = tpl().edition.span;
     var p = parsePushes(revealedHex.slice(span.offset * 2, (span.offset + span.len) * 2));
-    if (p.length !== 8) throw new Error('edition state has ' + p.length + ' fields, expected 8');
-    return { ownerIdentifier: p[0], identifierType: Number(u64le(p[1])), price: u64le(p[2]), artist: p[3], royalty_bips: u64le(p[4]), program_hash: p[5], factory_covid: p[6], serial: u64le(p[7]).toString() };
+    var want = edTable().length;
+    if (p.length !== want) throw new Error('edition state has ' + p.length + ' fields, expected ' + want);
+    var st = { ownerIdentifier: p[0], identifierType: Number(u64le(p[1])), price: u64le(p[2]), artist: p[3], royalty_bips: u64le(p[4]), program_hash: p[5], factory_covid: p[6], serial: u64le(p[7]).toString() };
+    if (want === 10) { st.lineage = p[8]; st.sales = u64le(p[9]); }
+    return st;
   }
 
   /* ------------------------------------------------------------ chain access (injected fetch, so tests can mock) */
@@ -289,6 +299,7 @@
     var nextSpk = p2shSpk(factoryRedeem(next));
     var serial = serialFromOutpoint(p.lane.outpoint.txId, p.lane.outpoint.index);
     var edState = { ownerIdentifier: buyer.pubkey, identifierType: 0, price: 0, artist: st.artist, royalty_bips: st.royalty_bips, program_hash: st.program_hash, factory_covid: p.lane.covenantId, serial: serial };
+    if (editionHasLineage()) { edState.lineage = genesisLineage(p.lane.outpoint.txId, p.lane.outpoint.index); edState.sales = 0; }
     var edSpk = p2shSpk(editionRedeem(edState));
     var edCov = covenantIdGenesis(funding.txId, funding.index, [{ idx: 1, value: Number(CARRIER), script: edSpk }]);
     var outputs = [
@@ -439,6 +450,7 @@
     encFactoryState: encFactoryState, encEditionState: encEditionState, factoryRedeem: factoryRedeem, editionRedeem: editionRedeem,
     p2shSpk: p2shSpk, p2pkSpk: p2pkSpk, p2pkAddress: p2pkAddress, p2shAddress: p2shAddress,
     serialFromOutpoint: serialFromOutpoint, covenantIdGenesis: covenantIdGenesis,
+    genesisLineage: genesisLineage, advanceLineage: advanceLineage, editionHasLineage: editionHasLineage,
     decodeFactoryState: decodeFactoryState, decodeEditionState: decodeEditionState, parsePushes: parsePushes,
     spkOfOutput: spkOfOutput, outputValue: outputValue, inputOutpoint: inputOutpoint, covenantOf: covenantOf,
     makeIO: makeIO, resolveLane: resolveLane,
