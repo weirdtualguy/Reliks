@@ -5,7 +5,7 @@ import dagcity, rvm
 
 # opacity = 3*(wear>0) + w*(510-w)*47//65025 with w = min(wear,255): concave, never above 50, integer-only
 WASH = ('wear jz nowash push -1 stroke push 0xe7dfc8 fill '
-        'wear push 255 min dup push 510 swap sub mul push 47 mul push 65025 div '
+        'wear push 255 min dup push 510 swap sub mul push 11 mul push 65025 div '
         'wear push 0 gt push 3 mul add opacity '
         'push 0 push 0 push 1600 push 1600 rect push 100 opacity nowash:')
 ANCHOR = 'push 6 push 6 call ix st GX'
