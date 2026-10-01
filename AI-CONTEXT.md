@@ -44,3 +44,6 @@ Generative-art NFTs on Kaspa, built from L1 covenants (SilverScript). A series i
 - v13/verify-vm-render.js <edIndex>: rebuilds lane and edition scripts from templates + ledger, checks they exist on kascov, then renders with rvm.js and rvm.py and compares hashes (MATCH).
 - v13/cross-check-wear.js: JS vs Python interpreters over a grid of serials/lineages/wear values.
 - Browser: v13/gen-demo-v13.js output opened in Kiwi (file:///storage/emulated/0/Download/...).
+
+## Health check
+- `sh tools/check.sh` (add `full` to also run `npm test`) verifies every ledger edition against the chain and cross-checks the two interpreters. Run it before and after any change and report its output instead of claiming things work.
