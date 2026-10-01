@@ -25,3 +25,4 @@ Updated 2026-10-01. Branch `v13-lineage` (local only).
 - spend/burn verification and escrow-accept negative test on testnet; site VM rendering for the mainnet site; third VM implementation; docs update.
 - 2026-10-01 added AI-CONTEXT.md, STATE.md, tools/ctx.sh; demo label fix committed
 - 2026-10-01 tools/check.sh (all pass) and tools/export-context.sh added; context bundle exported
+- 2026-10-01 demo shows per-edition history (run tools/fetch-history.js after any mint or sale, then rebuild the demo)
