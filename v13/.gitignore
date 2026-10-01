@@ -14,3 +14,10 @@ key2.env
 vm-engine-shim.js
 vm-render-*.svg
 dagcity-clean.hex
+dagcity-wear*.hex
+vm/dagcity_wear_c*.py
+vm-engine-shim*.js
+series-test.json
+__pycache__/
+apply-transfer-lineage.js
+apply-web-v13.js
