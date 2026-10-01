@@ -31,7 +31,7 @@ eds.forEach((e, i) => {
   console.log('edition ' + i + ' node render: sales ' + e.sales + ' wear ' + hi.wear + ' pat ' + hi.pat + ' hash ' + hx(b2(new Uint8Array(Buffer.from(svg, 'ascii')))));
 });
 
-let HIST = {}; try { HIST = JSON.parse(fs.readFileSync('v13/history-vm-v13.json', 'utf8')); } catch (e) { console.log('no history file: timelines omitted'); }
+let HIST = {}; try { HIST = JSON.parse(fs.readFileSync(process.env.RELIKS_HISTORY || 'v13/history-vm-v13.json', 'utf8')); } catch (e) { console.log('no history file: timelines omitted'); }
 eds.forEach(e => { e.history = HIST[e.cov] || []; });
 const safe = s => s.replace(/<\/script/gi, '<\\/script');
 const DEMO = { prog: hx(prog), programHash: LD.series.program_hash, royaltyBips: Number(LD.series.royalty_bips), editions: eds };
