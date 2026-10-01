@@ -46,3 +46,6 @@ PUBLISH-READINESS-*.md
 accept-v5
 offer-v5
 secondary-v12
+v13/*.bak*
+v13/demo-v13.html
+v13/wash-preview.html

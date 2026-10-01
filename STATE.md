@@ -23,3 +23,4 @@ Updated 2026-10-01. Branch `v13-lineage` (local only).
 
 ## Open from v13
 - spend/burn verification and escrow-accept negative test on testnet; site VM rendering for the mainnet site; third VM implementation; docs update.
+- 2026-10-01 added AI-CONTEXT.md, STATE.md, tools/ctx.sh; demo label fix committed

@@ -54,7 +54,7 @@ D.editions.forEach(function(ed,i){
   function show(){
     try{var r=draw(ed,sales,lin);img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(r.svg);
       meta.textContent='';
-      [['Edition','#'+i+'  serial '+ed.serial],['Sales',String(sales)+(sim?'  ('+sim+' simulated)':'  (on chain)')],['Wear',String(r.wear)+' / 255'],['Patina',String(r.pat)],['Lineage',short(hex(lin))],['Owner',short(ed.owner)]].forEach(function(kv){var d=el('div');d.appendChild(el('dt','',kv[0]));d.appendChild(el('dd','',kv[1]));meta.appendChild(d);});
+      [['Edition','#'+i+'  serial '+ed.serial],['Sales',String(sales)+(sim?'  ('+sim+' simulated)':(sales===ed.sales?'  (on chain)':'  (preview)'))],['Wear',String(r.wear)+' / 255'],['Patina',String(r.pat)],['Lineage',short(hex(lin))],['Owner',short(ed.owner)]].forEach(function(kv){var d=el('div');d.appendChild(el('dt','',kv[0]));d.appendChild(el('dd','',kv[1]));meta.appendChild(d);});
       rng.value=Math.min(sales,255);note.textContent='';
     }catch(e){note.textContent='Render failed: '+(e.code||e.message);}
   }
