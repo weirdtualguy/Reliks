@@ -20,6 +20,7 @@ patch('mint-v12.js', 'v13/mint-v13.js', [
    "const serial = serialOfV10(laneTxId, 0);\n  const LIN0 = B.from(V.blake2b(B.concat([B.from('ReliksGenesisV2', 'utf8'), B.from(laneTxId, 'hex'), (() => { const b = B.alloc(4); b.writeUInt32LE(0); return b; })()]), { dkLen: 32 })).toString('hex');"],
   ['factory_covid: LD.C, serial };', 'factory_covid: LD.C, serial, lineage: LIN0, sales: 0 };'],
   ['serial, owner: V.USER, price: 0,', 'serial, lineage: LIN0, sales: 0, owner: V.USER, price: 0,'],
+  ['LD.editions[LD.editions.length - 1].txId : LD.genesisTxId', 'LD.editions[LD.editions.length - 1].mintTxId : LD.genesisTxId'],
 ]);
 const advDef = "const advOf = nw => { const a = { lineage: B.from(V.blake2b(B.concat([B.from('ReliksLineageV2', 'utf8'), H(ed.lineage), H(nw)]), { dkLen: 32 })).toString('hex'), sales: ed.sales + 1 }; if (process.env.NEG === 'sales') a.sales = ed.sales; if (process.env.NEG === 'lineage') a.lineage = ed.lineage; return a; };\n  const redeemOf =";
 patch('secondary-v12.js', 'v13/secondary-v13.js', [
@@ -45,7 +46,7 @@ patch('secondary-v12.js', 'v13/secondary-v13.js', [
     await waitForConfirmation(txId);
     ed.price = 0; ed.txId = txId; ed.index = 0;
     ed.spk = hex(V.p2sh(redeemOf(stateOf(ed.owner, ed.price))));
-    fs.writeFileSync('v13/ledger-testnet-v13.json', JSON.stringify(LD, null, 2));
+    fs.writeFileSync((process.env.RELIKS_LEDGER || 'v13/ledger-testnet-v13.json'), JSON.stringify(LD, null, 2));
     console.log('RELIKS UNLIST:', txId);
   } else if (cmd === 'transfer') {
     const newOwner = String(priceArg || '');
@@ -67,7 +68,7 @@ patch('secondary-v12.js', 'v13/secondary-v13.js', [
     await waitForConfirmation(txId);
     ed.lineage = nx.lineage; ed.owner = newOwner; ed.price = 0; ed.txId = txId; ed.index = 0;
     ed.spk = hex(V.p2sh(redeemOf(stateOf(ed.owner, ed.price))));
-    fs.writeFileSync('v13/ledger-testnet-v13.json', JSON.stringify(LD, null, 2));
+    fs.writeFileSync((process.env.RELIKS_LEDGER || 'v13/ledger-testnet-v13.json'), JSON.stringify(LD, null, 2));
     console.log('RELIKS TRANSFER:', txId, '| newOwner', newOwner.slice(0, 16));
   } else if (cmd === 'sell') {`],
   ['if (askPrice !== 0n && askPrice < 100000000n)', 'if (askPrice < 100000000n)'],
