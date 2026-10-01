@@ -31,6 +31,8 @@ eds.forEach((e, i) => {
   console.log('edition ' + i + ' node render: sales ' + e.sales + ' wear ' + hi.wear + ' pat ' + hi.pat + ' hash ' + hx(b2(new Uint8Array(Buffer.from(svg, 'ascii')))));
 });
 
+let HIST = {}; try { HIST = JSON.parse(fs.readFileSync('v13/history-vm-v13.json', 'utf8')); } catch (e) { console.log('no history file: timelines omitted'); }
+eds.forEach(e => { e.history = HIST[e.cov] || []; });
 const safe = s => s.replace(/<\/script/gi, '<\\/script');
 const DEMO = { prog: hx(prog), programHash: LD.series.program_hash, royaltyBips: Number(LD.series.royalty_bips), editions: eds };
 const client = `
@@ -61,13 +63,13 @@ D.editions.forEach(function(ed,i){
   rng.addEventListener('input',function(){sales=Number(rng.value);show();});
   bSim.addEventListener('click',function(){var o=new Uint8Array(32);crypto.getRandomValues(o);lin=B(cat([new TextEncoder().encode('ReliksLineageV2'),lin,o]),32);sales++;sim++;show();});
   bReset.addEventListener('click',function(){lin=lin0;sales=ed.sales;sim=0;show();});
-  card.appendChild(img);card.appendChild(meta);
+  card.appendChild(img);card.appendChild(meta);var tl=el('details','tl');tl.appendChild(el('summary','','History ('+ed.history.length+' on-chain events)'));ed.history.forEach(function(h){var d=el('div','ev');d.appendChild(el('span','',h.kind==='genesis'?'Minted':'Transfer or sale'));d.appendChild(el('span','',new Date(h.t).toISOString().slice(0,16).replace('T',' ')+' UTC'));d.appendChild(el('code','',short(h.txid)));tl.appendChild(d);});if(!ed.history.length)tl.appendChild(el('p','small','No history snapshot in this build.'));card.appendChild(tl);
   var row=el('div','row');row.appendChild(el('label','','Wear preview'));row.appendChild(rng);card.appendChild(row);
   var row2=el('div','row');row2.appendChild(bSim);row2.appendChild(bReset);card.appendChild(row2);card.appendChild(note);
   host.appendChild(card);show();
 });
 })();`;
-const css = 'body{margin:0;background:#06080b;color:#e7dfc8;font:15px system-ui,sans-serif}main{max-width:560px;margin:0 auto;padding:16px}h1{font-size:20px;margin:8px 0}.ok{color:#49c5b1}.bad{color:#e55}.note{color:#e55;font-size:13px}.small{color:#8a8f98;font-size:13px}.card{background:#0d1117;border:1px solid #1e2530;border-radius:12px;padding:12px;margin:14px 0}.art{width:100%;aspect-ratio:1;background:#000;border-radius:8px;display:block}.meta{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin:10px 0}.meta div{display:flex;gap:6px}dt{color:#8a8f98}dd{margin:0}.row{display:flex;gap:8px;align-items:center;margin:8px 0}.row input{flex:1}.btn{background:#49c5b1;color:#06080b;border:0;border-radius:8px;padding:9px 12px;font-weight:600}.btn.ghost{background:#1e2530;color:#e7dfc8}';
+const css = 'body{margin:0;background:#06080b;color:#e7dfc8;font:15px system-ui,sans-serif}main{max-width:560px;margin:0 auto;padding:16px}h1{font-size:20px;margin:8px 0}.ok{color:#49c5b1}.bad{color:#e55}.note{color:#e55;font-size:13px}.small{color:#8a8f98;font-size:13px}.card{background:#0d1117;border:1px solid #1e2530;border-radius:12px;padding:12px;margin:14px 0}.art{width:100%;aspect-ratio:1;background:#000;border-radius:8px;display:block}.meta{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin:10px 0}.meta div{display:flex;gap:6px}dt{color:#8a8f98}dd{margin:0}.row{display:flex;gap:8px;align-items:center;margin:8px 0}.row input{flex:1}.btn{background:#49c5b1;color:#06080b;border:0;border-radius:8px;padding:9px 12px;font-weight:600}.btn.ghost{background:#1e2530;color:#e7dfc8}.tl{margin:8px 0}.ev{display:flex;gap:10px;justify-content:space-between;font-size:13px;padding:4px 0;border-top:1px solid #1e2530}';
 const html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reliks v13 demo (testnet)</title><style>' + css + '</style></head><body><main><h1>Reliks v13: living editions (testnet-10)</h1><p class="small">Snapshot of the testnet ledger, rendered in your browser by the Reliks-VM. Simulated sales are off-chain. On-chain commitment checks still run in verify-vm-render.js.</p><p id="st">Checking program…</p><div id="host"></div></main>' +
   '<script>window.DEMO=' + safe(JSON.stringify(DEMO)) + ';</script>' +
   '<script>' + safe(fs.readFileSync('web/blake2b.js', 'utf8')) + '</script>' +
