@@ -34,3 +34,4 @@ Updated 2026-10-01. Branch `v13-lineage` (local only).
 - 2026-10-01 marks3 escrow: negative test (seller short by 1 sompi) rejected by nodes, no spend; honest offer/accept verified on chain (sales 2, render MATCH). Escrow ledger v13/escrow-ledger-marks3-v13.json (gitignored, backed up). Closes 'escrow-accept negative test' from v13 open list
 - 2026-10-02 Mission changed: Reliks is now infrastructure for third-party marketplaces. Read INFRA-HANDOFF.md first.
 - 2026-10-02 check.sh now covers marks3 + dispatch tags; npm test passes in full mode; git bundle backup in ~/storage/downloads/reliks-backup
+- 2026-10-02 cleanup step 1: series-dummy.json archived; retired local leftovers moved to ~/storage/downloads/reliks-backup/retired; check.sh passes
