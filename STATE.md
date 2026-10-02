@@ -35,3 +35,4 @@ Updated 2026-10-01. Branch `v13-lineage` (local only).
 - 2026-10-02 Mission changed: Reliks is now infrastructure for third-party marketplaces. Read INFRA-HANDOFF.md first.
 - 2026-10-02 check.sh now covers marks3 + dispatch tags; npm test passes in full mode; git bundle backup in ~/storage/downloads/reliks-backup
 - 2026-10-02 cleanup step 1: series-dummy.json archived; retired local leftovers moved to ~/storage/downloads/reliks-backup/retired; check.sh passes
+- 2026-10-02 vm/check.js path fixed (105 vectors pass); check.sh now runs vm vectors (JS + Python regen-identical). Probe, cleanup step 1 done.
