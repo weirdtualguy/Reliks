@@ -37,3 +37,4 @@ Updated 2026-10-01. Branch `v13-lineage` (local only).
 - 2026-10-02 cleanup step 1: series-dummy.json archived; retired local leftovers moved to ~/storage/downloads/reliks-backup/retired; check.sh passes
 - 2026-10-02 vm/check.js path fixed (105 vectors pass); check.sh now runs vm vectors (JS + Python regen-identical). Probe, cleanup step 1 done.
 - 2026-10-02 v13/SPEC-GAPS.md written (VM spec vs code done; protocol docs pending)
+- 2026-10-02 marks3 edition 0 self-sold on testnet (sales 3), verified; plain testnet self-send also confirmed from Termux (tools/send-self.js)
