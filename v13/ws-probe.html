@@ -1,0 +1,11 @@
+<!doctype html><meta name=viewport content="width=device-width"><body style="background:#06080b;color:#ccc;font:14px monospace"><pre id=o></pre><script>
+const o=document.getElementById('o'),log=m=>o.textContent+=m+'\n';
+const urls=new URLSearchParams(location.search).getAll('u');
+if(!urls.length)log('add ?u=wss://... (repeat u=)');
+urls.forEach(u=>{let ws,done=false;const t=setTimeout(()=>fin('TIMEOUT 15s'),15000);
+function fin(m){if(done)return;done=true;clearTimeout(t);log(u+' -> '+m);try{ws.close()}catch(e){}}
+try{ws=new WebSocket(u)}catch(e){return fin('CTOR '+e.message)}
+ws.onopen=()=>ws.send(JSON.stringify({id:1,method:'submitTransaction',params:{transaction:{},allowOrphan:true}}));
+ws.onerror=()=>fin('REFUSED');ws.onmessage=m=>fin('NODE ANSWERED: '+String(m.data).slice(0,160));
+ws.onclose=()=>fin('CLOSED before answer');});
+</script>

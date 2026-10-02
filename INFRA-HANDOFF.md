@@ -151,3 +151,10 @@ Full root listing and the contents of `data/`, `docs/`, `test/`, `.attic/`; what
 2. Is `docs/` the GitHub Pages output?
 3. Should the SDK be a standalone package (own repo, npm) or stay inside this repo?
 4. Is there any budget for an independent audit?
+
+## 12. Root layout (listing 2026-10-02)
+- Tracked root files: the v12 core (deploy-v12.js, mint-v12.js, secondary-v12.js, accept-v5.js, offer-v5.js, reliks-lib.js, reliks-templates.js, reliks-lens.js, reliks-engine-mainnet.js, reliks-engine-v10.js, gen-site.js, gen-gallery.js, gen-factory-args.js, network.js, config.js, bech32-kaspa.js, verify-render.js) and the dirs archive, data, docs (15 files, likely the Pages output; confirm via gen-site.js), sil (7), test (5), tools (5), v13 (38), web (8), .github.
+- About 60 root files were untracked one-shot scripts (patch-*, fix-*, verify-v12-*, seed-*, SVGs); moved to .attic/root-2026-10 (local only).
+- Secrets files secrets.env, secrets-v11.env, secrets.mainnet.env exist on the phone and must stay untracked. secrets.mainnet.env implies a mainnet key.
+- Correction to section 8: v13/history-marks3-v13.json was not ignored before 2026-10-02; it is now.
+- Untracked and not understood: tags.js, refs, tmp, lens-out, prune.txt, whitelist.txt. The reliks-audit-*.js files stayed in the root because the pre-commit hook may call them.
