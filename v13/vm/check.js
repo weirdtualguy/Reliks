@@ -1,7 +1,7 @@
 /* Runs vectors.json through the JS interpreter. Exit code 1 on any mismatch. */
 'use strict';
 const fs = require('fs'), path = require('path');
-const { blake2b } = require('../web/blake2b.js');
+const { blake2b } = require('../../web/blake2b.js');
 const vm = require('./rvm.js');
 const V = JSON.parse(fs.readFileSync(path.join(__dirname, 'vectors.json'), 'utf8'));
 const hex = (u) => Buffer.from(u).toString('hex');
