@@ -165,3 +165,11 @@ Full root listing and the contents of `data/`, `docs/`, `test/`, `.attic/`; what
 - The audit that exists is automated review only (docs/AUDIT-SUMMARY.md; the site table says Audited: No). No independent audit of v12 or v13 exists.
 - secrets.env, secrets-v11.env and secrets.mainnet.env are gitignored (.gitignore line 15). Do not read, print or copy them. Check that none holds the key from the burnt-key incident.
 - list-via-rest.js and wait-for-list.js stayed in the root because tracked files reference them.
+
+## 14. Untracked root items identified (2026-10-02)
+- tags.js: KCC-01 dispatch-tag derivation test (blake3) with a template-hash check. Conformance-relevant; candidate for test/ and tools/check.sh once reviewed.
+- lens-out/, tmp/: generated SVG renders (seeds 1, 42, 8675309, 999) from reliks-lens.js and earlier experiments. Regenerable; safe to move to .attic once nothing references them.
+- prune.txt: lists data/chunks-16k.json, data/chunks-testnet-art.json, data/chunks.json. Purpose unknown.
+- whitelist.txt: lists .gitignore, README.md, package.json. Purpose unknown (possibly used by a publish or audit step).
+- refs/: empty directory.
+- Do not delete any of these without confirming what reads them.
