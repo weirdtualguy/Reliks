@@ -158,3 +158,10 @@ Full root listing and the contents of `data/`, `docs/`, `test/`, `.attic/`; what
 - Secrets files secrets.env, secrets-v11.env, secrets.mainnet.env exist on the phone and must stay untracked. secrets.mainnet.env implies a mainnet key.
 - Correction to section 8: v13/history-marks3-v13.json was not ignored before 2026-10-02; it is now.
 - Untracked and not understood: tags.js, refs, tmp, lens-out, prune.txt, whitelist.txt. The reliks-audit-*.js files stayed in the root because the pre-commit hook may call them.
+
+## 13. Corrections and confirmations (2026-10-02)
+- docs/ is the GitHub Pages output, built by gen-site.js. Do not edit it by hand; regenerate. Resolved: question 2 in section 11.
+- The pre-commit hook runs `node reliks-audit-loop.js --last` on the staged diff when its Qwen bridge is online, and blocks the commit if the audit fails (override: --no-verify, logs in docs/audit-log/). When the bridge is offline it prints "Skipping audit" and the commit goes through unaudited. Keep reliks-audit-*.js in the root.
+- The audit that exists is automated review only (docs/AUDIT-SUMMARY.md; the site table says Audited: No). No independent audit of v12 or v13 exists.
+- secrets.env, secrets-v11.env and secrets.mainnet.env are gitignored (.gitignore line 15). Do not read, print or copy them. Check that none holds the key from the burnt-key incident.
+- list-via-rest.js and wait-for-list.js stayed in the root because tracked files reference them.
