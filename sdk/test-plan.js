@@ -47,7 +47,7 @@ const T = [
 ];
 T.forEach(([name, mut]) => { const s = clone(); mut(s); const r = plan.checkSigned(pl.draft, s); t('tamper rejected: ' + name, !r.ok, 'ACCEPTED'); });
 
-const C = [['already in the mempool', 'duplicate'], ['WRPC TIMEOUT [x] after 15s', 'transient'], ['kascov 502 for covenant', 'transient'], ['read ECONNRESET', 'transient'], ['orphan transaction', 'stale'], ['missing outpoint in utxo set', 'stale'], ['transaction already spent', 'stale'], ['storage mass exceeds the limit', 'fatal'], ['something never seen', 'fatal'], ['', 'fatal']];
+const C = [['already in the mempool', 'duplicate'], ['WRPC TIMEOUT [x] after 15s', 'transient'], ['kascov 502 for covenant', 'transient'], ['read ECONNRESET', 'transient'], ['orphan transaction', 'stale'], ['missing outpoint in utxo set', 'stale'], ['transaction already spent', 'stale'], ['storage mass exceeds the limit', 'fatal'], ['something never seen', 'fatal'], ['', 'fatal'], ['under the required 777', 'fee'], ['insufficient fee', 'fee']];
 C.forEach(([m, w]) => { const g = plan.classifyRejection(m); t('classify "' + m.slice(0, 30) + '" -> ' + w, g === w, g); });
 console.log(bad ? 'PLAN TESTS FAILED' : 'PLAN TESTS OK');
 process.exit(bad);

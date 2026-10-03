@@ -1,10 +1,18 @@
 'use strict';
 const CH = require('../web/reliks-chain.js');
 
+// Observed in reliks-lib.js fee discovery: the node states the fee it requires.
+function parseRequiredFee(msg) {
+  const s = String(msg || '');
+  const m = s.match(/required fee of (\d+)/i) || s.match(/under the required (\d+)/i) || s.match(/required amount of (\d+)/i) || s.match(/required fee[^\d]*(\d+)/i);
+  return m ? BigInt(m[1]) : null;
+}
+
 // Node/indexer error text -> action. Only "already in the mempool" is an observed string; unknown text is fatal (never retried).
 function classifyRejection(msg) {
   const m = String(msg || '').toLowerCase();
   if (/already in the mempool|already accepted|already exists/.test(m)) return 'duplicate';
+  if (parseRequiredFee(m) !== null || /\bfee\b/.test(m)) return 'fee';
   if (/timeout|timed out|econn|enotfound|etimedout|socket hang|network|\b50[234]\b|unavailable|rate limit|\b429\b/.test(m)) return 'transient';
   if (/orphan|missing.*(outpoint|input|utxo)|not found|double.?spend|already spent/.test(m)) return 'stale';
   return 'fatal';
@@ -47,4 +55,4 @@ function checkSigned(draft, signed) {
   catch (e) { return { ok: false, error: String(e && e.message || e) }; }
 }
 
-module.exports = { planMint, checkSigned, classifyRejection };
+module.exports = { planMint, checkSigned, classifyRejection, parseRequiredFee };
