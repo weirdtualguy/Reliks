@@ -15,7 +15,7 @@ You are joining an ongoing solo project. The owner works ONLY on an Android phon
 Generative-art NFTs on Kaspa, built from L1 covenants (SilverScript). A series is a "lane" covenant (SeriesFactory) that mints editions; each edition is its own covenant UTXO with state. The art is a deterministic function of a program whose hash is anchored on chain, so anyone can recompute and verify the image in a browser. Goal: genuinely unique and useful; current direction is "living editions" (art reflects an edition's history).
 
 - Mainnet v12: one series ("Genesis: DAG-City", JS engine, one edition minted). Public site: docs/index.html built by gen-site.js from web/*.js. Do not break it.
-- v13 (branch `v13-lineage`, LOCAL ONLY, main untouched, nothing pushed): testnet-10 only. Edition state gains `lineage` (32 B) and `sales` (8 B). Series can use Reliks-VM (`engine_lang` 1): the program is VM bytecode baked into the factory template.
+- v13 (branch `v13-lineage`, pushed to origin; public main fast-forwarded to 603053d, later commits only on v13-lineage): testnet-10 only. Edition state gains `lineage` (32 B) and `sales` (8 B). Series can use Reliks-VM (`engine_lang` 1): the program is VM bytecode baked into the factory template.
 
 ## Data model (as seen in code)
 - Factory state (7 fields): program_hash, artist, price, royalty_bips, mints_left, engine_lang, render_hash.

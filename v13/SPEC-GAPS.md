@@ -23,3 +23,8 @@ Compared RELIKS-VM-SPEC.md rev 2 to rvm.js/rvm.py: limits, opcodes, header/decod
 10. Deployed code advances lineage on transfer (apply-transfer-lineage.js; AI-CONTEXT, INFRA-HANDOFF). reliks-v13-spec.md sec 3 and reliks-2-design.md are stale. On-chain script not independently confirmed (kascov stale).
 11. Serial is a 63-bit integer (INFRA-HANDOFF, web/reliks-chain.js comment). AI-CONTEXT said "int64"; fixed.
 14. Domain tags: code uses ReliksLineageV2 / ReliksGenesisV2 everywhere; reliks-v13-spec.md says V13. Spec stale.
+
+## Found 2026-10-03 (mainnet v12 read-only check)
+15. engine_lang collision: the mainnet v12 series has engine_lang 1 and a JS engine (3,888 B, starts "\nfun", not RVM magic 52564d01); the testnet VM series also use engine_lang 1. One value, two meanings. No VM series exists on mainnet yet, so the VM can take engine_lang 2 before any mainnet genesis (impossible after). The SDK must dispatch on engine_lang AND the program magic.
+16. Mainnet engine size: this ledger's engine is 3,888 B; VM spec sec 0 says the mainnet DAG-City engine is 5,323 B. Unreconciled (two mainnet engines, or source vs template).
+17. network.js has no default mainnet wRPC (deliberate, audit finding): every integrator supplies PC_MAINNET_WRPC; REST and kascov work without it. Document in the protocol spec.

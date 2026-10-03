@@ -23,3 +23,6 @@ Pure-function helpers for reading Reliks editions and building mint transactions
 
 ## Tests
 `sh tools/check.sh` runs everything. Tests that need the author's gitignored ledgers skip without them. `npm test` (and CI) does not run `sdk/`.
+
+## Mainnet v12 (read-only)
+`PC_NET=mainnet PC_MAINNET_WRPC=wss://placeholder.invalid node sdk/verify-v12.js` checks the mainnet series: engine hash, offline edition script rebuild, gated on-chain status. `network.js` demands PC_MAINNET_WRPC on mainnet, but this script never opens a wRPC connection. It does not verify the rendered art (v12 engines are JS; the SDK has no JS runner).
