@@ -5,7 +5,7 @@ const PAIRS = [
   { name: 'edition', src: 'v13/ReliksEdition-v13-draft.sil', args: 'v13/edition-args-v13.json', abis: ['data/edition-abi-v13.json', 'v13/out/v13.json'], gate: true },
   { name: 'factory vm', src: 'v13/SeriesFactory-v13-draft.sil', args: 'v13/factory-args-vm-v13.json', abis: ['v13/out/factory-vm-v13.json'], gate: true },
   { name: 'factory marks3', src: 'v13/SeriesFactory-v13-draft.sil', args: 'v13/factory-args-marks3-v13.json', abis: ['v13/out/factory-marks3-v13.json'], gate: true },
-  { name: 'escrow', src: 'v13/OfferEscrow-v6-draft.sil', args: 'v13/escrow-args-v6.json', abis: ['v13/out/escrow-v6.json'], gate: false },
+  { name: 'escrow', src: 'v13/OfferEscrow-v6-draft.sil', args: 'v13/escrow-args-v6.json', abis: ['v13/out/escrow-v6.json'], gate: true },
 ];
 const probe = cp.spawnSync('silverc', ['--help'], { encoding: 'utf8' });
 if (probe.error) { console.log('SKIP silverc not available'); process.exit(0); }

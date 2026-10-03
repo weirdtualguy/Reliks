@@ -54,6 +54,28 @@ fork and close: both need the artist's signature. fork splits one lane into two:
 
 Reference SDK (web/reliks-chain.js buildMint): output order is lane (0), edition (1), artist (2, only if price > 0), then change; the signature script hardcodes editionOutIdx = 1 and artistOutIdx = 2; edition value 1 KAS; the edition covenant is a KIP-20 genesis authorized by the funding input (index 1). sdk/plan.js planMint checks all of this against the rules above.
 
+## 5b. Offer escrow (v6)
+Source: v13/OfferEscrow-v6-draft.sil, transcribed by hand; it recompiles to v13/out/escrow-v6.json (tools/verify-contract.js). Constants as in the edition: IDENTIFIER_PUBKEY = 0, MIN_PRICE = 100000000, MAX_PRICE = 922337203685477.
+
+State (8 fields, 161 bytes encoded): ownerIdentifier(32), identifierType(1), edition_covid(32), askPrice(8), expireAge(8), artist(32), royalty_bips(8), offerer(32). The edition template's prefix length, suffix length and expected hash are baked into the escrow script, not stored in state. An escrow is created by paying to its script; the source has no creation rule. It holds at least askPrice (a fee buffer on top is customary, not required).
+
+accept(ownerSig, editionOutIdx, paymentOutIdx, royaltyOutIdx):
+- The owner signs (pubkey owners only); MIN_PRICE <= askPrice <= MAX_PRICE; the escrow input is worth at least askPrice.
+- The three output indices differ pairwise. With roy = floor(askPrice * royalty_bips / 10000), output paymentOutIdx pays exactly askPrice - roy to the owner's P2PK script and output royaltyOutIdx pays exactly roy to the artist's P2PK script.
+- Exactly one input carries the covenant edition_covid. Its state, read with the edition template, must have owner = the escrow's ownerIdentifier, price = askPrice, and the same royalty_bips and artist as the escrow.
+- The output at editionOutIdx is worth at least that input and carries the sold state with the offerer as buyer: owner = offerer, identifierType 0, price 0, lineage advanced with the offerer, sales + 1, everything else copied.
+- The escrow ends: no authorized outputs.
+The edition input is spent in the same transaction through an edition route; per the source comment its buy route enforces the same split. The escrow does not check which route is used (UNREVIEWED), nor the internals of readInputStateWithTemplate and validateOutputStateWithInputTemplate.
+
+expire(): once the escrow's age in DAA score reaches expireAge, anyone may spend it. Output 0 must pay exactly the input's full value to the offerer's P2PK script, with no authorized outputs. Because the refund equals the whole input, the fee must come from another input the caller adds (inferred).
+
+Consequences:
+- An offer is bound to one edition covenant, its current owner and a listing at exactly askPrice. If the owner changes, relists at another price or unlists, accept fails and the funds stay locked until expireAge.
+- There is no cancel route: accept and expire are the only exits.
+- Accepting requires the edition to be listed at askPrice, and the listing is public, so a third party can buy it first through the edition's buy route; the offer is then stranded until it expires.
+- accept raises sales like a sale, and the offerer can be any key: it is another route to the purchasable-sales property of section 4.
+- The protocol takes no marketplace fee; the source says marketplaces fork the escrow.
+
 ## 6. Engine and render
 - program_hash = H(program). render_hash = H(canonical SVG of the program at serial 1, zero lineage, sales 0). Both anchors verify on the testnet series. Readers should find the program bytes inside the lane script and hash them, not trust program_hash alone (inferred: the factory only keeps the bytes in the script through the engineBaked check, and a different compiler version might not).
 - The Reliks-VM program is specified in `v13/RELIKS-VM-SPEC.md`. The contract copies engine_lang through every transition without checking it. New VM series use engine_lang 2, and the testnet VM series use 1. Readers must identify the engine from the program bytes first: VM bytecode starts 52 56 4d 01, and the mainnet JS engine starts with the text "function".
@@ -62,7 +84,7 @@ Reference SDK (web/reliks-chain.js buildMint): output order is lane (0), edition
 Mainnet runs v12: 8-field edition, no lineage or sales, JS engine, engine_lang 1. Read-only checks for it: `sdk/verify-v12.js`. It does not verify the rendered art.
 
 ## 8. Not specified yet
-the factory contract's mint rules; the offer/escrow contract; owner-as-covenant (design only, not implemented); fee and mass limits; splits and mint modes.
+Owner-as-covenant and collection-wide offers (design only, not implemented); fee and mass limits; splits and mint modes.
 
 ## 9. Verification status
-Sections 2 and 3 are checked two ways. (a) Two independent implementations (the JS codec and sdk/ref_protocol.py) agree on generated vectors for state encoding, serial, lineage and covenant id. (b) On testnet-10, the serials of all 4 minted editions and the genesis lineage of the one edition with no sales reproduce from the lane outpoint spent by the mint, and the on-chain edition scripts rebuilt from those values were found live (all 4 confirmed, 2026-10-03). The factory contract computes serial and lineage itself from the lane input outpoint (section 5), so a mint cannot produce different values. Section 4 is transcribed by hand from the edition contract source, which recompiles to the deployed bytecode (tools/verify-contract.js); the transcription has not been reviewed by anyone else. Section 5 is transcribed by hand from the factory source, which also recompiles to the deployed factory bytecode; the checks marked UNREVIEWED there remain open.
+Sections 2 and 3 are checked two ways. (a) Two independent implementations (the JS codec and sdk/ref_protocol.py) agree on generated vectors for state encoding, serial, lineage and covenant id. (b) On testnet-10, the serials of all 4 minted editions and the genesis lineage of the one edition with no sales reproduce from the lane outpoint spent by the mint, and the on-chain edition scripts rebuilt from those values were found live (all 4 confirmed, 2026-10-03). The factory contract computes serial and lineage itself from the lane input outpoint (section 5), so a mint cannot produce different values. Section 4 is transcribed by hand from the edition contract source, which recompiles to the deployed bytecode (tools/verify-contract.js); the transcription has not been reviewed by anyone else. Section 5 is transcribed by hand from the factory source, which also recompiles to the deployed factory bytecode; the checks marked UNREVIEWED there remain open. Section 5b is transcribed by hand from the escrow source, which recompiles to v13/out/escrow-v6.json (tools/verify-contract.js); no live escrow output was checked.

@@ -41,3 +41,7 @@ Compared RELIKS-VM-SPEC.md rev 2 to rvm.js/rvm.py: limits, opcodes, header/decod
 20. Factory requires 1 <= royalty_bips <= 2000: a series deployed outside that can never mint, and deploy tooling does not warn. planMint now flags it.
 21. UNREVIEWED: the rest of the engineBaked() statement; how the edition output's covenant id is checked at mint; internals of validateOutputStateWithTemplate / validateOutputState.
 21a. engineBaked(): require(blake2b(engine_code + lane input txid) != 32 zero bytes). Always true; appears to exist only to keep the engine bytes in the compiled script (compiler folds pure expressions, see HANDOFF-LOCAL.md line 389). Inferred. Readers must find the program in the lane script and hash it. Still unreviewed from item 21: edition covenant-id check at mint; validateOutputStateWithTemplate / validateOutputState internals.
+22. Escrow has no cancel route: the offerer's funds are locked until expireAge (accept and expire are the only exits).
+23. An offer binds the edition's current owner, price and listing; any change strands it until expiry. Accepting needs a public listing at askPrice, so a third party can buy first.
+24. The fee buffer in the escrow comments is not enforced on chain; expire() refunds the full input value, so its fee must come from another input (inferred).
+25. Escrow accept raises sales like a sale and the offerer can be any key: same purchasable-sales property as item 18. Collection-wide offers (reliks-2-design.md) are not implemented.
