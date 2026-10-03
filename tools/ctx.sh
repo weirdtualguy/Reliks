@@ -7,3 +7,4 @@ node -e "var j=require('./v13/ledger-vm-v13.json'),s=j.series;console.log('lane 
 echo "== env"; node -v; python3 -V 2>&1
 if [ -n "$PC_PRIV" ]; then echo "PC_PRIV is set in this shell (unset it if idle)"; else echo "PC_PRIV not set"; fi
 echo "== handoffs"; git ls-files | grep HANDOFF
+echo "== kascov freshness"; node tools/kascov-status.js

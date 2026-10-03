@@ -4,6 +4,7 @@ cd "$(git rev-parse --show-toplevel)" || exit 1
 TP=1111111111111111111111111111111111111111111111111111111111111111
 TW=kaspatest:qp8n2k7uklxq4aegau7vawtptkgxsja4kt99lpv6krctwpq8tpc655cyvcmd3
 FAIL=0
+node tools/kascov-status.js || echo "WARNING: kascov index looks stale: on-chain edition checks below may FAIL for that reason, not because the ledger is wrong"
 N=$(node -e "console.log(require('./v13/ledger-vm-v13.json').editions.length)")
 for i in $(seq 0 $((N-1))); do
   out=$(env PC_PRIV=$TP PC_WALLET=$TW node v13/verify-vm-render.js $i 2>&1); rc=$?

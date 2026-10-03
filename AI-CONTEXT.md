@@ -52,3 +52,7 @@ Generative-art NFTs on Kaspa, built from L1 covenants (SilverScript). A series i
 - Kascov's index can go stale for a day: check `tip_at_ms` in /c/<cov>.json before trusting it. Every verify/history/demo script and the covenant-spend confirmation wait read kascov or REST, and REST /transactions can lack a mined tx. A timeout does NOT mean the tx failed.
 - Before retrying any covenant spend, look at the wallet UTXO set (REST /addresses/<wallet>/utxos) for the previous attempt's outputs; a retry after a mined tx fails as "orphan where orphan is disallowed" or "already in the mempool". Never resubmit blindly. If a tx was mined but the ledger is behind, use tools/repair-self-sell.js.
 - After any confirmation timeout run node tools/tx-status.js <txid> before anything else; never resubmit until its verdict is NOT FOUND.
+
+## kascov API pointers (https://kascov.io API page: JSON, no keys, CORS open)
+- Freshness first: /data/<net>-live.json (tip_daa vs processed_daa, tip_at_ms) and /data/<net>/pending (status live or stale). Run `node tools/kascov-status.js` before trusting any kascov-based check.
+- Worth using next: POST /data/<net>/preflight (compute-budget, mass and fee findings, optional script run, before broadcasting), GET /data/<net>/tx/<txid>.json, /pending and /stream (pending_resolved says confirmed or dropped). Nodes forget history after about 30 h and Reliks reads state from kascov reveals, so keep repo ledgers and history snapshots as the fallback.
