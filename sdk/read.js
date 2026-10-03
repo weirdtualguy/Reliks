@@ -68,3 +68,22 @@ function verifyEditionScript({ chain, series, covId, edition }) {
 }
 module.exports.verifyEditionScript = verifyEditionScript;
 module.exports.normSpk = normSpk;
+
+async function verifyEditionOnChain({ chain, io, series, covId, edition }) {
+  const off = verifyEditionScript({ chain, series, covId, edition });
+  if (!off.ok) return { ok: false, status: 'ledger_mismatch', checks: off.checks };
+  const exp = normSpk(edition.spk).spk;
+  let kj;
+  try { kj = await io.covenant(edition.cov); }
+  catch (e) { return { ok: false, status: 'unreachable', checks: off.checks.concat([{ name: 'kascov', ok: false, detail: String(e && e.message || e) }]) }; }
+  const us = (kj && kj.utxos) || [];
+  const hit = us.filter((u) => chain.stripVersion(String(u.script_hex || '')).toLowerCase() === exp);
+  const want = edition.txId + ':' + edition.index;
+  let status;
+  if (!hit.length) status = 'absent';
+  else if (hit.some((u) => u.live === true && u.outpoint === want)) status = 'confirmed';
+  else if (hit.some((u) => u.live === true)) status = 'live_other_outpoint';
+  else status = 'spent';
+  return { ok: status === 'confirmed', status, checks: off.checks.concat([{ name: 'chain', ok: status === 'confirmed', detail: status }]) };
+}
+module.exports.verifyEditionOnChain = verifyEditionOnChain;

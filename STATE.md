@@ -42,3 +42,4 @@ Updated 2026-10-01. Branch `v13-lineage` (local only).
 - 2026-10-03 v13-lineage pushed to origin (weirdtualguy/Reliks), 106 commits; history scanned: no env/key files committed, zips hold code/ledgers only. Handoff steps 1-3 done; next: SDK read half
 - 2026-10-03 sdk/read.js + sdk/selftest.js (read half v0: program hash, anchor render, edition render; no network/key); check.sh runs it on both ledgers
 - 2026-10-03 sdk/read.js verifyEditionScript: rebuilt edition script == ledger spk for all 4 editions (offline; ledger spk is hex-of-ASCII, normalized). On-chain existence still needs kascov
+- 2026-10-03 sdk verifyEditionOnChain (statuses: confirmed/spent/absent/live_other_outpoint/unreachable/ledger_mismatch), mock-tested; live run pending kascov

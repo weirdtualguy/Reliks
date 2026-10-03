@@ -37,6 +37,9 @@ for L in v13/ledger-vm-v13.json v13/ledger-marks3-v13.json; do
     if node sdk/selftest.js "$L" >/dev/null 2>&1; then echo "PASS sdk read ($L)"; else echo "FAIL sdk read ($L)"; FAIL=1; fi
   fi
 done
+if [ -f sdk/test-onchain.js ] && [ -f v13/ledger-vm-v13.json ]; then
+  if node sdk/test-onchain.js >/dev/null 2>&1; then echo "PASS sdk on-chain verifier (mock)"; else echo "FAIL sdk on-chain verifier (mock)"; FAIL=1; fi
+fi
 if [ -f tags.js ]; then
   if node tags.js 2>&1 | grep -q "ALL PASS"; then echo "PASS dispatch tags"; else echo "FAIL dispatch tags"; FAIL=1; fi
 fi
