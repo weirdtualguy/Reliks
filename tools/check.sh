@@ -70,6 +70,10 @@ if [ -f sdk/test-protocol.js ]; then
     if python3 sdk/ref_protocol.py >/dev/null 2>&1 && git diff --quiet -- sdk/protocol-vectors.json; then echo "PASS protocol vectors regenerate identically"; else echo "FAIL protocol vectors regenerate differently"; FAIL=1; fi
   fi
 fi
+if [ -f tools/verify-contract.js ]; then
+  out=$(node tools/verify-contract.js 2>&1); rc=$?
+  if [ $rc -eq 0 ]; then echo "PASS edition contract recompile: $(echo "$out" | tail -1)"; else echo "FAIL edition contract recompile: $(echo "$out" | tail -1)"; FAIL=1; fi
+fi
 if [ -f tags.js ]; then
   if node tags.js 2>&1 | grep -q "ALL PASS"; then echo "PASS dispatch tags"; else echo "FAIL dispatch tags"; FAIL=1; fi
 fi
