@@ -37,3 +37,6 @@ Compared RELIKS-VM-SPEC.md rev 2 to rvm.js/rvm.py: limits, opcodes, header/decod
 19. Edition source header still says DRAFT / "Not verified with silverc"; SeriesFactory-v13-draft.sil likewise. Both recompile to the deployed bytecode (tools/verify-contract.js). Fix comments and names later, once no tool references the paths.
 20. Factory requires 1 <= royalty_bips <= 2000: a series deployed outside that can never mint, and deploy tooling does not warn. planMint now flags it.
 21. UNREVIEWED: the rest of the engineBaked() statement; how the edition output's covenant id is checked at mint; internals of validateOutputStateWithTemplate / validateOutputState.
+19. Edition source header still says DRAFT / "Not verified with silverc"; SeriesFactory-v13-draft.sil likewise. Both recompile to the deployed bytecode (tools/verify-contract.js). Fix comments and names later, once no tool references the paths.
+20. Factory requires 1 <= royalty_bips <= 2000: a series deployed outside that can never mint, and deploy tooling does not warn. planMint now flags it.
+21. UNREVIEWED: the rest of the engineBaked() statement; how the edition output's covenant id is checked at mint; internals of validateOutputStateWithTemplate / validateOutputState.
