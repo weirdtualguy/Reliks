@@ -96,3 +96,14 @@ async function verifyEditionOnChain(args) {
   return { ok: false, status: 'index_stale', observed: r.status, checks: r.checks.concat([{ name: 'freshness', ok: false, detail: typeof age === 'number' ? 'tip age ' + age + ' s > ' + max : 'tip age not supplied' }]) };
 }
 module.exports.verifyEditionOnChain = verifyEditionOnChain;
+
+// Seconds since kascov's last tip update; undefined if unreadable (the gate then treats the index as stale).
+async function kascovTipAgeSec(kascovBase, fetchImpl) {
+  try {
+    const f = fetchImpl || fetch, r = await f(kascovBase + '-live.json');
+    if (!r.ok) return undefined;
+    const j = await r.json(), age = Math.round((Date.now() - Number(j.tip_at_ms)) / 1000);
+    return isFinite(age) && age >= 0 ? age : undefined;
+  } catch (e) { return undefined; }
+}
+module.exports.kascovTipAgeSec = kascovTipAgeSec;
