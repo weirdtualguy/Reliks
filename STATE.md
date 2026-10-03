@@ -43,3 +43,4 @@ Updated 2026-10-01. Branch `v13-lineage` (local only).
 - 2026-10-03 sdk/read.js + sdk/selftest.js (read half v0: program hash, anchor render, edition render; no network/key); check.sh runs it on both ledgers
 - 2026-10-03 sdk/read.js verifyEditionScript: rebuilt edition script == ledger spk for all 4 editions (offline; ledger spk is hex-of-ASCII, normalized). On-chain existence still needs kascov
 - 2026-10-03 sdk verifyEditionOnChain (statuses: confirmed/spent/absent/live_other_outpoint/unreachable/ledger_mismatch), mock-tested; live run pending kascov
+- 2026-10-03 marks3 edition 0 sales 3: ledger txId 86860766c7a1 is the tx tx-status.js reports MINED (~528 min ago; both wallet outputs present). Edition output script at idx0 still not readable: kascov tip age ~31 h, api-tn10 answers 404. Earlier 'confirmed' results for the VM series came from the same stale index (valid as of its last update only). Still: no mint, no resubmit.
