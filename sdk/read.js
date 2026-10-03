@@ -43,3 +43,28 @@ function verifyAnchor({ program, factory }) {
 }
 
 module.exports = { programHash, renderEdition, verifyEdition, verifyAnchor, chain, unhex, hex };
+
+const SPK_RE = /^aa20[0-9a-f]{64}87$/;
+function normSpk(s) {
+  s = String(s).toLowerCase();
+  if (SPK_RE.test(s)) return { spk: s, enc: 'plain' };
+  if (/^[0-9a-f]+$/.test(s) && s.length % 2 === 0) {
+    const d = Buffer.from(s, 'hex').toString('latin1');
+    if (SPK_RE.test(d)) return { spk: d, enc: 'hex-of-ascii' };
+  }
+  return { spk: s, enc: 'unknown' };
+}
+// chain must be an initialized web/reliks-chain.js with the v13 edition template.
+function verifyEditionScript({ chain, series, covId, edition }) {
+  const checks = [];
+  const n = normSpk(edition.spk);
+  run(checks, 'spk_encoding', () => ({ ok: n.enc !== 'unknown', detail: n.enc }));
+  run(checks, 'script_commitment', () => {
+    const st = { ownerIdentifier: edition.owner, identifierType: 0, price: Number(edition.price), artist: series.artist, royalty_bips: series.royalty_bips, program_hash: series.program_hash, factory_covid: covId, serial: edition.serial, lineage: edition.lineage, sales: edition.sales };
+    const exp = chain.p2shSpk(chain.editionRedeem(st)).toLowerCase();
+    return { ok: exp === n.spk, detail: exp.slice(0, 8) + '/' + exp.length + ' vs ' + n.spk.slice(0, 8) + '/' + n.spk.length };
+  });
+  return { ok: checks.every((c) => c.ok), checks };
+}
+module.exports.verifyEditionScript = verifyEditionScript;
+module.exports.normSpk = normSpk;
