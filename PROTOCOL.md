@@ -44,7 +44,7 @@ Source: v13/SeriesFactory-v13-draft.sil, transcribed by hand; it recompiles to t
 
 Entry mint(buyer: byte[32], buyerScheme: byte, editionOutIdx: int, artistOutIdx: int). No signature is required: anyone can mint to any buyer key by paying. The contract requires:
 1. mints_left > 0; buyerScheme = 0; price = 0 or price >= 100000000; 1 <= royalty_bips <= 2000. A series deployed with royalty_bips outside 1..2000 can never mint.
-2. blake2b(engine_code) = program_hash, where engine_code is the program baked into the factory script. (A second statement using engine_code, apparently keeping the bytes in the compiled script, is UNREVIEWED.)
+2. blake2b(engine_code) = program_hash, where engine_code is the program baked into the factory script. (A separate check, require(blake2b(engine_code || lane input txid) != 32 zero bytes), is always true in practice. Its purpose appears to be keeping the program bytes in the compiled script by making them depend on a runtime value; this is inferred, not stated in the source.)
 3. If price > 0, the output at artistOutIdx pays exactly price to the artist's P2PK script: 100% of the primary sale, no platform fee. If price = 0, artistOutIdx is not constrained.
 4. The output at editionOutIdx carries the edition template (checked against expected_template_hash) with state: owner = buyer, identifierType = buyerScheme, price 0, artist, royalty_bips and program_hash from the factory state, factory_covid = covenant id of the lane input, serial and lineage computed from the lane input's outpoint (section 3), sales 0. Its value is at least 100000000.
 5. The lane input has exactly one authorized output. It is worth at least the lane input and carries the lane state with mints_left - 1 and every other field unchanged, including engine_lang and render_hash.
@@ -55,7 +55,7 @@ fork and close: both need the artist's signature. fork splits one lane into two:
 Reference SDK (web/reliks-chain.js buildMint): output order is lane (0), edition (1), artist (2, only if price > 0), then change; the signature script hardcodes editionOutIdx = 1 and artistOutIdx = 2; edition value 1 KAS; the edition covenant is a KIP-20 genesis authorized by the funding input (index 1). sdk/plan.js planMint checks all of this against the rules above.
 
 ## 6. Engine and render
-- program_hash = H(program). render_hash = H(canonical SVG of the program at serial 1, zero lineage, sales 0). Both anchors verify on the testnet series.
+- program_hash = H(program). render_hash = H(canonical SVG of the program at serial 1, zero lineage, sales 0). Both anchors verify on the testnet series. Readers should find the program bytes inside the lane script and hash them, not trust program_hash alone (inferred: the factory only keeps the bytes in the script through the engineBaked check, and a different compiler version might not).
 - The Reliks-VM program is specified in `v13/RELIKS-VM-SPEC.md`. The contract copies engine_lang through every transition without checking it. New VM series use engine_lang 2, and the testnet VM series use 1. Readers must identify the engine from the program bytes first: VM bytecode starts 52 56 4d 01, and the mainnet JS engine starts with the text "function".
 
 ## 7. Mainnet today
