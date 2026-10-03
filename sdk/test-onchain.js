@@ -16,11 +16,18 @@ const cases = [
   ['other outpoint', mk([u({ outpoint: '00'.repeat(32) + ':0' })]), ed, 'live_other_outpoint'],
   ['unreachable', { covenant: async () => { throw new Error('kascov 502'); } }, ed, 'unreachable'],
   ['ledger mismatch', mk([u()]), Object.assign({}, ed, { sales: ed.sales + 1 }), 'ledger_mismatch'],
+  ['stale confirmed', mk([u()]), ed, 'index_stale', 111978],
+  ['stale absent', mk([]), ed, 'index_stale', 111978],
+  ['stale ledger mismatch', mk([u()]), Object.assign({}, ed, { sales: ed.sales + 1 }), 'ledger_mismatch', 111978],
+  ['stale unreachable', { covenant: async () => { throw new Error('kascov 502'); } }, ed, 'unreachable', 111978],
+  ['tip age missing', mk([u()]), ed, 'index_stale', null],
+  ['boundary fresh 600', mk([u()]), ed, 'confirmed', 600],
+  ['boundary stale 601', mk([u()]), ed, 'index_stale', 601],
 ];
 (async () => {
   let bad = 0;
-  for (const [name, io, e, want] of cases) {
-    const r = await sdk.verifyEditionOnChain({ chain: CH, io, series: S, covId: LD.C, edition: e });
+  for (const [name, io, e, want, tip = 5] of cases) {
+    const r = await sdk.verifyEditionOnChain({ chain: CH, io, series: S, covId: LD.C, edition: e, tipAgeSec: tip === null ? undefined : tip });
     const ok = r.status === want; if (!ok) bad = 1;
     console.log((ok ? 'PASS ' : 'FAIL ') + name + ' -> ' + r.status);
   }

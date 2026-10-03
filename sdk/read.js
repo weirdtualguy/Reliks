@@ -69,7 +69,7 @@ function verifyEditionScript({ chain, series, covId, edition }) {
 module.exports.verifyEditionScript = verifyEditionScript;
 module.exports.normSpk = normSpk;
 
-async function verifyEditionOnChain({ chain, io, series, covId, edition }) {
+async function _onChainRaw({ chain, io, series, covId, edition }) {
   const off = verifyEditionScript({ chain, series, covId, edition });
   if (!off.ok) return { ok: false, status: 'ledger_mismatch', checks: off.checks };
   const exp = normSpk(edition.spk).spk;
@@ -85,5 +85,14 @@ async function verifyEditionOnChain({ chain, io, series, covId, edition }) {
   else if (hit.some((u) => u.live === true)) status = 'live_other_outpoint';
   else status = 'spent';
   return { ok: status === 'confirmed', status, checks: off.checks.concat([{ name: 'chain', ok: status === 'confirmed', detail: status }]) };
+}
+
+// Freshness gate: an index older than maxTipAgeSec (default 600) cannot confirm or refute anything.
+async function verifyEditionOnChain(args) {
+  const r = await _onChainRaw(args);
+  if (r.status === 'ledger_mismatch' || r.status === 'unreachable') return r;
+  const max = args.maxTipAgeSec == null ? 600 : args.maxTipAgeSec, age = args.tipAgeSec;
+  if (typeof age === 'number' && isFinite(age) && age <= max) return r;
+  return { ok: false, status: 'index_stale', observed: r.status, checks: r.checks.concat([{ name: 'freshness', ok: false, detail: typeof age === 'number' ? 'tip age ' + age + ' s > ' + max : 'tip age not supplied' }]) };
 }
 module.exports.verifyEditionOnChain = verifyEditionOnChain;
