@@ -55,6 +55,9 @@ fi
 if [ -f sdk/test-e2e.js ] && [ -f v13/ledger-vm-v13.json ]; then
   if node sdk/test-e2e.js >/dev/null 2>&1; then echo "PASS sdk end-to-end (mock wallet + nodes)"; else echo "FAIL sdk end-to-end (mock wallet + nodes)"; FAIL=1; fi
 fi
+if [ -f sdk/test-tipage.js ]; then
+  if node sdk/test-tipage.js >/dev/null 2>&1; then echo "PASS sdk kascov staleness tests"; else echo "FAIL sdk kascov staleness tests"; FAIL=1; fi
+fi
 if [ -f tags.js ]; then
   if node tags.js 2>&1 | grep -q "ALL PASS"; then echo "PASS dispatch tags"; else echo "FAIL dispatch tags"; FAIL=1; fi
 fi

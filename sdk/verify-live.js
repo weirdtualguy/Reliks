@@ -7,7 +7,7 @@ const L = JSON.parse(fs.readFileSync(process.argv[2] || 'v13/ledger-vm-v13.json'
 (async () => {
   const io = CH.makeIO({ rest: N.rest, kascov: N.kascov });
   const age = await sdk.kascovTipAgeSec(N.kascov);
-  console.log(N.label + ' | kascov tip age: ' + (age === undefined ? 'unknown' : age + ' s'));
+  console.log(N.label + ' | kascov staleness (tip age + sync lag): ' + (age === undefined ? 'unknown' : age + ' s'));
   let bad = 0;
   for (const [i, e] of L.editions.entries()) {
     const r = await sdk.verifyEditionOnChain({ chain: CH, io, series: L.series, covId: L.C, edition: e, tipAgeSec: age });

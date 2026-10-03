@@ -97,13 +97,14 @@ async function verifyEditionOnChain(args) {
 }
 module.exports.verifyEditionOnChain = verifyEditionOnChain;
 
-// Seconds since kascov's last tip update; undefined if unreadable (the gate then treats the index as stale).
+// Effective staleness: seconds since kascov's last tip update PLUS the unprocessed lag (tip_daa - processed_daa at 10 DAA/s); undefined if unreadable (the gate then treats the index as stale).
 async function kascovTipAgeSec(kascovBase, fetchImpl) {
   try {
     const f = fetchImpl || fetch, r = await f(kascovBase + '-live.json');
     if (!r.ok) return undefined;
-    const j = await r.json(), age = Math.round((Date.now() - Number(j.tip_at_ms)) / 1000);
-    return isFinite(age) && age >= 0 ? age : undefined;
+    const j = await r.json(), age = Math.round((Date.now() - Number(j.tip_at_ms)) / 1000), lag = Number(j.tip_daa) - Number(j.processed_daa);
+    if (!isFinite(age) || age < 0 || !isFinite(lag)) return undefined;
+    return age + Math.round(Math.max(0, lag) / 10);   // seconds of chain the index has not processed yet (10 DAA/s)
   } catch (e) { return undefined; }
 }
 module.exports.kascovTipAgeSec = kascovTipAgeSec;

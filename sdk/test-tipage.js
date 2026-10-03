@@ -1,0 +1,20 @@
+'use strict';
+const sdk = require('./read.js');
+let bad = 0;
+const t = (name, ok, d) => { if (!ok) bad = 1; console.log((ok ? 'PASS ' : 'FAIL ') + name + (ok ? '' : ' | ' + d)); };
+const F = (j, ok) => async () => ({ ok: ok !== false, json: async () => j });
+(async () => {
+  const now = Date.now();
+  let a = await sdk.kascovTipAgeSec('x', F({ tip_at_ms: now - 5000, tip_daa: 1000, processed_daa: 990 }));
+  t('fresh index is small', a >= 5 && a <= 9, a);
+  a = await sdk.kascovTipAgeSec('x', F({ tip_at_ms: now - 440000, tip_daa: 1220538, processed_daa: 100 }));
+  t('fresh tip but 1.2M DAA lag is stale (the live case)', a > 122000, a);
+  t('that value fails the 600 s gate', a > 600);
+  a = await sdk.kascovTipAgeSec('x', F({ tip_at_ms: now - 5000, tip_daa: 990, processed_daa: 1000 }));
+  t('negative lag counts as zero', a >= 5 && a <= 9, a);
+  t('missing processed_daa -> undefined', (await sdk.kascovTipAgeSec('x', F({ tip_at_ms: now, tip_daa: 5 }))) === undefined);
+  t('missing tip_at_ms -> undefined', (await sdk.kascovTipAgeSec('x', F({ tip_daa: 5, processed_daa: 5 }))) === undefined);
+  t('http error -> undefined', (await sdk.kascovTipAgeSec('x', F({}, false))) === undefined);
+  t('fetch throws -> undefined', (await sdk.kascovTipAgeSec('x', async () => { throw new Error('x'); })) === undefined);
+  console.log(bad ? 'TIPAGE TESTS FAILED' : 'TIPAGE TESTS OK'); process.exit(bad);
+})();
