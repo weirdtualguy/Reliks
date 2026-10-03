@@ -16,6 +16,9 @@ V.covenant_id.forEach((c, i) => { const g = CH.covenantIdGenesis(c.txid, c.index
 V.edition_state.forEach((c, i) => { const h = hex(CH.encEditionState(c.state)); t('edition state ' + i + ' (203 B)', h === c.hex && h.length === 406, h.length / 2 + ' B'); });
 V.factory_state.forEach((c, i) => { const h = hex(CH.encFactoryState(c.state)); t('factory state ' + i + ' (135 B)', h === c.hex && h.length === 270, h.length / 2 + ' B'); });
 V.rejects.forEach((c, i) => { let threw = false; try { c.kind === 'edition' ? CH.encEditionState(c.state) : CH.encFactoryState(c.state); } catch (e) { threw = true; } t('invalid ' + c.kind + ' state rejected ' + i, threw, 'accepted'); });
+const ESC = require('./escrow.js');
+(V.escrow_state || []).forEach((c, i) => { const h = hex(ESC.encodeEscrowState(c.state)); t('escrow state ' + i + ' (161 B)', h === c.hex && h.length === 322, h.length / 2 + ' B'); });
+(V.escrow_rejects || []).forEach((c, i) => { let threw = false; try { ESC.encodeEscrowState(c.state); } catch (e) { threw = true; } t('invalid escrow state rejected ' + i, threw, 'accepted'); });
 for (const lp of ['v13/ledger-vm-v13.json', 'v13/ledger-marks3-v13.json']) {
   if (!fs.existsSync(lp)) continue;
   const L = JSON.parse(fs.readFileSync(lp, 'utf8')), nm = lp.split('/').pop().replace('.json', '');

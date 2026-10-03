@@ -23,6 +23,7 @@ def covenant_id(txid, index, outs):
 
 ED13 = [('ownerIdentifier', 32), ('identifierType', 1), ('price', 8), ('artist', 32), ('royalty_bips', 8), ('program_hash', 32), ('factory_covid', 32), ('serial', 8), ('lineage', 32), ('sales', 8)]
 FC = [('program_hash', 32), ('artist', 32), ('price', 8), ('royalty_bips', 8), ('mints_left', 8), ('engine_lang', 8), ('render_hash', 32)]
+ESC = [('ownerIdentifier', 32), ('identifierType', 1), ('edition_covid', 32), ('askPrice', 8), ('expireAge', 8), ('artist', 32), ('royalty_bips', 8), ('offerer', 32)]
 def enc(tbl, s):
     out = b''
     for name, w in tbl:
@@ -73,6 +74,18 @@ def build():
         except (ValueError, KeyError): continue
         raise SystemExit('reference accepted an invalid state')
     assert len(enc(ED13, eds[0])) == 203 and len(enc(FC, fcs[0])) == 135
+    def esc(**kw):
+        s = dict(ownerIdentifier=T('e-own'), identifierType='0', edition_covid=T('e-cov'), askPrice='100000000', expireAge='100000', artist=T('e-art'), royalty_bips='500', offerer=T('e-off'))
+        s.update({k: str(v) for k, v in kw.items()}); return s
+    escs = [esc(), esc(askPrice=2 ** 40), esc(expireAge=0), esc(askPrice=922337203685477, royalty_bips=2000), esc(expireAge=2 ** 62)]
+    V['escrow_state'] = [{'state': s, 'hex': enc(ESC, s).hex()} for s in escs]
+    nofield = esc(); del nofield['offerer']
+    V['escrow_rejects'] = [{'state': s} for s in [esc(askPrice=2 ** 63), esc(expireAge=-1), esc(offerer=T('e-off')[:62]), nofield]]
+    for r in V['escrow_rejects']:
+        try: enc(ESC, r['state'])
+        except (ValueError, KeyError): continue
+        raise SystemExit('reference accepted an invalid escrow state')
+    assert len(enc(ESC, escs[0])) == 161
     return V
 
 if __name__ == '__main__':

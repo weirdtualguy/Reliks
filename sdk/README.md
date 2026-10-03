@@ -26,3 +26,6 @@ Pure-function helpers for reading Reliks editions and building mint transactions
 
 ## Mainnet v12 (read-only)
 `PC_NET=mainnet PC_MAINNET_WRPC=wss://placeholder.invalid node sdk/verify-v12.js` checks the mainnet series: engine hash, offline edition script rebuild, gated on-chain status. `network.js` demands PC_MAINNET_WRPC on mainnet, but this script never opens a wRPC connection. It does not verify the rendered art (v12 engines are JS; the SDK has no JS runner).
+
+## Escrow (read half)
+`escrow.js`: encode the 161-byte escrow state, rebuild the escrow script from `v13/out/escrow-v6.json`, and check it against a recorded script (`verifyEscrowScript`). Offline, no key. No escrow transaction building yet.
