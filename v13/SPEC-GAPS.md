@@ -28,3 +28,7 @@ Compared RELIKS-VM-SPEC.md rev 2 to rvm.js/rvm.py: limits, opcodes, header/decod
 15. engine_lang collision: the mainnet v12 series has engine_lang 1 and a JS engine (3,888 B, starts "\nfun", not RVM magic 52564d01); the testnet VM series also use engine_lang 1. One value, two meanings. No VM series exists on mainnet yet, so the VM can take engine_lang 2 before any mainnet genesis (impossible after). The SDK must dispatch on engine_lang AND the program magic.
 16. Mainnet engine size: this ledger's engine is 3,888 B; VM spec sec 0 says the mainnet DAG-City engine is 5,323 B. Unreconciled (two mainnet engines, or source vs template).
 17. network.js has no default mainnet wRPC (deliberate, audit finding): every integrator supplies PC_MAINNET_WRPC; REST and kascov work without it. Document in the protocol spec.
+
+## Decision 2026-10-03 (owner)
+15a. New Reliks-VM series use engine_lang 2. Existing testnet VM series keep 1. Readers dispatch on the program bytes first (sdk/read.js engineKind: RVM magic -> vm, accepts lang 1 or 2; "function" text -> js, accepts lang 0 or 1; else unknown, never rendered). The contract copies engine_lang through every transition without checking it, so the value is opaque on chain.
+15b. Unexplained: root gen-factory-args.js and v13/gen-factory-args-v13.js both set ENGINE_LANG = 0 ("integer-only SVG") but the mainnet lane decodes as engine_lang 1 (HANDOFF-LOCAL2). Do not document an engine_lang enum until the history is checked (git log -S).

@@ -58,6 +58,9 @@ fi
 if [ -f sdk/test-tipage.js ]; then
   if node sdk/test-tipage.js >/dev/null 2>&1; then echo "PASS sdk kascov staleness tests"; else echo "FAIL sdk kascov staleness tests"; FAIL=1; fi
 fi
+if [ -f sdk/test-engine.js ]; then
+  if node sdk/test-engine.js >/dev/null 2>&1; then echo "PASS sdk engine-kind tests"; else echo "FAIL sdk engine-kind tests"; FAIL=1; fi
+fi
 if [ -f tags.js ]; then
   if node tags.js 2>&1 | grep -q "ALL PASS"; then echo "PASS dispatch tags"; else echo "FAIL dispatch tags"; FAIL=1; fi
 fi

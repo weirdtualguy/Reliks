@@ -15,7 +15,7 @@ const die = m => { console.error('FAIL: ' + m); process.exit(1); };
 const LD = JSON.parse(fs.readFileSync(process.env.RELIKS_LEDGER || 'v13/ledger-vm-v13.json', 'utf8'));
 const ed = LD.editions[Number(process.argv[2] || 0)];
 if (!ed) die('edition not in ledger');
-if (Number(LD.series.engine_lang) !== 1) die('series engine_lang is ' + LD.series.engine_lang + ', not 1 (Reliks-VM)');
+if (![1, 2].includes(Number(LD.series.engine_lang))) die('series engine_lang is ' + LD.series.engine_lang + ', not 1 or 2 (Reliks-VM)');
 const F = V.parts(JSON.parse(fs.readFileSync(process.env.RELIKS_FACTORY_ABI || 'v13/out/factory-vm-v13.json', 'utf8')));
 const Ed = V.parts(JSON.parse(fs.readFileSync('v13/out/v13.json', 'utf8')));
 

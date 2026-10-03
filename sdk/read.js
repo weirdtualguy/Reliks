@@ -108,3 +108,16 @@ async function kascovTipAgeSec(kascovBase, fetchImpl) {
   } catch (e) { return undefined; }
 }
 module.exports.kascovTipAgeSec = kascovTipAgeSec;
+
+// Engine kind from the program bytes first; engine_lang is only a consistency hint.
+// VM: RVM magic 52 56 4d 01 (and at least the 9-byte header) -> lang 1 or 2.
+// JS: text starting with "function" -> lang 0 or 1 (mainnet v12 carries 1 with a JS engine).
+// Anything else is 'unknown' and must not be rendered.
+function engineKind(program, engineLang) {
+  const p = program instanceof Uint8Array ? program : Uint8Array.from(program || []);
+  const lang = Number(engineLang);
+  if (p.length >= 9 && p[0] === 0x52 && p[1] === 0x56 && p[2] === 0x4d && p[3] === 0x01) return { kind: 'vm', langConsistent: lang === 1 || lang === 2 };
+  if (/^\s*function\b/.test(Buffer.from(p.subarray(0, 24)).toString('latin1'))) return { kind: 'js', langConsistent: lang === 0 || lang === 1 };
+  return { kind: 'unknown', langConsistent: false };
+}
+module.exports.engineKind = engineKind;
