@@ -22,6 +22,12 @@ try { pl = plan.planMint(mkP()); } catch (e) { console.log('FAIL planMint threw:
 pl.checks.forEach((c) => t('plan ' + c.name, c.ok, c.detail));
 t('plan reports size and fee', pl.size > 0 && pl.fee > 0n, pl.size + ' B fee ' + pl.fee);
 t('explicit fee honored', plan.planMint(mkP({ fee: 5000000n })).fee >= 5000000n);
+const laneWith = (o) => { const s2 = Object.assign({}, state, o); return Object.assign(mkP().lane, { state: s2, spk: CH.p2shSpk(CH.factoryRedeem(s2)) }); };
+const failing = (r) => r.checks.filter((c) => !c.ok).map((c) => c.name).join(',');
+[[0n, false], [1n, true], [2000n, true], [2001n, false]].forEach(([r, ok]) => { const p2 = plan.planMint(mkP({ lane: laneWith({ royalty_bips: r }) })); t('royalty_bips ' + r + (ok ? ' accepted' : ' flagged (factory requires 1..2000)'), p2.ok === ok, failing(p2)); });
+const p0 = plan.planMint(mkP({ lane: laneWith({ price: 0n }) }));
+t('free mint (price 0) plans ok with no artist output', p0.ok && !p0.draft.outputs.some((o) => o.role === 'artist'), failing(p0));
+t('price below 1 KAS throws', !!thrown(() => plan.planMint(mkP({ lane: laneWith({ price: 50000000n }) }))));
 
 t('sold out throws', !!thrown(() => plan.planMint(mkP({ lane: Object.assign(mkP().lane, { state: Object.assign({}, state, { mints_left: 0n }) }) }))));
 t('funding too small throws', !!thrown(() => plan.planMint(mkP({ funding: { txId: 'ab'.repeat(32), index: 1, amount: 100000000n, daa: 5 } }))));

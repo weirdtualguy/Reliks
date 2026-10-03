@@ -17,7 +17,7 @@ Edition (10 fields, 203 bytes encoded): ownerIdentifier(32), identifierType(1), 
 - advanced lineage = H("ReliksLineageV2" || previous lineage || new owner identifier).
 - covenant id (KIP-20 genesis) = H_"CovenantID"(authorizing txid || le32(authorizing index) || le64(output count) || for each bound output: le32(index) || le64(value) || le16(0) || le64(script length) || script).
 The names carry historical suffixes. They are fixed strings, not versions.
-For a mint, (txid, index) is the lane outpoint the mint spends: output 0 of the previous mint transaction, or output 0 of the genesis transaction for the first mint (observed on the testnet ledgers).
+For a mint, (txid, index) is the lane outpoint the mint spends: output 0 of the previous mint transaction, or output 0 of the genesis transaction for the first mint (the factory contract computes both from this outpoint, section 5; also observed on the testnet ledgers).
 
 ## 4. Edition transitions
 Source: v13/ReliksEdition-v13-draft.sil, transcribed by hand. Compiled with silverc and v13/edition-args-v13.json, that source gives bytecode, template hash and state span identical to data/edition-abi-v13.json and v13/out/v13.json, and those templates rebuilt the live testnet edition scripts (2026-10-03; tools/verify-contract.js). Every route is a one-input, one-output covenant transition authorized by the edition's own input, except spend, which ends the edition. "Owner auth" means a Schnorr signature by the owner key, and it requires identifierType = IDENTIFIER_PUBKEY. "Carrier" means the edition output's value must be at least its input's value. MAX = 922337203685477.
@@ -39,10 +39,20 @@ Consequences worth stating:
 - sales is purchasable, not earned. sell accepts any buyer key and any price from 1 KAS up, so an owner can sell to another key they control. Each such step costs the royalty (nothing if the owner is also the artist) plus the fee, and it increments sales and advances lineage. Anything that treats sales as proof of market history must account for this.
 - transfer advances lineage at no royalty. Lineage grinding is bounded only by the 64-value quantization in the VM host rule.
 
-## 5. Mint (as built by the reference SDK; contract enforcement UNREVIEWED)
-- Output 0: lane, same value and covenant id, authorized by input 0, mints_left - 1. Output 1: edition, 100000000 sompi, authorized by input 1, covenant id = covenant id (genesis) over the funding outpoint with the single bound output (index 1, that value, the edition script). Then the artist payout (series price, only if price > 0), then change (folded into the fee below 1000000 sompi).
-- Series price is 0 or at least 100000000 sompi. Minting stops when mints_left is 0.
-- Initial edition state: owner = buyer pubkey, identifierType 0, price 0, artist/royalty_bips/program_hash from the series, factory_covid = lane covenant id, serial and lineage from the lane outpoint being spent (section 3), sales 0.
+## 5. Mint (factory contract)
+Source: v13/SeriesFactory-v13-draft.sil, transcribed by hand; it recompiles to the deployed factory bytecode of both testnet VM series (tools/verify-contract.js). Constants: IDENTIFIER_PUBKEY = 0, MIN_PRICE = 100000000 (1 KAS), MAX_ROYALTY_BIPS = 2000.
+
+Entry mint(buyer: byte[32], buyerScheme: byte, editionOutIdx: int, artistOutIdx: int). No signature is required: anyone can mint to any buyer key by paying. The contract requires:
+1. mints_left > 0; buyerScheme = 0; price = 0 or price >= 100000000; 1 <= royalty_bips <= 2000. A series deployed with royalty_bips outside 1..2000 can never mint.
+2. blake2b(engine_code) = program_hash, where engine_code is the program baked into the factory script. (A second statement using engine_code, apparently keeping the bytes in the compiled script, is UNREVIEWED.)
+3. If price > 0, the output at artistOutIdx pays exactly price to the artist's P2PK script: 100% of the primary sale, no platform fee. If price = 0, artistOutIdx is not constrained.
+4. The output at editionOutIdx carries the edition template (checked against expected_template_hash) with state: owner = buyer, identifierType = buyerScheme, price 0, artist, royalty_bips and program_hash from the factory state, factory_covid = covenant id of the lane input, serial and lineage computed from the lane input's outpoint (section 3), sales 0. Its value is at least 100000000.
+5. The lane input has exactly one authorized output. It is worth at least the lane input and carries the lane state with mints_left - 1 and every other field unchanged, including engine_lang and render_hash.
+UNREVIEWED: how the edition output's covenant id is checked; the internals of validateOutputStateWithTemplate and validateOutputState.
+
+fork and close: both need the artist's signature. fork splits one lane into two: leftMints and rightMints both above 0 and summing to mints_left, the two outputs together worth at least the input, other fields unchanged. close ends the lane.
+
+Reference SDK (web/reliks-chain.js buildMint): output order is lane (0), edition (1), artist (2, only if price > 0), then change; the signature script hardcodes editionOutIdx = 1 and artistOutIdx = 2; edition value 1 KAS; the edition covenant is a KIP-20 genesis authorized by the funding input (index 1). sdk/plan.js planMint checks all of this against the rules above.
 
 ## 6. Engine and render
 - program_hash = H(program). render_hash = H(canonical SVG of the program at serial 1, zero lineage, sales 0). Both anchors verify on the testnet series.
@@ -55,4 +65,4 @@ Mainnet runs v12: 8-field edition, no lineage or sales, JS engine, engine_lang 1
 the factory contract's mint rules; the offer/escrow contract; owner-as-covenant (design only, not implemented); fee and mass limits; splits and mint modes.
 
 ## 9. Verification status
-Sections 2 and 3 are checked two ways. (a) Two independent implementations (the JS codec and sdk/ref_protocol.py) agree on generated vectors for state encoding, serial, lineage and covenant id. (b) On testnet-10, the serials of all 4 minted editions and the genesis lineage of the one edition with no sales reproduce from the lane outpoint spent by the mint, and the on-chain edition scripts rebuilt from those values were found live (all 4 confirmed, 2026-10-03). The ledgers were written by the same author's tools, so (b) shows the formulas match what was deployed, not that the contract forces them. Section 4 is transcribed by hand from the edition contract source, which recompiles to the deployed bytecode (tools/verify-contract.js); the transcription has not been reviewed by anyone else, and the source file's constants and constructor parameters are not transcribed. Section 5 describes the reference SDK and is UNREVIEWED against the factory contract.
+Sections 2 and 3 are checked two ways. (a) Two independent implementations (the JS codec and sdk/ref_protocol.py) agree on generated vectors for state encoding, serial, lineage and covenant id. (b) On testnet-10, the serials of all 4 minted editions and the genesis lineage of the one edition with no sales reproduce from the lane outpoint spent by the mint, and the on-chain edition scripts rebuilt from those values were found live (all 4 confirmed, 2026-10-03). The factory contract computes serial and lineage itself from the lane input outpoint (section 5), so a mint cannot produce different values. Section 4 is transcribed by hand from the edition contract source, which recompiles to the deployed bytecode (tools/verify-contract.js); the transcription has not been reviewed by anyone else. Section 5 is transcribed by hand from the factory source, which also recompiles to the deployed factory bytecode; the checks marked UNREVIEWED there remain open.

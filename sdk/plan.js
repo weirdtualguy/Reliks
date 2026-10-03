@@ -44,6 +44,13 @@ function planMint(p) {
   add('mints_left_after', BigInt(draft.summary.mintsLeftAfter) === BigInt(st.mints_left) - 1n);
   const price = BigInt(st.price), art = draft.outputs.find((o) => o.role === 'artist');
   add('artist_paid', price === 0n ? !art : (art && art.spk === CH.p2pkSpk(st.artist) && BigInt(art.value) === price));
+  const roy = BigInt(st.royalty_bips);
+  add('contract_royalty_range', roy >= 1n && roy <= 2000n, 'royalty_bips ' + roy + ' (factory requires 1..2000)');
+  add('contract_price_floor', price === 0n || price >= 100000000n, 'price ' + price);
+  add('contract_mints_left', BigInt(st.mints_left) > 0n);
+  add('edition_output_index_1', !!ed && draft.outputs.indexOf(ed) === 1, 'sigScript hardcodes editionOutIdx = 1');
+  add('artist_output_index_2', price === 0n || (!!art && draft.outputs.indexOf(art) === 2), 'sigScript hardcodes artistOutIdx = 2');
+  add('edition_carrier_floor', !!ed && BigInt(ed.value) >= 100000000n);
   const est = CH.estimateFee(draft);
   add('fee_covers_estimate', draft.fee >= est, 'fee ' + draft.fee + ' est ' + est);
   return { ok: checks.every((c) => c.ok), checks, draft, safeJson: CH.toSafeJSON(draft), size: CH.estimateSize(draft), fee: draft.fee, summary: draft.summary };
