@@ -1,4 +1,4 @@
-// Factory constructor args for a Reliks-VM-native series: engine_code = VM program bytes, engine_lang = 1.
+// Factory constructor args for a Reliks-VM-native series: engine_code = VM program bytes, engine_lang = 2 (override with ENGINE_LANG=1 for a series like the earlier testnet ones).
 // Usage (repo root): node v13/gen-vm-factory-args.js data/series-testnet-v12.json [out.json]
 'use strict';
 const fs = require('fs'), path = require('path');
@@ -35,7 +35,7 @@ const tplHash = Array.isArray(ed.template_hash) ? Buffer.from(ed.template_hash) 
 const bytes = b => ({ kind: 'bytes', value: Array.from(b) }), int = n => ({ kind: 'int', value: n });
 const args = [
   bytes(Buffer.from(PROGRAM_HASH, 'hex')), bytes(Buffer.from(cfg.artist, 'hex')), int(cfg.price), int(cfg.royalty_bips), int(cfg.mints_left),
-  bytes(prog), int(1), bytes(Buffer.from(renderHash, 'hex')), bytes(prefix), bytes(suffix), bytes(tplHash)
+  bytes(prog), int(Number(process.env.ENGINE_LANG || 2)), bytes(Buffer.from(renderHash, 'hex')), bytes(prefix), bytes(suffix), bytes(tplHash)
 ];
 const out = outArg || 'v13/factory-args-vm-v13.json';
 fs.writeFileSync(out, JSON.stringify(args));

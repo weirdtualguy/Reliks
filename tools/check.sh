@@ -61,6 +61,9 @@ fi
 if [ -f sdk/test-engine.js ]; then
   if node sdk/test-engine.js >/dev/null 2>&1; then echo "PASS sdk engine-kind tests"; else echo "FAIL sdk engine-kind tests"; FAIL=1; fi
 fi
+if [ -f sdk/test-vm-args.js ]; then
+  if node sdk/test-vm-args.js >/dev/null 2>&1; then echo "PASS vm factory args engine_lang text check"; else echo "FAIL vm factory args engine_lang text check"; FAIL=1; fi
+fi
 if [ -f tags.js ]; then
   if node tags.js 2>&1 | grep -q "ALL PASS"; then echo "PASS dispatch tags"; else echo "FAIL dispatch tags"; FAIL=1; fi
 fi
