@@ -18,9 +18,11 @@ V.factory_state.forEach((c, i) => { const h = hex(CH.encFactoryState(c.state)); 
 V.rejects.forEach((c, i) => { let threw = false; try { c.kind === 'edition' ? CH.encEditionState(c.state) : CH.encFactoryState(c.state); } catch (e) { threw = true; } t('invalid ' + c.kind + ' state rejected ' + i, threw, 'accepted'); });
 for (const lp of ['v13/ledger-vm-v13.json', 'v13/ledger-marks3-v13.json']) {
   if (!fs.existsSync(lp)) continue;
-  JSON.parse(fs.readFileSync(lp, 'utf8')).editions.forEach((e, i) => {
-    info(lp + ' edition ' + i + ': serial == serialFromOutpoint(mintTxId, mintIndex)', CH.serialFromOutpoint(e.mintTxId, e.mintIndex) === String(e.serial), 'ledger mintTxId/mintIndex may not be the lane outpoint');
-    if (Number(e.sales) === 0) info(lp + ' edition ' + i + ': lineage == genesis lineage', CH.genesisLineage(e.mintTxId, e.mintIndex) === e.lineage, 'or lineage advanced by a transfer');
+  const L = JSON.parse(fs.readFileSync(lp, 'utf8')), nm = lp.split('/').pop().replace('.json', '');
+  L.editions.forEach((e, i) => {
+    const prev = i === 0 ? L.genesisTxId : L.editions[i - 1].mintTxId;   // lane outpoint spent by this mint: output 0 of the previous mint tx (genesis tx for the first)
+    t(nm + ' edition ' + i + ': serial == serialFromOutpoint(lane outpoint its mint spent)', CH.serialFromOutpoint(prev, 0) === String(e.serial), CH.serialFromOutpoint(prev, 0) + ' vs ' + e.serial);
+    if (Number(e.sales) === 0) t(nm + ' edition ' + i + ': lineage == genesis lineage of that lane outpoint', CH.genesisLineage(prev, 0) === e.lineage, 'differs');
   });
 }
 console.log(bad ? 'PROTOCOL VECTORS FAILED' : 'PROTOCOL VECTORS OK'); process.exit(bad);

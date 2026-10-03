@@ -17,6 +17,7 @@ Edition (10 fields, 203 bytes encoded): ownerIdentifier(32), identifierType(1), 
 - advanced lineage = H("ReliksLineageV2" || previous lineage || new owner identifier).
 - covenant id (KIP-20 genesis) = H_"CovenantID"(authorizing txid || le32(authorizing index) || le64(output count) || for each bound output: le32(index) || le64(value) || le16(0) || le64(script length) || script).
 The names carry historical suffixes. They are fixed strings, not versions.
+For a mint, (txid, index) is the lane outpoint the mint spends: output 0 of the previous mint transaction, or output 0 of the genesis transaction for the first mint (observed on the testnet ledgers).
 
 ## 4. Edition transitions
 The draft contract defines three state constructors (policy bodies UNREVIEWED):
@@ -43,4 +44,4 @@ Mainnet runs v12: 8-field edition, no lineage or sales, JS engine, engine_lang 1
 Exact rules of list, unlist, buy, sell, transfer and spend (UNREVIEWED); the factory contract's mint rules; the offer/escrow contract; owner-as-covenant (design only, not implemented); fee and mass limits; splits and mint modes.
 
 ## 9. Verification status
-Section 3 (serial, lineage, covenant id) and section 2 (state encoding) are checked by two independent implementations against generated vectors. They are NOT yet checked against live chain data: the ledgers' mintTxId/mintIndex do not reproduce the recorded serials, probably because the derivation uses the lane outpoint spent by the mint (pending test). Sections 4 and 5 describe the reference SDK and the draft contract and are UNREVIEWED against the compiled contract.
+Sections 2 and 3 are checked two ways. (a) Two independent implementations (the JS codec and sdk/ref_protocol.py) agree on generated vectors for state encoding, serial, lineage and covenant id. (b) On testnet-10, the serials of all 4 minted editions and the genesis lineage of the one edition with no sales reproduce from the lane outpoint spent by the mint, and the on-chain edition scripts rebuilt from those values were found live (all 4 confirmed, 2026-10-03). The ledgers were written by the same author's tools, so (b) shows the formulas match what was deployed, not that the contract forces them. Sections 4 and 5 describe the reference SDK and the draft contract and are UNREVIEWED against the compiled contract.
