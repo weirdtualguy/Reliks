@@ -34,8 +34,8 @@ Updated 2026-10-01. Branch `v13-lineage` (local only).
 - 2026-10-01 marks3 escrow: negative test (seller short by 1 sompi) rejected by nodes, no spend; honest offer/accept verified on chain (sales 2, render MATCH). Escrow ledger v13/escrow-ledger-marks3-v13.json (gitignored, backed up). Closes 'escrow-accept negative test' from v13 open list
 - 2026-10-02 Mission changed: Reliks is now infrastructure for third-party marketplaces. Read INFRA-HANDOFF.md first.
 - 2026-10-02 check.sh now covers marks3 + dispatch tags; npm test passes in full mode; git bundle backup in ~/storage/downloads/reliks-backup
-- 2026-10-02 cleanup step 1: series-dummy.json archived; retired local leftovers moved to ~/storage/downloads/reliks-backup/retired; check.sh passes
-- 2026-10-02 vm/check.js path fixed (105 vectors pass); check.sh now runs vm vectors (JS + Python regen-identical). Probe, cleanup step 1 done.
-- 2026-10-02 v13/SPEC-GAPS.md written (VM spec vs code done; protocol docs pending)
+- 2026-10-03 cleanup step 1: series-dummy.json archived; retired local leftovers moved to ~/storage/downloads/reliks-backup/retired; check.sh passes
+- 2026-10-03 vm/check.js path fixed (105 vectors pass); check.sh now runs vm vectors (JS + Python regen-identical). Probe, cleanup step 1 done.
+- 2026-10-03 v13/SPEC-GAPS.md written (VM spec vs code done; protocol docs pending)
 - 2026-10-03 marks3 edition 0 sales 3: tx 86860766c7a1 is mined (its wallet outputs idx1/idx3 are in the node UTXO set, amounts match a 1 KAS self-sell); ledger entry passes consistency vs .bak3. Edition script on chain NOT independently confirmed: REST and node address lookups cannot see covenant outputs (old-series control also returned 0) and kascov tip is stale and not advancing. Do not mint while kascov is stale (mint reads the lane from it)
 - 2026-10-03 marks3 edition 0 sales-3 sell: tools/tx-status.js says MINED at block DAA 586417951 (about 350 min before that check at 10 DAA/s) with both wallet outputs present; the script's 10 min confirmation wait still timed out and a retry got 'already in the mempool'. That timeline is not reconciled: the wait may have missed a tx mined inside its window. Never resubmit after a timeout; run tools/tx-status.js first

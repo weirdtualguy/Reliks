@@ -20,7 +20,7 @@ Generative-art NFTs on Kaspa, built from L1 covenants (SilverScript). A series i
 ## Data model (as seen in code)
 - Factory state (7 fields): program_hash, artist, price, royalty_bips, mints_left, engine_lang, render_hash.
 - Edition state v12 (8): ownerIdentifier, identifierType, price, artist, royalty_bips, program_hash, factory_covid, serial. v13 adds lineage, sales (10).
-- serial = blake2b("ReliksSerialV10" + consumed lane txid + index LE32), masked to int64. Genesis lineage = blake2b("ReliksGenesisV2" + txid + index LE32). Lineage advance = blake2b("ReliksLineageV2" + lineage + newOwner).
+- serial = blake2b("ReliksSerialV10" + consumed lane txid + index LE32), taken as a 63-bit integer. Genesis lineage = blake2b("ReliksGenesisV2" + txid + index LE32). Lineage advance = blake2b("ReliksLineageV2" + lineage + newOwner).
 - VM render inputs (v13/vm/rvm.js `hostInputs`): lanes from blake2b("ReliksSeedV2"+serial LE64); patina = blake2b("ReliksPatinaV2"+lineage)[0] & 63; wear = min(sales,255). The JS-engine path uses "ReliksSeedV10" and seed = serial mod 2^32.
 - Transfer advances lineage only. Sell/buy advance lineage and sales. Zero-price sell removed. Escrow is v6.
 

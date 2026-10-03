@@ -18,3 +18,8 @@ Compared RELIKS-VM-SPEC.md rev 2 to rvm.js/rvm.py: limits, opcodes, header/decod
 
 ## Open
 12. Third implementation (Rust, from the spec alone).
+
+## Resolved (2026-10-03)
+10. Deployed code advances lineage on transfer (apply-transfer-lineage.js; AI-CONTEXT, INFRA-HANDOFF). reliks-v13-spec.md sec 3 and reliks-2-design.md are stale. On-chain script not independently confirmed (kascov stale).
+11. Serial is a 63-bit integer (INFRA-HANDOFF, web/reliks-chain.js comment). AI-CONTEXT said "int64"; fixed.
+14. Domain tags: code uses ReliksLineageV2 / ReliksGenesisV2 everywhere; reliks-v13-spec.md says V13. Spec stale.
