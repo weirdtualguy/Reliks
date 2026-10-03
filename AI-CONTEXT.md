@@ -47,3 +47,7 @@ Generative-art NFTs on Kaspa, built from L1 covenants (SilverScript). A series i
 
 ## Health check
 - `sh tools/check.sh` (add `full` to also run `npm test`) verifies every ledger edition against the chain and cross-checks the two interpreters. Run it before and after any change and report its output instead of claiming things work.
+
+## Confirmation traps (learned 2026-10-01)
+- Kascov's index can go stale for a day: check `tip_at_ms` in /c/<cov>.json before trusting it. Every verify/history/demo script and the covenant-spend confirmation wait read kascov or REST, and REST /transactions can lack a mined tx. A timeout does NOT mean the tx failed.
+- Before retrying any covenant spend, look at the wallet UTXO set (REST /addresses/<wallet>/utxos) for the previous attempt's outputs; a retry after a mined tx fails as "orphan where orphan is disallowed" or "already in the mempool". Never resubmit blindly. If a tx was mined but the ledger is behind, use tools/repair-self-sell.js.
