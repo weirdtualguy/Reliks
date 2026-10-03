@@ -265,6 +265,7 @@ async function waitForConfirmation(txId, maxWait = 120000) {
     await new Promise(r => setTimeout(r, 5000));
   }
   console.error('  FATAL: tx ' + txId + ' NOT confirmed within ' + maxWait + 'ms via REST or kascov. Refusing to write ledger.');
+  console.error('  The tx may still be pending, or may be mined after this wait. Do NOT resubmit. Check first: node tools/tx-status.js ' + txId);
   process.exit(1);
 }
 
