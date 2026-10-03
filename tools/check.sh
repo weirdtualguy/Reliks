@@ -32,6 +32,11 @@ if [ -f v13/vm/check.js ]; then
   (cd v13/vm && python3 gen_vectors.py >/dev/null 2>&1); rc=$?
   if [ $rc -eq 0 ] && git diff --quiet -- v13/vm/vectors.json; then echo "PASS vm vectors (Python regen identical)"; else echo "FAIL vm vectors (Python regen rc=$rc or vectors.json differs)"; FAIL=1; fi
 fi
+for L in v13/ledger-vm-v13.json v13/ledger-marks3-v13.json; do
+  if [ -f "$L" ] && [ -f sdk/selftest.js ]; then
+    if node sdk/selftest.js "$L" >/dev/null 2>&1; then echo "PASS sdk read ($L)"; else echo "FAIL sdk read ($L)"; FAIL=1; fi
+  fi
+done
 if [ -f tags.js ]; then
   if node tags.js 2>&1 | grep -q "ALL PASS"; then echo "PASS dispatch tags"; else echo "FAIL dispatch tags"; FAIL=1; fi
 fi
