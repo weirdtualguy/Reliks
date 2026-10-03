@@ -40,6 +40,9 @@ done
 if [ -f sdk/test-onchain.js ] && [ -f v13/ledger-vm-v13.json ]; then
   if node sdk/test-onchain.js >/dev/null 2>&1; then echo "PASS sdk on-chain verifier (mock)"; else echo "FAIL sdk on-chain verifier (mock)"; FAIL=1; fi
 fi
+if [ -f sdk/test-plan.js ] && [ -f v13/ledger-vm-v13.json ]; then
+  if node sdk/test-plan.js >/dev/null 2>&1; then echo "PASS sdk plan + tamper tests"; else echo "FAIL sdk plan + tamper tests"; FAIL=1; fi
+fi
 if [ -f tags.js ]; then
   if node tags.js 2>&1 | grep -q "ALL PASS"; then echo "PASS dispatch tags"; else echo "FAIL dispatch tags"; FAIL=1; fi
 fi
