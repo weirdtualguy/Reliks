@@ -20,13 +20,24 @@ The names carry historical suffixes. They are fixed strings, not versions.
 For a mint, (txid, index) is the lane outpoint the mint spends: output 0 of the previous mint transaction, or output 0 of the genesis transaction for the first mint (observed on the testnet ledgers).
 
 ## 4. Edition transitions
-The draft contract defines three state constructors (policy bodies UNREVIEWED):
-- sold (buy and sell): owner changes, price becomes 0, lineage advances, sales + 1.
-- moved (transfer): owner changes, price becomes 0, lineage advances, sales unchanged.
-- cleared: owner changes, price becomes 0, lineage and sales unchanged.
-List and unlist copy lineage and sales. Which route uses which constructor is UNREVIEWED here.
+Source: v13/ReliksEdition-v13-draft.sil, transcribed by hand (whether it compiles to the deployed bytecode is not yet checked, see section 9). Every route is a one-input, one-output covenant transition authorized by the edition's own input, except spend, which ends the edition. "Owner auth" means a Schnorr signature by the owner key, and it requires identifierType = IDENTIFIER_PUBKEY. "Carrier" means the edition output's value must be at least its input's value. MAX = 922337203685477.
 
-Sale payments: roy = floor(salePrice * royalty_bips / 10000). The owner output pays at least salePrice - roy to the owner's P2PK script. The artist output pays exactly roy to the artist's P2PK script. The two output indices differ. Only pubkey owners (identifierType = IDENTIFIER_PUBKEY, 0 in the reference SDK) can authorize. Listing price: at least 100000000 sompi (1 KAS) and at most 922337203685477. The edition output value must be at least its input value.
+| Route | Arguments | Auth | Checks | Resulting state |
+|---|---|---|---|---|
+| list | newPrice, ownerSig | owner | carrier; 100000000 <= newPrice <= MAX | price = newPrice, rest copied |
+| unlist | ownerSig | owner | carrier | price = 0, rest copied |
+| buy | buyer, ownerOutIdx, artistOutIdx | none | 0 < price <= MAX; carrier; payments | owner = buyer, price 0, lineage advanced, sales + 1 |
+| sell | buyer, salePrice, ownerOutIdx, artistOutIdx, ownerSig | owner | 100000000 <= salePrice <= MAX; carrier; payments | as buy |
+| transfer | newOwner, ownerSig | owner | carrier | owner = newOwner, price 0, lineage advanced, sales unchanged |
+| spend | ownerSig | owner | none (no carrier check) | edition ends |
+
+"Advanced" lineage is H("ReliksLineageV2" || previous lineage || new owner). The new owner's identifierType is always IDENTIFIER_PUBKEY, so covenant owners are not supported in this draft.
+
+Payments (buy and sell): roy = floor(salePrice * royalty_bips / 10000). The two output indices must differ. The output at ownerOutIdx pays at least salePrice - roy (which must be non-negative) to the previous owner's P2PK script. The output at artistOutIdx pays exactly roy to the artist's P2PK script. For buy, the sale price is the listed price. Buy needs no owner signature, so any listed edition can be bought by paying these outputs.
+
+Consequences worth stating:
+- sales is purchasable, not earned. sell accepts any buyer key and any price from 1 KAS up, so an owner can sell to another key they control. Each such step costs the royalty (nothing if the owner is also the artist) plus the fee, and it increments sales and advances lineage. Anything that treats sales as proof of market history must account for this.
+- transfer advances lineage at no royalty. Lineage grinding is bounded only by the 64-value quantization in the VM host rule.
 
 ## 5. Mint (as built by the reference SDK; contract enforcement UNREVIEWED)
 - Output 0: lane, same value and covenant id, authorized by input 0, mints_left - 1. Output 1: edition, 100000000 sompi, authorized by input 1, covenant id = covenant id (genesis) over the funding outpoint with the single bound output (index 1, that value, the edition script). Then the artist payout (series price, only if price > 0), then change (folded into the fee below 1000000 sompi).
@@ -41,7 +52,7 @@ Sale payments: roy = floor(salePrice * royalty_bips / 10000). The owner output p
 Mainnet runs v12: 8-field edition, no lineage or sales, JS engine, engine_lang 1. Read-only checks for it: `sdk/verify-v12.js`. It does not verify the rendered art.
 
 ## 8. Not specified yet
-Exact rules of list, unlist, buy, sell, transfer and spend (UNREVIEWED); the factory contract's mint rules; the offer/escrow contract; owner-as-covenant (design only, not implemented); fee and mass limits; splits and mint modes.
+the factory contract's mint rules; the offer/escrow contract; owner-as-covenant (design only, not implemented); fee and mass limits; splits and mint modes.
 
 ## 9. Verification status
-Sections 2 and 3 are checked two ways. (a) Two independent implementations (the JS codec and sdk/ref_protocol.py) agree on generated vectors for state encoding, serial, lineage and covenant id. (b) On testnet-10, the serials of all 4 minted editions and the genesis lineage of the one edition with no sales reproduce from the lane outpoint spent by the mint, and the on-chain edition scripts rebuilt from those values were found live (all 4 confirmed, 2026-10-03). The ledgers were written by the same author's tools, so (b) shows the formulas match what was deployed, not that the contract forces them. Sections 4 and 5 describe the reference SDK and the draft contract and are UNREVIEWED against the compiled contract.
+Sections 2 and 3 are checked two ways. (a) Two independent implementations (the JS codec and sdk/ref_protocol.py) agree on generated vectors for state encoding, serial, lineage and covenant id. (b) On testnet-10, the serials of all 4 minted editions and the genesis lineage of the one edition with no sales reproduce from the lane outpoint spent by the mint, and the on-chain edition scripts rebuilt from those values were found live (all 4 confirmed, 2026-10-03). The ledgers were written by the same author's tools, so (b) shows the formulas match what was deployed, not that the contract forces them. Section 4 is transcribed from the draft contract source; whether that source compiles to the deployed bytecode is not yet checked. Section 5 describes the reference SDK and is UNREVIEWED against the factory contract.
