@@ -86,7 +86,37 @@ async function verifyClaim(a) {
   add('history', h.ok, h.detail);
   if (!h.ok) return out('history_conflict', { outpoint: lo });
   add('chain', true, 'live at ' + String(lo).slice(0, 14));
-  return fresh ? out('current', { outpoint: lo }) : stale('current', { outpoint: lo });
+  let prov = { level: 'unchecked', detail: 'skipped' };
+  if (a.provenance !== false) prov = await checkProvenance({ chain, io, covenantId: claim.covenantId, st, kj, fresh });
+  add('provenance', ['listed_and_derived', 'listed', 'unchecked'].indexOf(prov.level) >= 0, prov.level + (prov.detail ? ': ' + prov.detail : ''));
+  if (['unlisted', 'inconsistent', 'mismatch'].indexOf(prov.level) >= 0) return out('provenance_failed', { outpoint: lo, provenance: prov.level });
+  return fresh ? out('current', { outpoint: lo, provenance: prov.level }) : stale('current', { outpoint: lo, provenance: prov.level });
+}
+
+// Provenance (PROTOCOL.md section 11): was this covenant born in a mint of the claimed lane, and does its genesis state follow from that mint?
+// Levels: listed_and_derived | listed | unchecked (no evidence either way) | unlisted | inconsistent | mismatch (evidence against).
+async function checkProvenance({ chain, io, covenantId, st, kj, fresh }) {
+  let lane;
+  try { lane = await io.covenant(st.factory_covid); } catch (e) { return { level: 'unchecked', detail: 'lane record unavailable' }; }
+  const evs = Array.isArray(lane && lane.events) ? lane.events : [];
+  const complete = !!lane && lane.events_truncated !== true && Number(lane.event_count) === evs.length;
+  const hit = evs.find((e) => e && e.kind === 'transition' && Array.isArray(e.with_covenants) && e.with_covenants.indexOf(covenantId) >= 0);
+  if (!hit) return complete && fresh ? { level: 'unlisted', detail: 'no mint event of the claimed lane lists this covenant' } : { level: 'unchecked', detail: 'lane record incomplete or index not fresh' };
+  if (!kj || kj.genesis_txid !== hit.txid) return { level: 'inconsistent', detail: 'the covenant genesis tx is not the lane event tx' };
+  const prev = (Array.isArray(lane.utxos) ? lane.utxos : []).find((u) => u && u.spent_txid === hit.txid);
+  if (!prev || !/^[0-9a-f]{64}:\d+$/.test(String(prev.outpoint))) return { level: 'listed', detail: 'the lane input outpoint of the mint is not available' };
+  if (kj.utxos_truncated === true) return { level: 'listed', detail: 'edition output list truncated; genesis state not checked' };
+  const spent = (Array.isArray(kj.utxos) ? kj.utxos : []).filter((u) => u && u.live !== true);
+  let g;
+  if (!spent.length) g = st;
+  else {
+    const first = spent.slice().sort((x, y) => Number(x.created_daa) - Number(y.created_daa))[0];
+    if (!first || typeof first.revealed_hex !== 'string' || !first.revealed_hex) return { level: 'listed', detail: 'the earliest output has no revealed script' };
+    try { g = chain.decodeEditionState(first.revealed_hex); } catch (e) { return { level: 'listed', detail: 'the earliest output cannot be decoded' }; }
+  }
+  const op = String(prev.outpoint).split(':'), ptx = op[0], pidx = Number(op[1]);
+  const ok = String(g.serial) === chain.serialFromOutpoint(ptx, pidx) && String(g.lineage).toLowerCase() === chain.genesisLineage(ptx, pidx) && BigInt(g.sales) === 0n && BigInt(g.price) === 0n && String(g.factory_covid).toLowerCase() === st.factory_covid;
+  return ok ? { level: 'listed_and_derived', detail: 'listed in a lane mint; genesis state follows from the lane input' } : { level: 'mismatch', detail: 'the genesis state does not follow from the lane input of the mint' };
 }
 
 function claimFromLedger(ledger, i, opts) {
