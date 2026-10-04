@@ -1,6 +1,6 @@
 # Reliks-VM v1, revision 2 (draft specification)
 
-Status: draft, revised after porting the DAG-City engine. Two independent interpreters (Python, JavaScript) agree on every vector in `vectors.json` (105 checks). No on-chain contract uses this yet; items marked "proposed" are Reliks 2 design decisions. The magic version byte stays `0x01` until genesis; until then any rule here can still change.
+Status: draft, revised after porting the DAG-City engine. Two independent interpreters (Python, JavaScript) agree on every vector in `vectors.json` (105 checks). Two testnet-10 series use it (the clean DAG-City port of section 9 and a second program, marks3); no mainnet series does; items marked "proposed" are Reliks 2 design decisions. The magic version byte stays `0x01` until genesis; until then any rule here can still change.
 
 ## 0. What the DAG-City port changed
 
@@ -18,7 +18,7 @@ The original engine could not be ported with revision 1. The gaps, and what clos
 
 Two findings that are not op-set gaps:
 
-1. **The original engine has an accidental RNG alias.** Its `var x,y` redeclarations reuse the xorshift state variables `x` and `y` as drawing coordinates, so the random stream depends on drawn positions. The faithful port reproduces this by implementing xorshift in bytecode (state in memory cells). That works, and proves the built-in RNG is optional for expressiveness. The **clean port** (1,567 bytes) uses the built-in RNG with separate variables, so it draws a different city for the same serial. Decision for you: keep the faithful stream (existing mainnet art keeps its look) or use the clean one for new series.
+1. **The original engine has an accidental RNG alias.** Its `var x,y` redeclarations reuse the xorshift state variables `x` and `y` as drawing coordinates, so the random stream depends on drawn positions. The faithful port reproduces this by implementing xorshift in bytecode (state in memory cells). That works, and proves the built-in RNG is optional for expressiveness. The **clean port** (1,567 bytes) uses the built-in RNG with separate variables, so it draws a different city for the same serial. Decision for you: keep the faithful stream (existing mainnet art keeps its look) or use the clean one for new series. Status (2026-10-03): the first testnet-10 VM series uses the clean port (program hash `cf1f1e60...`, section 9); the mainnet engine is JavaScript, not VM.
 2. **History inputs map naturally onto art.** In the clean port, `PAT` shifts one building color family and `WEAR` fades window lights. Across `PAT` 0..63 and `WEAR` 0..255 the geometry is byte-identical; only colors and opacity change (checked for several combinations).
 
 ## 1. Purpose
@@ -108,7 +108,7 @@ pat      = blake2b-256("ReliksPatinaV2" || lineage[32])[0] & 63
 wear     = min(sales, 255)
 ```
 
-Why `pat` is one 6-bit value (proposed): a buyer can pick a pubkey offline and thereby steer `lineage`. Exposing only 64 values bounds that grinding by construction. `wear` is not grindable. Using the full serial (v12 used 32 bits) avoids birthday collisions near 65k editions.
+Why `pat` is one 6-bit value (proposed): a buyer can pick a pubkey offline and thereby steer `lineage`. Exposing only 64 values bounds that grinding by construction. `wear` cannot be chosen offline, but it can be raised by self-sales at the cost of the royalty and the fee (PROTOCOL.md section 4). Using the full serial (v12 used 32 bits) avoids birthday collisions near 65k editions.
 
 Note for the faithful port: it needs the *v12* lane derivation (`"ReliksSeedV10"` and the 32-bit serial) to reproduce mainnet art. That derivation is a host rule, not a VM rule.
 
@@ -131,6 +131,8 @@ path    <path d fill S O/>
 group   <g>  or  <g opacity="x">  ...  </g>
 defs    <defs><radialGradient id="gN"><stop offset="P%" stop-color="#rrggbb" [stop-opacity="x"]/>...</radialGradient></defs>
 ```
+
+Gradient stops: `stop-opacity="x"` is emitted only when the stop opacity is not 100, with the same opacity text as `O`.
 
 Path `d`: segments concatenated with no separator: `M<x> <y>`, `L<x> <y>`, `l<dx> <dy>`, `q<cx> <cy> <dx> <dy>`, `Z`.
 
@@ -159,7 +161,7 @@ Program hashes: faithful `792fed9b8c47d5fbc4f8c60d2929eb929fa8cd34e447317252fbd5
 
 ## 10. Test vectors
 
-`vectors.json`: 5 host-derivation vectors and 98 program cases: 62 fault cases (one per rule, including every new op), boundary passes at exactly 10,000 elements and 2,048 segments, arithmetic edges with hand-written expectations, PRNG sequences from a separate generator, indirect memory, relative paths, group and gradient rules, and DAG-City renders. `python3 gen_vectors.py` regenerates and self-checks; `node check.js` runs everything through the JS interpreter.
+`vectors.json` (the harness reports 105 checks; the breakdown below accounts for 103): 5 host-derivation vectors and 98 program cases: 62 fault cases (one per rule, including every new op), boundary passes at exactly 10,000 elements and 2,048 segments, arithmetic edges with hand-written expectations, PRNG sequences from a separate generator, indirect memory, relative paths, group and gradient rules, and DAG-City renders. `python3 gen_vectors.py` regenerates and self-checks; `node check.js` runs everything through the JS interpreter.
 
 ## 11. Remaining gaps and decisions
 

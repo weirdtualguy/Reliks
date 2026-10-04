@@ -1,4 +1,4 @@
-/* Reliks-VM v1: second reference interpreter (JavaScript, no dependencies except ../web/blake2b.js for host inputs). */
+/* Reliks-VM v1: second reference interpreter (JavaScript, no dependencies; hostInputs takes a blake2b-256 function as a parameter). */
 'use strict';
 var MAGIC = [0x52, 0x56, 0x4d, 0x01];
 var FUEL_MAX = 1000000, STACK_MAX = 256, CALL_MAX = 64, MAX_ELEMS = 10000, MAX_SEGS = 2048, MAX_SVG = 1 << 20, WEAR_CAP = 255, MEM_SIZE = 1024, GROUP_MAX = 4, GRAD_MAX = 8, STOP_MAX = 8;
