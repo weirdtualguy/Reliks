@@ -132,15 +132,48 @@ def gen_valid():
     t.append('halt')
     return ' '.join(t)
 
+def gen_flow():
+    t = R.choice(['loop'] * 20 + ['rec'] * 20 + ['nohalt'] * 6 + ['cond'] * 10 + ['two'] * 6 + ['spin'])
+    if t == 'loop':
+        k = R.choice([1, 2, 3, 10, 50, 1000, 5001, 10000, 10001])
+        body = R.choice(['push 1 push 1 push 2 push 2 rect', 'push 0 push 0 push 5 circle', 'push 7 push 3 add drop', 'push 1 push 2 push 3 push 4 line'])
+        return '.canvas 32 32 push 255 stroke push %d store 0 loop: %s load 0 push 1 sub dup store 0 jnz loop halt' % (k, body)
+    if t == 'rec':
+        return '.canvas 8 8 push %d store 1 call f halt f: load 1 push 1 sub dup store 1 jz done call f done: ret' % R.choice([1, 2, 5, 63, 64, 65, 66])
+    if t == 'nohalt': return '.canvas 8 8 ' + R.choice(['push 1 drop', 'push 3 store 0', 'push 1 push 1 add drop'])
+    if t == 'cond': return '.canvas 8 8 push %d %s skip push 0 push 0 push 1 push 1 rect skip: halt' % (R.choice([0, 1, -1, 5]), R.choice(['jz', 'jnz']))
+    if t == 'spin': return '.canvas 8 8 push 255 stroke lp: push 1 drop jmp lp halt'
+    return '.canvas 16 16 call a call b halt a: push 1 push 1 push 3 push 3 rect call b ret b: push 2 push 2 push 1 circle ret'
+
+def mutate(b):
+    b = bytearray(b); kind = R.choice(['flip', 'flip', 'set', 'trunc', 'insert', 'delete', 'hdr'])
+    lo = 8 if len(b) > 8 and R.random() < 0.7 else 0
+    if kind == 'flip' and len(b) > lo: i = R.randrange(lo, len(b)); b[i] ^= 1 << R.randrange(8)
+    elif kind == 'set' and len(b) > lo: i = R.randrange(lo, len(b)); b[i] = R.choice([0, 1, 0x7f, 0x80, 0xff, 0x40, 0x43, 0x44, 0x9c, 0x9f, 0x60])
+    elif kind == 'trunc' and len(b) > 1: del b[R.randrange(1, len(b)):]
+    elif kind == 'insert': b.insert(R.randrange(lo, len(b) + 1), R.randrange(256))
+    elif kind == 'delete' and len(b) > lo: del b[R.randrange(lo, len(b))]
+    elif kind == 'hdr' and len(b) > 0: b[R.randrange(min(8, len(b)))] = R.choice([0, 1, 0xff, 0x10, 0x52])
+    return bytes(b), kind
+
+MODE = sys.argv[4] if len(sys.argv) > 4 else 'plain'
 out = []; bad = 0; first = None
 for _ in range(N):
-    src = gen_valid() if R.random() < 0.8 else gen_sloppy()
+    if MODE == 'flow': src = gen_flow()
+    elif MODE == 'mut': src = gen_flow() if R.random() < 0.5 else (gen_valid() if R.random() < 0.8 else gen_sloppy())
+    else: src = gen_valid() if R.random() < 0.8 else gen_sloppy()
     try: prog = bytes(assemble(src))
     except Exception as e:
         bad += 1; first = first or '%s: %s | %s' % (type(e).__name__, e, src[:90]); continue
+    if MODE == 'mut':
+        note = []
+        for _m in range(R.randint(1, 3)):
+            prog, k = mutate(prog); note.append(k)
+        src = '[mut ' + ' '.join(note) + '] ' + src
     try:
         svg = render(prog, LANES, SER, PAT, WEAR); res = {'svg_hash': b2(svg.encode('ascii')).hex(), 'svg_len': len(svg)}
     except Fault as f: res = {'fault': f.code}
+    except Exception as e: res = {'fault': 'PYEXC:' + type(e).__name__}
     out.append({'src': src, 'hex': prog.hex(), 'py': res})
 json.dump({'lanes': LANES, 'serial32': SER, 'pat': PAT, 'wear': WEAR, 'cases': out}, open(OUT, 'w'))
-print('generated', len(out), 'programs; assemble failures', bad, ('| first: ' + first) if first else '')
+print('generated', len(out), 'programs (' + MODE + '); assemble failures', bad, ('| first: ' + first) if first else '')

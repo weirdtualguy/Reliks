@@ -100,6 +100,7 @@ Rules pinned by vectors `rule_*` (the JavaScript, Python and C implementations a
 - Gradients: ids count from 0 in the order gradients are ended; FILL accepts 0x1000000 + id only for an ended gradient. Drawing instructions are allowed while a gradient is open. GRADSTOP outside a gradient is `E_GRAD` even if its operands are out of range, and a ninth stop is `E_GRAD` before any operand range check.
 - GOPEN, after popping its operand, checks in this order: path open (`E_PATH`), opacity range (`E_RANGE`), depth (`E_GROUP`). GCLOSE checks an open path (`E_PATH`) before an empty group stack (`E_GROUP`).
 - A RECT of width 0 and height 0 is valid.
+- Fuel: a program that executes exactly 1,000,000 instructions (HALT included) completes, and one that would execute 1,000,001 faults with `E_FUEL` (vectors `fuel_*`).
 
 RNG (xorshift128): `t = x ^ (x << 11)`, `x=y, y=z, z=w`, `w = (w ^ (w >> 19)) ^ (t ^ (t >> 8))`, all uint32.
 
@@ -167,11 +168,11 @@ Program hashes: faithful `792fed9b8c47d5fbc4f8c60d2929eb929fa8cd34e447317252fbd5
 
 ## 10. Test vectors
 
-`vectors.json` (the harness reports 139 checks: the 105 of revision 2, whose breakdown below accounts for 103, plus 34 added 2026-10-03 (RND/RNDR order, SVG size boundary, and the `rule_*` vectors above)): 5 host-derivation vectors and 98 program cases: 62 fault cases (one per rule, including every new op), boundary passes at exactly 10,000 elements and 2,048 segments, arithmetic edges with hand-written expectations, PRNG sequences from a separate generator, indirect memory, relative paths, group and gradient rules, and DAG-City renders. `python3 gen_vectors.py` regenerates and self-checks; `node check.js` runs everything through the JS interpreter.
+`vectors.json` (the harness reports 142 checks: the 105 of revision 2, whose breakdown below accounts for 103, plus 37 added 2026-10-03 (RND/RNDR order, SVG size boundary, and the `rule_*` vectors above)): 5 host-derivation vectors and 98 program cases: 62 fault cases (one per rule, including every new op), boundary passes at exactly 10,000 elements and 2,048 segments, arithmetic edges with hand-written expectations, PRNG sequences from a separate generator, indirect memory, relative paths, group and gradient rules, and DAG-City renders. `python3 gen_vectors.py` regenerates and self-checks; `node check.js` runs everything through the JS interpreter.
 
 ## 11. Remaining gaps and decisions
 
-1. **Third implementation.** Two agreeing interpreters written by the same author is weaker evidence than a Rust one written from this spec alone. Recommended before genesis. Update 2026-10-03: a third implementation in C (`v13/vm/rvm.c`, harness `v13/vm/check3.js`) was written from the spec text and agrees with the Python and JavaScript interpreters on all program cases of `vectors.json` (104 when first run, 132 now). It is not independent in the strict sense: its author had read parts of `rvm.js` (emission order, style attribute text, opacity text, the RNDR check order). A Rust or other implementation by someone who has seen neither reference remains valuable.
+1. **Third implementation.** Two agreeing interpreters written by the same author is weaker evidence than a Rust one written from this spec alone. Recommended before genesis. Update 2026-10-03: a third implementation in C (`v13/vm/rvm.c`, harness `v13/vm/check3.js`) was written from the spec text and agrees with the Python and JavaScript interpreters on all program cases of `vectors.json` (104 when first run, 135 now). It is not independent in the strict sense: its author had read parts of `rvm.js` (emission order, style attribute text, opacity text, the RNDR check order). A Rust or other implementation by someone who has seen neither reference remains valuable.
 2. **Faithful or clean city?** See section 0.
 3. **Limits are now measured, not guessed, for this one engine.** Worst case was 13% of fuel and 17% of elements. Other engines may need more; nothing here argues for raising them.
 4. **Assembly ergonomics.** The port used variables for everything; stack-only code would be unreadable. A small structured-language compiler is worth building before third-party artists write engines. `PICK` and `2DUP` would shorten hand-written code but were not needed.

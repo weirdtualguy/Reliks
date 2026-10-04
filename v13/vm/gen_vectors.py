@@ -246,6 +246,12 @@ for _n, _src, _f in [
   ('rule_gradstop_ninth_stop_bad_offset_grad_first', '.canvas 10 10 gradbegin ' + 'push 0 push 0 push 100 gradstop ' * 8 + 'push 200 push 0 push 100 gradstop halt', 'E_GRAD'),
 ]:
     add(_n, assemble(_src), expect_fault=_f)
+# ---- fuel boundary: 166666 loop iterations of 6 instructions + 2 setup + HALT = 999,999 executed instructions; each extra push adds one
+def _fuel_prog(extra):
+    return assemble('.canvas 8 8 push 166666 store 0 lp: load 0 push 1 sub dup store 0 jnz lp ' + 'push 1 ' * extra + 'halt')
+add('fuel_exactly_999999_instructions_passes', _fuel_prog(0))
+add('fuel_exactly_1000000_instructions_passes', _fuel_prog(1))
+add('fuel_1000001_instructions_faults', _fuel_prog(2), expect_fault='E_FUEL')
 
 
 # ---- 8b. rev-2 ops: uint32 RNDR, indirect memory, relative path, groups, gradients ----

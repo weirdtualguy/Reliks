@@ -1421,6 +1421,76 @@
    }
   },
   {
+   "name": "fuel_exactly_999999_instructions_passes",
+   "program_hex": "52564d0108000800018a960a5100500001011102510042060000",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "svg_hash": "74eacd4cd11d5ebbeb36bc44a264404f495f41d1a59857abb72ca64d3777c96f",
+    "svg_len": 64,
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 8 8\"></svg>"
+   }
+  },
+  {
+   "name": "fuel_exactly_1000000_instructions_passes",
+   "program_hex": "52564d0108000800018a960a51005000010111025100420600010100",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "svg_hash": "74eacd4cd11d5ebbeb36bc44a264404f495f41d1a59857abb72ca64d3777c96f",
+    "svg_len": 64,
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 8 8\"></svg>"
+   }
+  },
+  {
+   "name": "fuel_1000001_instructions_faults",
+   "program_hex": "52564d0108000800018a960a510050000101110251004206000101010100",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_FUEL"
+   }
+  },
+  {
    "name": "rndr_full_uint32_span",
    "program_hex": "52564d014000400001effdb6f57d01f8acd1910101f0bdf3d57901cef5b7777001808080807801ffffffff077251ff50ff01000101010190010501057251ff50ff0100010101019000",
    "inputs": {

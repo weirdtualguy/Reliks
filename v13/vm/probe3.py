@@ -33,6 +33,9 @@ PROBES = [
  ('gclose, no group, no path', '.canvas 10 10 gclose halt'),
  ('gclose, no group, path open', '.canvas 10 10 pbegin push 0 push 0 m gclose pend halt'),
  ('gradstop 9th stop with bad offset', '.canvas 10 10 gradbegin ' + 'push 0 push 0 push 100 gradstop ' * 8 + 'push 200 push 0 push 100 gradstop halt'),
+ ('fuel 999999 instructions', '.canvas 8 8 push 166666 store 0 lp: load 0 push 1 sub dup store 0 jnz lp ' + 'push 1 ' * 0 + 'halt'),
+ ('fuel 1000000 instructions', '.canvas 8 8 push 166666 store 0 lp: load 0 push 1 sub dup store 0 jnz lp ' + 'push 1 ' * 1 + 'halt'),
+ ('fuel 1000001 instructions', '.canvas 8 8 push 166666 store 0 lp: load 0 push 1 sub dup store 0 jnz lp ' + 'push 1 ' * 2 + 'halt'),
 ]
 out = []
 for name, src in PROBES:
