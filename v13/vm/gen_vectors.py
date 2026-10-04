@@ -186,6 +186,33 @@ add('svg_size_limit_fault', assemble(size), expect_fault='E_SIZE')
 add('rndr_underflow_before_rng', assemble('.canvas 64 64 rndr halt'), expect_fault='E_UNDERFLOW')
 add('rndr_rng_before_range', assemble('.canvas 64 64 push 5 push 3 rndr halt'), expect_fault='E_RNG')
 
+# ---- SVG size boundary. Measured: opening tag 60 bytes, '</svg>' 6, a path element is 51 + 24 per L segment with 11-char coordinates.
+# 21 full paths (M + 2047 L) = 1,032,759 bytes, plus a path of 654 full L's and a last short L = 15,751 bytes: 66 + 1,032,759 + 15,751 = 1,048,576.
+def size_prog(last_x, last_y, tail=''):
+    return """.canvas 64 64
+push 0 store 1
+outer:
+  pbegin push -2000000000 push -2000000000 m
+  push 0 store 0
+  inner:
+    push -2000000000 push -2000000000 l
+    load 0 push 1 add dup store 0 push 2047 lt jnz inner
+  pend
+  load 1 push 1 add dup store 1 push 21 lt jnz outer
+pbegin push -2000000000 push -2000000000 m
+push 0 store 0
+inner2:
+  push -2000000000 push -2000000000 l
+  load 0 push 1 add dup store 0 push 654 lt jnz inner2
+push %d push %d l
+pend
+%shalt""" % (last_x, last_y, tail)
+c = add('svg_size_exactly_limit_passes', assemble(size_prog(0, 0)), note='1,048,576-byte SVG: running total and final length both at the limit')
+assert c['expect']['svg_len'] == 1048576, c['expect']['svg_len']
+add('svg_size_one_over_only_via_closing_tag', assemble(size_prog(0, 10)), expect_fault='E_SIZE', note='body is 1,048,571 bytes; only </svg> pushes the SVG over the limit')
+add('svg_size_closing_tag_window_then_div0', assemble(size_prog(0, 10, 'push 0 push 0 div ')), expect_fault='E_DIV0', note='a fault raised during execution wins over the final size check')
+add('svg_size_running_total_over_before_div0', assemble(size_prog(12345678, 1, 'push 0 push 0 div ')), expect_fault='E_SIZE', note='emission pushes the running total over the limit before the later division by zero runs')
+
 
 # ---- 8b. rev-2 ops: uint32 RNDR, indirect memory, relative path, groups, gradients ----
 seed = (0xdeadbeef, 0x12345678, 0x9abcdef0, 0xfeedface)

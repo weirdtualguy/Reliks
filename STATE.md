@@ -70,3 +70,4 @@ Updated 2026-10-01. Branch `v13-lineage` (local only).
 - 2026-10-03 verifyClaim provenance: lane mint-event listing + genesis-tx match + derived genesis state; all 4 testnet editions listed_and_derived; new status provenance_failed. Same-tx counterfeit not excluded (mint covenant-id rule unreviewed).
 - 2026-10-03 VM spec text fixes applied (SPEC-GAPS 31); vectors still 105 pass. Open for the VM freeze: RND/RNDR fault order, SVG size boundary vectors, third implementation.
 - 2026-10-03 VM vectors 105 -> 107 (rndr_underflow_before_rng, rndr_rng_before_range); fault order stated in VM spec sec 7; Python and JS agree. Open: SVG size boundary vectors, third implementation.
+- 2026-10-03 VM vectors 107 -> 111 (SVG size boundary: exact limit, one over via closing tag, window then div0, running total before div0). Spec sec 7 states the emission/final size order. Python and JS agree. Only the third implementation remains open for the VM freeze.

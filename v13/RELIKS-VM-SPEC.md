@@ -140,7 +140,7 @@ Path `d`: segments concatenated with no separator: `M<x> <y>`, `L<x> <y>`, `l<dx
 
 ## 7. Faults
 
-Any fault invalidates the render (no partial output): `E_HEADER E_DECODE E_TARGET E_UNDERFLOW E_OVERFLOW E_DIV0 E_RANGE E_FUEL E_ELEMS E_SIZE E_CALLDEPTH E_NOHALT E_PATH E_RNG E_STROKE E_GROUP E_GRAD`. Conformance means the same code, not just "some fault". For `RND` and `RNDR` the order is fixed: operands are popped first (`E_UNDERFLOW`), then `E_RNG` if `RNGINIT` has not run, then the range check; vectors `rndr_underflow_before_rng` and `rndr_rng_before_range` pin the first two steps.
+Any fault invalidates the render (no partial output): `E_HEADER E_DECODE E_TARGET E_UNDERFLOW E_OVERFLOW E_DIV0 E_RANGE E_FUEL E_ELEMS E_SIZE E_CALLDEPTH E_NOHALT E_PATH E_RNG E_STROKE E_GROUP E_GRAD`. Conformance means the same code, not just "some fault". For `RND` and `RNDR` the order is fixed: operands are popped first (`E_UNDERFLOW`), then `E_RNG` if `RNGINIT` has not run, then the range check; vectors `rndr_underflow_before_rng` and `rndr_rng_before_range` pin the first two steps. The running SVG size starts at the length of the opening tag and is checked as each element is emitted, so a program whose emission exceeds the limit faults with `E_SIZE` at that element. The final length including `</svg>` is checked when the program halts, so a fault raised earlier in execution wins over it. Vectors `svg_size_exactly_limit_passes`, `svg_size_one_over_only_via_closing_tag`, `svg_size_closing_tag_window_then_div0` and `svg_size_running_total_over_before_div0` pin the boundary.
 
 ## 8. Assembler (tooling only)
 
@@ -161,7 +161,7 @@ Program hashes: faithful `792fed9b8c47d5fbc4f8c60d2929eb929fa8cd34e447317252fbd5
 
 ## 10. Test vectors
 
-`vectors.json` (the harness reports 105 checks; the breakdown below accounts for 103): 5 host-derivation vectors and 98 program cases: 62 fault cases (one per rule, including every new op), boundary passes at exactly 10,000 elements and 2,048 segments, arithmetic edges with hand-written expectations, PRNG sequences from a separate generator, indirect memory, relative paths, group and gradient rules, and DAG-City renders. `python3 gen_vectors.py` regenerates and self-checks; `node check.js` runs everything through the JS interpreter.
+`vectors.json` (the harness reports 111 checks: the 105 of revision 2, whose breakdown below accounts for 103, plus 6 added 2026-10-03): 5 host-derivation vectors and 98 program cases: 62 fault cases (one per rule, including every new op), boundary passes at exactly 10,000 elements and 2,048 segments, arithmetic edges with hand-written expectations, PRNG sequences from a separate generator, indirect memory, relative paths, group and gradient rules, and DAG-City renders. `python3 gen_vectors.py` regenerates and self-checks; `node check.js` runs everything through the JS interpreter.
 
 ## 11. Remaining gaps and decisions
 

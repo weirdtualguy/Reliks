@@ -700,6 +700,99 @@
    }
   },
   {
+   "name": "svg_size_exactly_limit_passes",
+   "program_hex": "52564d014000400001005101940180d8a9c6780180d8a9c67895010051000180d8a9c6780180d8a9c67896500001011002510001ff0f32421600985001010110025101011532420400940180d8a9c6780180d8a9c67895010051000180d8a9c6780180d8a9c678965000010110025100018e053242530001000100969800",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "svg_hash": "5040b93bb8dda3e32fe44147db14c520ca8e71bbb093c4f1e59e6d206591b1a0",
+    "svg_len": 1048576
+   },
+   "note": "1,048,576-byte SVG: running total and final length both at the limit"
+  },
+  {
+   "name": "svg_size_one_over_only_via_closing_tag",
+   "program_hex": "52564d014000400001005101940180d8a9c6780180d8a9c67895010051000180d8a9c6780180d8a9c67896500001011002510001ff0f32421600985001010110025101011532420400940180d8a9c6780180d8a9c67895010051000180d8a9c6780180d8a9c678965000010110025100018e05324253000100010a969800",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_SIZE"
+   },
+   "note": "body is 1,048,571 bytes; only </svg> pushes the SVG over the limit"
+  },
+  {
+   "name": "svg_size_closing_tag_window_then_div0",
+   "program_hex": "52564d014000400001005101940180d8a9c6780180d8a9c67895010051000180d8a9c6780180d8a9c67896500001011002510001ff0f32421600985001010110025101011532420400940180d8a9c6780180d8a9c67895010051000180d8a9c6780180d8a9c678965000010110025100018e05324253000100010a9698010001001300",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_DIV0"
+   },
+   "note": "a fault raised during execution wins over the final size check"
+  },
+  {
+   "name": "svg_size_running_total_over_before_div0",
+   "program_hex": "52564d014000400001005101940180d8a9c6780180d8a9c67895010051000180d8a9c6780180d8a9c67896500001011002510001ff0f32421600985001010110025101011532420400940180d8a9c6780180d8a9c67895010051000180d8a9c6780180d8a9c678965000010110025100018e053242530001cec2f10501019698010001001300",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_SIZE"
+   },
+   "note": "emission pushes the running total over the limit before the later division by zero runs"
+  },
+  {
    "name": "rndr_full_uint32_span",
    "program_hex": "52564d014000400001effdb6f57d01f8acd1910101f0bdf3d57901cef5b7777001808080807801ffffffff077251ff50ff01000101010190010501057251ff50ff0100010101019000",
    "inputs": {
