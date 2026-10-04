@@ -77,6 +77,9 @@ fi
 if [ -f sdk/test-escrow.js ]; then
   if node sdk/test-escrow.js >/dev/null 2>&1; then echo "PASS sdk escrow script/encoding tests"; else echo "FAIL sdk escrow script/encoding tests"; FAIL=1; fi
 fi
+if [ -f sdk/test-claim.js ]; then
+  if node sdk/test-claim.js >/dev/null 2>&1; then echo "PASS sdk claim verification tests"; else echo "FAIL sdk claim verification tests"; FAIL=1; fi
+fi
 if [ -f tags.js ]; then
   if node tags.js 2>&1 | grep -q "ALL PASS"; then echo "PASS dispatch tags"; else echo "FAIL dispatch tags"; FAIL=1; fi
 fi

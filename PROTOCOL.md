@@ -96,3 +96,31 @@ Observed on testnet-10 on 2026-10-03 with kascov, the public REST API and two pu
 - Replay of the last spend is not a general method. The REST API returned no record for two covenant-era transactions. The public nodes served getBlock with transactions for a fresh block and a block 24.4 hours old, and not for one 65.3 hours old ("cannot find header"), so retention ends somewhere between those. In the one block examined, the transition's transaction was not in its accepting block (inferred: it was included in a merge-set block). Whether the signature script exposes the route and arguments was not checked.
 - Therefore a client obtains a claimed state (owner, price, lineage, sales and the rest of section 2) from any source: a registry, the owner, an indexer that captured the transition when it was available. It accepts the claim only if the rebuilt script (edition template with that state, section 2) equals the script of a live output of the edition's covenant, found through an index with a fresh tip. This is what sdk/read.js verifyEditionScript and verifyEditionOnChain do. The check proves the claimed state is the current committed state. It cannot find the state when nobody supplies one.
 - A UI that needs current ownership must therefore publish or consume a state record, or run its own indexer that stores each transition's state while the chain data is still available.
+
+## 11. Claims
+A claim is a JSON object a client receives from any source (a registry, the owner, an indexer, a wallet) asserting the current state of one edition:
+
+    {
+      "reliks_claim": 1,
+      "network": "testnet-10",
+      "covenantId": "<edition covenant id, 64 lowercase hex>",
+      "state": {
+        "ownerIdentifier": "<64 hex>", "identifierType": 0, "price": "0",
+        "artist": "<64 hex>", "royalty_bips": "500", "program_hash": "<64 hex>",
+        "factory_covid": "<lane covenant id, 64 hex>", "serial": "12345",
+        "lineage": "<64 hex>", "sales": "2"
+      },
+      "outpoint": "<txid>:<index>",
+      "source": "free text, ignored"
+    }
+
+The state is the ten edition fields of section 2. Hex is 64 lowercase characters. Integers are non-negative decimal strings (JSON numbers are accepted only if they are safe integers) and must be below 2^63. identifierType must be 0. outpoint and source are optional.
+
+Verification (sdk/claim.js verifyClaim): validate the format; encode the state and rebuild the edition script (section 2); optionally check that a supplied program hashes to program_hash and renders, and that program_hash, artist and royalty_bips equal a known series; fetch the covenant's outputs from an index; find outputs with that script. Result statuses:
+- current: exactly one live output has the claimed script (and is the claimed outpoint, if one is given), the spent outputs with revealed scripts are consistent with the claim, and the index is fresh.
+- stale_state: the claimed script is found only in spent outputs, so the state was superseded. A spent output stays spent, so this holds even on a stale index.
+- absent: no output of that covenant has the claimed script (the claim is false, or the index is behind).
+- index_stale: the index tip age plus its sync lag exceeds the limit (600 s by default) or is unknown. The result the index showed is reported but is not evidence.
+- unreachable, invalid_claim, program_mismatch, series_mismatch, outpoint_mismatch, ambiguous (several live outputs with the script), history_conflict (a spent output of the same covenant has another serial, program, artist, royalty or factory, or more sales than the claim, or cannot be decoded).
+
+What current means: the claimed state is the committed state of a live output of that covenant, according to a fresh index. It does not mean the presenter controls the owner key (that needs a signature challenge, not specified here), and it does not prove provenance. Provenance is not checked: the edition contract (section 4) has no mint-origin rule that the source shows, so an output with the edition script and an arbitrary state, including a real lane as factory_covid, may be creatable by anyone as its own covenant (inferred from the source, not tested on chain). A client that needs provenance must also confirm that the covenant was created by a mint of the claimed lane; that check is not implemented yet. verifyClaim therefore reports provenance as unchecked.
