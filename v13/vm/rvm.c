@@ -217,7 +217,7 @@ static void run(void) {
     case 0x99: b = pop(); a = pop(); if (!pathopen || nseg == 0) fault(E_PATH); sprintf(buf, "l%d %d", a, b); seg(buf); break;
     case 0x9a: d = pop(); c = pop(); b = pop(); a = pop(); if (!pathopen || nseg == 0) fault(E_PATH);
                sprintf(buf, "q%d %d %d %d", a, b, c, d); seg(buf); break;
-    case 0x9b: a = pop(); if (a < 0 || a > 100) fault(E_RANGE); if (pathopen) fault(E_PATH); if (gd >= 4) fault(E_GROUP);
+    case 0x9b: a = pop(); if (pathopen) fault(E_PATH); if (a < 0 || a > 100) fault(E_RANGE); if (gd >= 4) fault(E_GROUP);
                if (a == 100) strcpy(buf, "<g>"); else { char t[8]; fmtop(t, a); sprintf(buf, "<g opacity=\"%s\">", t); }
                emits(buf, 1);
                gfill[gd] = fillc; gstroke[gd] = strokec; gsw[gd] = sw; gop[gd] = opac; gd++; opac = 100; break;
