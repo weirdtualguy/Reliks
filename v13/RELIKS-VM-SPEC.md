@@ -165,7 +165,7 @@ Program hashes: faithful `792fed9b8c47d5fbc4f8c60d2929eb929fa8cd34e447317252fbd5
 
 ## 11. Remaining gaps and decisions
 
-1. **Third implementation.** Two agreeing interpreters written by the same author is weaker evidence than a Rust one written from this spec alone. Recommended before genesis.
+1. **Third implementation.** Two agreeing interpreters written by the same author is weaker evidence than a Rust one written from this spec alone. Recommended before genesis. Update 2026-10-03: a third implementation in C (`v13/vm/rvm.c`, harness `v13/vm/check3.js`) was written from the spec text and agrees with the Python and JavaScript interpreters on all 104 program cases of `vectors.json`. It is not independent in the strict sense: its author had read parts of `rvm.js` (emission order, style attribute text, opacity text, the RNDR check order). A Rust or other implementation by someone who has seen neither reference remains valuable.
 2. **Faithful or clean city?** See section 0.
 3. **Limits are now measured, not guessed, for this one engine.** Worst case was 13% of fuel and 17% of elements. Other engines may need more; nothing here argues for raising them.
 4. **Assembly ergonomics.** The port used variables for everything; stack-only code would be unreadable. A small structured-language compiler is worth building before third-party artists write engines. `PICK` and `2DUP` would shorten hand-written code but were not needed.

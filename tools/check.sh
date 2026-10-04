@@ -83,6 +83,9 @@ fi
 if [ -f sdk/test-provenance.js ]; then
   if node sdk/test-provenance.js >/dev/null 2>&1; then echo "PASS sdk claim provenance tests"; else echo "FAIL sdk claim provenance tests"; FAIL=1; fi
 fi
+if command -v cc >/dev/null 2>&1 && [ -f v13/vm/rvm.c ]; then
+  if cc -O2 -std=c99 -o ${TMPDIR:-/tmp}/rvm3 v13/vm/rvm.c 2>/dev/null && out=$(node v13/vm/check3.js ${TMPDIR:-/tmp}/rvm3 2>&1); then echo "PASS vm third implementation (C): $(echo "$out" | tail -1)"; else echo "FAIL vm third implementation (C)"; FAIL=1; fi
+fi
 if [ -f tags.js ]; then
   if node tags.js 2>&1 | grep -q "ALL PASS"; then echo "PASS dispatch tags"; else echo "FAIL dispatch tags"; FAIL=1; fi
 fi
