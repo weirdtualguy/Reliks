@@ -182,6 +182,9 @@ outer:
   load 1 push 1 add dup store 1 push 40 lt jnz outer
 halt"""
 add('svg_size_limit_fault', assemble(size), expect_fault='E_SIZE')
+# RND/RNDR fault order: operands are popped first (E_UNDERFLOW), then E_RNG if RNGINIT has not run, then the range check.
+add('rndr_underflow_before_rng', assemble('.canvas 64 64 rndr halt'), expect_fault='E_UNDERFLOW')
+add('rndr_rng_before_range', assemble('.canvas 64 64 push 5 push 3 rndr halt'), expect_fault='E_RNG')
 
 
 # ---- 8b. rev-2 ops: uint32 RNDR, indirect memory, relative path, groups, gradients ----

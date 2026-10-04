@@ -656,6 +656,50 @@
    }
   },
   {
+   "name": "rndr_underflow_before_rng",
+   "program_hex": "52564d01400040007200",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_UNDERFLOW"
+   }
+  },
+  {
+   "name": "rndr_rng_before_range",
+   "program_hex": "52564d0140004000010501037200",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_RNG"
+   }
+  },
+  {
    "name": "rndr_full_uint32_span",
    "program_hex": "52564d014000400001effdb6f57d01f8acd1910101f0bdf3d57901cef5b7777001808080807801ffffffff077251ff50ff01000101010190010501057251ff50ff0100010101019000",
    "inputs": {

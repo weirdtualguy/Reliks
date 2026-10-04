@@ -140,7 +140,7 @@ Path `d`: segments concatenated with no separator: `M<x> <y>`, `L<x> <y>`, `l<dx
 
 ## 7. Faults
 
-Any fault invalidates the render (no partial output): `E_HEADER E_DECODE E_TARGET E_UNDERFLOW E_OVERFLOW E_DIV0 E_RANGE E_FUEL E_ELEMS E_SIZE E_CALLDEPTH E_NOHALT E_PATH E_RNG E_STROKE E_GROUP E_GRAD`. Conformance means the same code, not just "some fault".
+Any fault invalidates the render (no partial output): `E_HEADER E_DECODE E_TARGET E_UNDERFLOW E_OVERFLOW E_DIV0 E_RANGE E_FUEL E_ELEMS E_SIZE E_CALLDEPTH E_NOHALT E_PATH E_RNG E_STROKE E_GROUP E_GRAD`. Conformance means the same code, not just "some fault". For `RND` and `RNDR` the order is fixed: operands are popped first (`E_UNDERFLOW`), then `E_RNG` if `RNGINIT` has not run, then the range check; vectors `rndr_underflow_before_rng` and `rndr_rng_before_range` pin the first two steps.
 
 ## 8. Assembler (tooling only)
 
