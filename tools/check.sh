@@ -86,6 +86,9 @@ fi
 if command -v cc >/dev/null 2>&1 && [ -f v13/vm/rvm.c ]; then
   if cc -O2 -std=c99 -o ${TMPDIR:-/tmp}/rvm3 v13/vm/rvm.c 2>/dev/null && out=$(node v13/vm/check3.js ${TMPDIR:-/tmp}/rvm3 2>&1); then echo "PASS vm third implementation (C): $(echo "$out" | tail -1)"; else echo "FAIL vm third implementation (C)"; FAIL=1; fi
 fi
+if [ -f sdk/test-lane.js ]; then
+  if node sdk/test-lane.js >/dev/null 2>&1; then echo "PASS sdk lane resolver tests"; else echo "FAIL sdk lane resolver tests"; FAIL=1; fi
+fi
 if [ -f tags.js ]; then
   if node tags.js 2>&1 | grep -q "ALL PASS"; then echo "PASS dispatch tags"; else echo "FAIL dispatch tags"; FAIL=1; fi
 fi

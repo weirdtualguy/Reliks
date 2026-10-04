@@ -32,3 +32,6 @@ Pure-function helpers for reading Reliks editions and building mint transactions
 
 ## Claims
 `claim.js`: `verifyClaim` checks a claimed edition state (format in PROTOCOL.md section 11) against an index of the chain. Statuses: current, stale_state, absent, index_stale, unreachable, invalid_claim, program_mismatch, series_mismatch, outpoint_mismatch, ambiguous, history_conflict. "current" proves the state is the committed state of a live output of that covenant; it does not prove provenance (that the edition came from a factory mint) or that the presenter owns the key. CLI: `PC_NET=testnet node sdk/claim-live.js <claim.json> | --ledger <ledger.json>`.
+
+## Lane
+`lane.js` resolveLaneKascov derives a single-lane series' current factory state from a kascov record alone (previous output state minus one mint, checked against the live script). `templates.js` builds the chain templates from a series' own factory ABI (reliks-templates.js is fixed to the mainnet v12 factory). CLI: `PC_NET=testnet node sdk/lane-live.js <ledger> <factory-abi>`.
