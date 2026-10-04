@@ -88,12 +88,18 @@ Load-time validation, in order: header (`E_HEADER`); linear decode of all code (
 | **LR** | 99 | | Pop `dy dx`; append relative line `l dx dy` |
 | **QR** | 9A | | Pop `dy dx cy cx`; append relative quadratic `q cx cy dx dy` |
 | **GOPEN** | 9B | | Pop group opacity 0..100; emit `<g>`; save fill, stroke, width, opacity; set opacity to 100 inside. Fails with `E_PATH` if a path is open, `E_GROUP` past depth 4 |
-| **GCLOSE** | 9C | | Emit `</g>`; restore saved style. `E_GROUP` if none open |
+| **GCLOSE** | 9C | | Emit `</g>`; restore saved style. `E_PATH` if a path is open, `E_GROUP` if none open |
 | **GRADBEGIN** | 9D | | Start radial gradient (id = next free). `E_GRAD` if one is open or 8 exist |
 | **GRADSTOP** | 9E | | Pop `opacity color offset` (offset 0..100 percent, non-decreasing, else `E_RANGE`). `E_GRAD` outside a gradient or past 8 stops |
 | **GRADEND** | 9F | | Needs at least 2 stops (`E_GRAD`); emits `<defs>` element. Gradient is centered, radius 50%, object bounding box |
 
 Stack checks: underflow (`E_UNDERFLOW`) before overflow (`E_OVERFLOW`); operations pop all operands before any other check.
+
+Rules pinned by vectors `rule_*` (the JavaScript, Python and C implementations agree on all of them):
+- Path: PBEGIN while a path is open, PEND without a path, and PEND before any segment are `E_PATH`. The first segment must be M, M is only allowed as the first segment, and L, Z, LR and QR need at least one segment already. A path of a single M is valid. The path takes the fill, stroke, width and opacity in force at PEND. Drawing and style instructions are allowed while a path is open.
+- Gradients: ids count from 0 in the order gradients are ended; FILL accepts 0x1000000 + id only for an ended gradient. Drawing instructions are allowed while a gradient is open. GRADSTOP outside a gradient is `E_GRAD` even if its operands are out of range.
+- GOPEN, after popping its operand, checks in this order: path open (`E_PATH`), opacity range (`E_RANGE`), depth (`E_GROUP`). GCLOSE with a path open is `E_PATH`.
+- A RECT of width 0 and height 0 is valid.
 
 RNG (xorshift128): `t = x ^ (x << 11)`, `x=y, y=z, z=w`, `w = (w ^ (w >> 19)) ^ (t ^ (t >> 8))`, all uint32.
 
@@ -161,11 +167,11 @@ Program hashes: faithful `792fed9b8c47d5fbc4f8c60d2929eb929fa8cd34e447317252fbd5
 
 ## 10. Test vectors
 
-`vectors.json` (the harness reports 111 checks: the 105 of revision 2, whose breakdown below accounts for 103, plus 6 added 2026-10-03): 5 host-derivation vectors and 98 program cases: 62 fault cases (one per rule, including every new op), boundary passes at exactly 10,000 elements and 2,048 segments, arithmetic edges with hand-written expectations, PRNG sequences from a separate generator, indirect memory, relative paths, group and gradient rules, and DAG-City renders. `python3 gen_vectors.py` regenerates and self-checks; `node check.js` runs everything through the JS interpreter.
+`vectors.json` (the harness reports 136 checks: the 105 of revision 2, whose breakdown below accounts for 103, plus 31 added 2026-10-03 (RND/RNDR order, SVG size boundary, and the `rule_*` vectors above)): 5 host-derivation vectors and 98 program cases: 62 fault cases (one per rule, including every new op), boundary passes at exactly 10,000 elements and 2,048 segments, arithmetic edges with hand-written expectations, PRNG sequences from a separate generator, indirect memory, relative paths, group and gradient rules, and DAG-City renders. `python3 gen_vectors.py` regenerates and self-checks; `node check.js` runs everything through the JS interpreter.
 
 ## 11. Remaining gaps and decisions
 
-1. **Third implementation.** Two agreeing interpreters written by the same author is weaker evidence than a Rust one written from this spec alone. Recommended before genesis. Update 2026-10-03: a third implementation in C (`v13/vm/rvm.c`, harness `v13/vm/check3.js`) was written from the spec text and agrees with the Python and JavaScript interpreters on all 104 program cases of `vectors.json`. It is not independent in the strict sense: its author had read parts of `rvm.js` (emission order, style attribute text, opacity text, the RNDR check order). A Rust or other implementation by someone who has seen neither reference remains valuable.
+1. **Third implementation.** Two agreeing interpreters written by the same author is weaker evidence than a Rust one written from this spec alone. Recommended before genesis. Update 2026-10-03: a third implementation in C (`v13/vm/rvm.c`, harness `v13/vm/check3.js`) was written from the spec text and agrees with the Python and JavaScript interpreters on all program cases of `vectors.json` (104 when first run, 129 now). It is not independent in the strict sense: its author had read parts of `rvm.js` (emission order, style attribute text, opacity text, the RNDR check order). A Rust or other implementation by someone who has seen neither reference remains valuable.
 2. **Faithful or clean city?** See section 0.
 3. **Limits are now measured, not guessed, for this one engine.** Worst case was 13% of fuel and 17% of elements. Other engines may need more; nothing here argues for raising them.
 4. **Assembly ergonomics.** The port used variables for everything; stack-only code would be unreadable. A small structured-language compiler is worth building before third-party artists write engines. `PICK` and `2DUP` would shorten hand-written code but were not needed.

@@ -221,7 +221,7 @@ static void run(void) {
                if (a == 100) strcpy(buf, "<g>"); else { char t[8]; fmtop(t, a); sprintf(buf, "<g opacity=\"%s\">", t); }
                emits(buf, 1);
                gfill[gd] = fillc; gstroke[gd] = strokec; gsw[gd] = sw; gop[gd] = opac; gd++; opac = 100; break;
-    case 0x9c: if (gd == 0) fault(E_GROUP); emits("</g>", 0); gd--; fillc = gfill[gd]; strokec = gstroke[gd]; sw = gsw[gd]; opac = gop[gd]; break;
+    case 0x9c: if (pathopen) fault(E_PATH); if (gd == 0) fault(E_GROUP); emits("</g>", 0); gd--; fillc = gfill[gd]; strokec = gstroke[gd]; sw = gsw[gd]; opac = gop[gd]; break;
     case 0x9d: if (gradopen || ngrad >= 8) fault(E_GRAD); gradopen = 1; nst = 0; break;
     case 0x9e: c = pop(); b = pop(); a = pop();        /* opacity, color, offset */
                if (!gradopen || nst >= 8) fault(E_GRAD);

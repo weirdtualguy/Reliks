@@ -212,6 +212,37 @@ assert c['expect']['svg_len'] == 1048576, c['expect']['svg_len']
 add('svg_size_one_over_only_via_closing_tag', assemble(size_prog(0, 10)), expect_fault='E_SIZE', note='body is 1,048,571 bytes; only </svg> pushes the SVG over the limit')
 add('svg_size_closing_tag_window_then_div0', assemble(size_prog(0, 10, 'push 0 push 0 div ')), expect_fault='E_DIV0', note='a fault raised during execution wins over the final size check')
 add('svg_size_running_total_over_before_div0', assemble(size_prog(12345678, 1, 'push 0 push 0 div ')), expect_fault='E_SIZE', note='emission pushes the running total over the limit before the later division by zero runs')
+# ---- rules pinned 2026-10-03: the JavaScript, Python and C implementations agree on all of these (vectors rule_*)
+_G4 = 'push 100 gopen push 100 gopen push 100 gopen push 100 gopen'
+_GR = 'gradbegin push 0 push 0 push 100 gradstop push 100 push 0xffffff push 100 gradstop gradend'
+for _n, _src, _f in [
+  ('rule_gopen_bad_opacity', '.canvas 10 10 push 500 gopen halt', 'E_RANGE'),
+  ('rule_gopen_depth5_valid_opacity', '.canvas 10 10 ' + _G4 + ' push 50 gopen halt', 'E_GROUP'),
+  ('rule_gopen_depth5_bad_opacity_range_first', '.canvas 10 10 ' + _G4 + ' push 500 gopen halt', 'E_RANGE'),
+  ('rule_gopen_path_open_depth5', '.canvas 10 10 ' + _G4 + ' pbegin push 50 gopen halt', 'E_PATH'),
+  ('rule_gopen_path_open_bad_opacity', '.canvas 10 10 ' + _G4 + ' pbegin push 500 gopen halt', 'E_PATH'),
+  ('rule_rect_while_path_open', '.canvas 10 10 pbegin push 0 push 0 m push 1 push 1 push 2 push 2 rect push 3 push 3 l pend halt', None),
+  ('rule_fill_while_path_open', '.canvas 10 10 pbegin push 0 push 0 m push 255 fill push 3 push 3 l pend halt', None),
+  ('rule_gclose_path_open', '.canvas 10 10 push 100 gopen pbegin push 0 push 0 m gclose pend halt', 'E_PATH'),
+  ('rule_empty_path_pend', '.canvas 10 10 pbegin pend halt', 'E_PATH'),
+  ('rule_path_only_m_valid', '.canvas 10 10 pbegin push 0 push 0 m pend halt', None),
+  ('rule_l_without_m', '.canvas 10 10 pbegin push 1 push 1 l pend halt', 'E_PATH'),
+  ('rule_z_without_m', '.canvas 10 10 pbegin z pend halt', 'E_PATH'),
+  ('rule_m_twice', '.canvas 10 10 pbegin push 0 push 0 m push 1 push 1 m pend halt', 'E_PATH'),
+  ('rule_pbegin_twice', '.canvas 10 10 pbegin pbegin halt', 'E_PATH'),
+  ('rule_pend_without_pbegin', '.canvas 10 10 pend halt', 'E_PATH'),
+  ('rule_first_gradient_id_0', '.canvas 10 10 ' + _GR + ' push 16777216 fill push 0 push 0 push 1 push 1 rect halt', None),
+  ('rule_fill_gradient_id_1_undefined', '.canvas 10 10 ' + _GR + ' push 16777217 fill halt', 'E_RANGE'),
+  ('rule_fill_gradient_never_defined', '.canvas 10 10 push 16777216 fill halt', 'E_RANGE'),
+  ('rule_gradstop_outside_gradient', '.canvas 10 10 push 0 push 0 push 100 gradstop halt', 'E_GRAD'),
+  ('rule_gradstop_outside_gradient_bad_offset', '.canvas 10 10 push 200 push 0 push 100 gradstop halt', 'E_GRAD'),
+  ('rule_gradstop_offsets_decrease', '.canvas 10 10 gradbegin push 50 push 0 push 100 gradstop push 10 push 0 push 100 gradstop halt', 'E_RANGE'),
+  ('rule_gradend_one_stop', '.canvas 10 10 gradbegin push 0 push 0 push 100 gradstop gradend halt', 'E_GRAD'),
+  ('rule_draw_while_gradient_open', '.canvas 10 10 gradbegin push 0 push 0 push 1 push 1 rect push 0 push 0 push 100 gradstop push 100 push 0 push 100 gradstop gradend halt', None),
+  ('rule_rect_zero_size_valid', '.canvas 10 10 push 0 push 0 push 0 push 0 rect halt', None),
+  ('rule_line_without_stroke', '.canvas 10 10 push 0 push 0 push 1 push 1 line halt', 'E_STROKE'),
+]:
+    add(_n, assemble(_src), expect_fault=_f)
 
 
 # ---- 8b. rev-2 ops: uint32 RNDR, indirect memory, relative path, groups, gradients ----

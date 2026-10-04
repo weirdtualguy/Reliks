@@ -793,6 +793,568 @@
    "note": "emission pushes the running total over the limit before the later division by zero runs"
   },
   {
+   "name": "rule_gopen_bad_opacity",
+   "program_hex": "52564d010a000a0001f4039b00",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_RANGE"
+   }
+  },
+  {
+   "name": "rule_gopen_depth5_valid_opacity",
+   "program_hex": "52564d010a000a0001e4009b01e4009b01e4009b01e4009b01329b00",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_GROUP"
+   }
+  },
+  {
+   "name": "rule_gopen_depth5_bad_opacity_range_first",
+   "program_hex": "52564d010a000a0001e4009b01e4009b01e4009b01e4009b01f4039b00",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_RANGE"
+   }
+  },
+  {
+   "name": "rule_gopen_path_open_depth5",
+   "program_hex": "52564d010a000a0001e4009b01e4009b01e4009b01e4009b9401329b00",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_PATH"
+   }
+  },
+  {
+   "name": "rule_gopen_path_open_bad_opacity",
+   "program_hex": "52564d010a000a0001e4009b01e4009b01e4009b01e4009b9401f4039b00",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_PATH"
+   }
+  },
+  {
+   "name": "rule_rect_while_path_open",
+   "program_hex": "52564d010a000a0094010001009501010101010201029001030103969800",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "svg_hash": "4ea02fa86c476fe7476c37187058ff6126c27a54c7c152ebdb61283e7e6b42fc",
+    "svg_len": 156,
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><rect x=\"1\" y=\"1\" width=\"2\" height=\"2\" fill=\"#000000\"/><path d=\"M0 0L3 3\" fill=\"#000000\"/></svg>"
+   }
+  },
+  {
+   "name": "rule_fill_while_path_open",
+   "program_hex": "52564d010a000a0094010001009501ff018001030103969800",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "svg_hash": "a59fcc116762ab66c8494ed843690c62a06da885a5e26a4d5cbf580a627d3f09",
+    "svg_len": 101,
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><path d=\"M0 0L3 3\" fill=\"#0000ff\"/></svg>"
+   }
+  },
+  {
+   "name": "rule_gclose_path_open",
+   "program_hex": "52564d010a000a0001e4009b9401000100959c9800",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_PATH"
+   }
+  },
+  {
+   "name": "rule_empty_path_pend",
+   "program_hex": "52564d010a000a00949800",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_PATH"
+   }
+  },
+  {
+   "name": "rule_path_only_m_valid",
+   "program_hex": "52564d010a000a009401000100959800",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "svg_hash": "3506b4f3a3b846199aa4afa68ca8063b2e212791533c968707227987882173e1",
+    "svg_len": 97,
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><path d=\"M0 0\" fill=\"#000000\"/></svg>"
+   }
+  },
+  {
+   "name": "rule_l_without_m",
+   "program_hex": "52564d010a000a009401010101969800",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_PATH"
+   }
+  },
+  {
+   "name": "rule_z_without_m",
+   "program_hex": "52564d010a000a0094979800",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_PATH"
+   }
+  },
+  {
+   "name": "rule_m_twice",
+   "program_hex": "52564d010a000a0094010001009501010101959800",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_PATH"
+   }
+  },
+  {
+   "name": "rule_pbegin_twice",
+   "program_hex": "52564d010a000a00949400",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_PATH"
+   }
+  },
+  {
+   "name": "rule_pend_without_pbegin",
+   "program_hex": "52564d010a000a009800",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_PATH"
+   }
+  },
+  {
+   "name": "rule_first_gradient_id_0",
+   "program_hex": "52564d010a000a009d0100010001e4009e01e40001ffffff0701e4009e9f01808080088001000100010101019000",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "svg_hash": "b5cbf9a77bafe13b37f6f2ee84cc99647403a72c6d2ea3ae3c69dd0ad9e2e4dd",
+    "svg_len": 258,
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><defs><radialGradient id=\"g0\"><stop offset=\"0%\" stop-color=\"#000000\"/><stop offset=\"100%\" stop-color=\"#ffffff\"/></radialGradient></defs><rect x=\"0\" y=\"0\" width=\"1\" height=\"1\" fill=\"url(#g0)\"/></svg>"
+   }
+  },
+  {
+   "name": "rule_fill_gradient_id_1_undefined",
+   "program_hex": "52564d010a000a009d0100010001e4009e01e40001ffffff0701e4009e9f01818080088000",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_RANGE"
+   }
+  },
+  {
+   "name": "rule_fill_gradient_never_defined",
+   "program_hex": "52564d010a000a0001808080088000",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_RANGE"
+   }
+  },
+  {
+   "name": "rule_gradstop_outside_gradient",
+   "program_hex": "52564d010a000a000100010001e4009e00",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_GRAD"
+   }
+  },
+  {
+   "name": "rule_gradstop_outside_gradient_bad_offset",
+   "program_hex": "52564d010a000a0001c801010001e4009e00",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_GRAD"
+   }
+  },
+  {
+   "name": "rule_gradstop_offsets_decrease",
+   "program_hex": "52564d010a000a009d0132010001e4009e010a010001e4009e00",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_RANGE"
+   }
+  },
+  {
+   "name": "rule_gradend_one_stop",
+   "program_hex": "52564d010a000a009d0100010001e4009e9f00",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_GRAD"
+   }
+  },
+  {
+   "name": "rule_draw_while_gradient_open",
+   "program_hex": "52564d010a000a009d0100010001010101900100010001e4009e01e400010001e4009e9f00",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "svg_hash": "5a07b5395a3f1d76ec45934a24b16c2f5b302a3edba5bdfc2f2fb151bcd5a697",
+    "svg_len": 257,
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><rect x=\"0\" y=\"0\" width=\"1\" height=\"1\" fill=\"#000000\"/><defs><radialGradient id=\"g0\"><stop offset=\"0%\" stop-color=\"#000000\"/><stop offset=\"100%\" stop-color=\"#000000\"/></radialGradient></defs></svg>"
+   }
+  },
+  {
+   "name": "rule_rect_zero_size_valid",
+   "program_hex": "52564d010a000a0001000100010001009000",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "svg_hash": "dce611767b20ede1b25dfb7cd57d18022d446e2d2eaa8677ee0d81e8b0969359",
+    "svg_len": 121,
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><rect x=\"0\" y=\"0\" width=\"0\" height=\"0\" fill=\"#000000\"/></svg>"
+   }
+  },
+  {
+   "name": "rule_line_without_stroke",
+   "program_hex": "52564d010a000a0001000100010101019200",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_STROKE"
+   }
+  },
+  {
    "name": "rndr_full_uint32_span",
    "program_hex": "52564d014000400001effdb6f57d01f8acd1910101f0bdf3d57901cef5b7777001808080807801ffffffff077251ff50ff01000101010190010501057251ff50ff0100010101019000",
    "inputs": {
