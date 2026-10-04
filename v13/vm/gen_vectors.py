@@ -241,6 +241,9 @@ for _n, _src, _f in [
   ('rule_draw_while_gradient_open', '.canvas 10 10 gradbegin push 0 push 0 push 1 push 1 rect push 0 push 0 push 100 gradstop push 100 push 0 push 100 gradstop gradend halt', None),
   ('rule_rect_zero_size_valid', '.canvas 10 10 push 0 push 0 push 0 push 0 rect halt', None),
   ('rule_line_without_stroke', '.canvas 10 10 push 0 push 0 push 1 push 1 line halt', 'E_STROKE'),
+  ('rule_gclose_no_group_no_path', '.canvas 10 10 gclose halt', 'E_GROUP'),
+  ('rule_gclose_no_group_path_open_path_first', '.canvas 10 10 pbegin push 0 push 0 m gclose pend halt', 'E_PATH'),
+  ('rule_gradstop_ninth_stop_bad_offset_grad_first', '.canvas 10 10 gradbegin ' + 'push 0 push 0 push 100 gradstop ' * 8 + 'push 200 push 0 push 100 gradstop halt', 'E_GRAD'),
 ]:
     add(_n, assemble(_src), expect_fault=_f)
 

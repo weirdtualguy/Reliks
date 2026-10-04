@@ -1355,6 +1355,72 @@
    }
   },
   {
+   "name": "rule_gclose_no_group_no_path",
+   "program_hex": "52564d010a000a009c00",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_GROUP"
+   }
+  },
+  {
+   "name": "rule_gclose_no_group_path_open_path_first",
+   "program_hex": "52564d010a000a009401000100959c9800",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_PATH"
+   }
+  },
+  {
+   "name": "rule_gradstop_ninth_stop_bad_offset_grad_first",
+   "program_hex": "52564d010a000a009d0100010001e4009e0100010001e4009e0100010001e4009e0100010001e4009e0100010001e4009e0100010001e4009e0100010001e4009e0100010001e4009e01c801010001e4009e00",
+   "inputs": {
+    "lanes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "serial32": 0,
+    "pat": 0,
+    "wear": 0
+   },
+   "expect": {
+    "fault": "E_GRAD"
+   }
+  },
+  {
    "name": "rndr_full_uint32_span",
    "program_hex": "52564d014000400001effdb6f57d01f8acd1910101f0bdf3d57901cef5b7777001808080807801ffffffff077251ff50ff01000101010190010501057251ff50ff0100010101019000",
    "inputs": {

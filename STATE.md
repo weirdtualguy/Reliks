@@ -74,3 +74,4 @@ Updated 2026-10-01. Branch `v13-lineage` (local only).
 - 2026-10-03 third VM implementation in C (v13/vm/rvm.c + check3.js): 104/104 program vector cases agree with Python and JS; check.sh runs it when cc exists. Differential fuzz next.
 - 2026-10-03 differential fuzz of the 3 VM implementations: JS and Python agree; C differed only in GOPEN check order (path before range), fixed; the old fuzz set is now 0 disagreements. Only 15/1500 programs rendered, generator being retuned; probes of guessed rules pending.
 - 2026-10-03 VM: 25 rule_* vectors pin path/gradient/group rules; spec sec 4 states them; fuzz (3 implementations): 0 disagreements after the C fixes (GOPEN order, GCLOSE path check). Vectors JS 136, C 129. Open: GCLOSE error order when both apply; GRADSTOP past 8 stops vs bad offset.
+- 2026-10-03 VM: GCLOSE and GRADSTOP orders pinned (vectors JS 139, C 132). Next: control-flow and byte-mutation fuzz, fuel boundary probes.
