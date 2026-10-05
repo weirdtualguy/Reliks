@@ -132,3 +132,10 @@ Provenance is checked when the lane named by the claim's factory_covid can be re
 This relies on an index that exposes, for the lane and the edition covenant: transition events with the covenant ids in the same transaction, the spending transaction of each output, and the covenant's genesis transaction (kascov did on 2026-10-03). It does not exclude a counterfeit placed in the same mint transaction as a real mint: such an output would be listed there too, and whether the contracts prevent it depends on the mint's covenant-id rule, which is not reviewed (section 5).
 
 What current means: the claimed state is the committed state of a live output of that covenant according to a fresh index and, unless provenance is reported as unchecked, the covenant was born in a mint of the claimed lane with the expected genesis state. It does not mean the presenter controls the owner key; that needs a signature challenge, not specified here.
+
+## 12. Submitting a transaction (observations)
+From one mint on testnet-10 on 2026-10-03; not a specification.
+- The nodes' submitTransaction takes the transaction as JSON with plain-number values, version 1, inputs (previousOutpoint, signatureScript, sequence, sigOpCount, computeBudget), outputs (value, scriptPublicKey with a 0000 version prefix, and covenant {authorizingInput, covenantId} only on outputs that have one), lockTime 0, subnetworkId of 20 zero bytes, gas 0, empty payload, and a top-level mass of 0. Without the mass field both public nodes answered "request deserialization error".
+- allowOrphan was not needed for a mint. The signature scripts are not committed to by the signature hash of other inputs' scripts, and the mass field is not part of the signature hash (sdk/sign.js, equal to the hash that signed the earlier mints).
+- A mint of about 12.5 KB (the factory script travels in the signature script) was accepted at a fee of 0.0313 KAS; network mass was not measured.
+- Whether a node's storageMass field matters, and what happens at larger sizes, is unknown.
