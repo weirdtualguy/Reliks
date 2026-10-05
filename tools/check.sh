@@ -89,6 +89,9 @@ fi
 if [ -f sdk/test-lane.js ]; then
   if node sdk/test-lane.js >/dev/null 2>&1; then echo "PASS sdk lane resolver tests"; else echo "FAIL sdk lane resolver tests"; FAIL=1; fi
 fi
+if [ -f sdk/test-sign.js ]; then
+  if node sdk/test-sign.js >/dev/null 2>&1; then echo "PASS sdk signer tests (sighash equals reliks-lib on recorded vectors)"; else echo "FAIL sdk signer tests"; FAIL=1; fi
+fi
 if [ -f tags.js ]; then
   if node tags.js 2>&1 | grep -q "ALL PASS"; then echo "PASS dispatch tags"; else echo "FAIL dispatch tags"; FAIL=1; fi
 fi

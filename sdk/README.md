@@ -35,3 +35,6 @@ Pure-function helpers for reading Reliks editions and building mint transactions
 
 ## Lane
 `lane.js` resolveLaneKascov derives a single-lane series' current factory state from a kascov record alone (previous output state minus one mint, checked against the live script). `templates.js` builds the chain templates from a series' own factory ABI (reliks-templates.js is fixed to the mainnet v12 factory). CLI: `PC_NET=testnet node sdk/lane-live.js <ledger> <factory-abi>`.
+
+## Signing
+`sign.js`: signature hash for a mint draft (equal to the sighash in reliks-lib.js on 60 recorded transactions, `sighash-vectors.json`) and `signWallet`, which signs only wallet inputs with a key passed as a parameter and refuses a key that does not own the input. The key is never read from the environment, printed or stored by the SDK. Pass the result through plan.checkSigned before sending.
