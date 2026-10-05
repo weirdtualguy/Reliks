@@ -54,7 +54,7 @@ const noSleep = async () => {};
   let s = submitFor([OKJ]);
   let r = await submitSafe({ node: { submit: s.submit, lookup: lookupFor([[TXID, 0], [TXID, 1]]) }, rpcTx, sleep: noSleep });
   t('happy path submits once', r.state === 'submitted' && r.txId === TXID && s.calls.length === 1, r.state + ' calls ' + s.calls.length);
-  t('node received exactly the verified tx (allowOrphan false)', s.calls[0] === JSON.stringify({ transaction: rpcTx, allowOrphan: false }));
+  t('node received the verified tx plus mass 0 (allowOrphan false)', s.calls[0] === JSON.stringify({ transaction: Object.assign({}, rpcTx, { mass: 0 }), allowOrphan: false }));
   const cm = await confirmMined({ lookup: lookupFor([[TXID, 0], [TXID, 1]]), rpcTx, txId: r.txId, tries: 3, sleep: noSleep });
   t('confirmMined sees the tx outputs -> mined', cm.mined === true && cm.polls === 1, JSON.stringify(cm));
 

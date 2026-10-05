@@ -13,6 +13,8 @@ const thrown = async (fn) => { try { await fn(); return null; } catch (e) { retu
   const p = prepare(TX);
   t('prepare ok on valid tx', p.ok && p.request.method === 'submitTransaction' && p.request.params.allowOrphan === false && p.bytes > 0, JSON.stringify(p.problems));
   t('allowOrphan option passes through', prepare(TX, { allowOrphan: true }).request.params.allowOrphan === true);
+  t('request adds mass: 0 without changing the input tx', p.request.params.transaction.mass === 0 && TX.mass === undefined && JSON.stringify(Object.assign({}, p.request.params.transaction, { mass: undefined })) === JSON.stringify(Object.assign({}, TX, { mass: undefined })), JSON.stringify(Object.keys(p.request.params.transaction)));
+  t('an explicit mass is kept', prepare(Object.assign({}, TX, { mass: 7 })).request.params.transaction.mass === 7);
   const V = (name, mut, frag) => { const x = mkTx(); mut(x); const r = prepare(x); t('prepare rejects: ' + name, !r.ok && r.problems.join(' ').indexOf(frag) >= 0, JSON.stringify(r.problems)); };
   V('value above 2^53', (x) => { x.outputs[0].value = 2 ** 53 + 2; }, 'output 0 value');
   V('zero value', (x) => { x.outputs[1].value = 0; }, 'output 1 value');

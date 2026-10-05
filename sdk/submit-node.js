@@ -31,7 +31,8 @@ function prepare(rpcTx, opts) {
     if (!/^0000[0-9a-f]+$/i.test(String((o && o.scriptPublicKey) || ''))) bad.push('output ' + k + ' script');
     if (o && o.covenant && (!HEX64.test(String(o.covenant.covenantId || '')) || !Number.isInteger(o.covenant.authorizingInput) || o.covenant.authorizingInput < 0 || o.covenant.authorizingInput >= ins.length)) bad.push('output ' + k + ' covenant');
   });
-  const params = { transaction: tx, allowOrphan };
+  // The nodes reject a transaction without the top-level mass field (observed 2026-10-03: 'request deserialization error'); every tool that has submitted successfully sets mass: 0.
+  const params = { transaction: Object.assign({}, tx, { mass: tx.mass === undefined ? 0 : tx.mass }), allowOrphan };
   return { ok: bad.length === 0, problems: bad, request: { method: 'submitTransaction', params }, bytes: JSON.stringify(params).length };
 }
 
