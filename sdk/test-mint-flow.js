@@ -1,0 +1,94 @@
+'use strict';
+const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
+const { schnorr } = require('@noble/curves/secp256k1');
+const CH = require('../web/reliks-chain.js'), F = require('./mint-flow.js');
+try { CH.init(require('../reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' })); } catch (e) { console.log('SKIP default templates not available: ' + e.message); process.exit(0); }
+let bad = 0;
+const t = (n, ok, d) => { if (!ok) bad = 1; console.log((ok ? 'PASS ' : 'FAIL ') + n + (ok ? '' : ' | ' + d)); };
+const H = (c) => c.repeat(64), safe = (k, v) => (typeof v === 'bigint' ? v.toString() : v);
+const newKey = () => { const k = crypto.randomBytes(32).toString('hex'); return { priv: k, pub: Buffer.from(schnorr.getPublicKey(Uint8Array.from(Buffer.from(k, 'hex')))).toString('hex') }; };
+const K = newKey(), K2 = newKey();
+const wallet = { pubkey: K.pub, address: CH.p2pkAddress('kaspatest', K.pub) };
+const mkState = (o) => Object.assign({ program_hash: H('1'), artist: H('2'), price: 100000000n, royalty_bips: 500n, mints_left: 5n, engine_lang: 2n, render_hash: H('3') }, o || {});
+const laneOk = (o) => { const s = (o && o.state) || mkState(); return Object.assign({ ok: true, status: 'resolved', checks: [], state: s, spk: CH.p2shSpk(CH.factoryRedeem(s)), outpoint: { txId: H('c'), index: 0 }, value: 100000000n, covenantId: H('9'), soldOut: false }, o || {}); };
+const FUND = { txId: H('d'), index: 1, amount: 10000000000n, daa: 5 }, OKR = { txId: 'ff'.repeat(32) };
+const feeErr = (n) => new Error('insufficient fee: under the required ' + n);
+const results = [], logs = [];
+function mk(o) {
+  o = Object.assign({ mode: 'send', submits: [OKR], ambLooks: ['unknown'], hintLooks: ['mined'], funding: FUND, lane: laneOk(), key: K.priv, serialOk: true, preflight: null, hasTx: false, maxFeeTries: 3 }, o || {});
+  const c = { submit: [], key: 0, amb: 0, hint: 0, appended: [], pick: 0 };
+  const node = {
+    submit: async (tx) => { c.submit.push(JSON.stringify(tx)); const s = o.submits[Math.min(c.submit.length - 1, o.submits.length - 1)]; if (s instanceof Error) throw s; return s; },
+    lookup: async (tx, hint) => (hint ? o.hintLooks[Math.min(c.hint++, o.hintLooks.length - 1)] : o.ambLooks[Math.min(c.amb++, o.ambLooks.length - 1)]),
+  };
+  const ledger = { preflight: async () => o.preflight, hasTx: async () => o.hasTx, append: async (e) => { c.appended.push(e); return true; } };
+  const serial = String(CH.serialFromOutpoint(H('c'), 0));
+  const d = { chain: CH, hrp: 'kaspatest', mode: o.mode, lane: o.lane, wallet, pickFunding: async () => { c.pick++; return o.funding; }, getKey: () => { c.key++; if (o.key instanceof Error) throw o.key; return o.key; }, node, ledger, sleep: async () => {}, confirmTries: 3, intervalMs: 0, maxFeeTries: o.maxFeeTries };
+  if (o.mode === 'send' && o.serialOk) d.confirmSerial = serial; else if (o.confirmSerial !== undefined) d.confirmSerial = o.confirmSerial;
+  return { d, c, serial };
+}
+const go = async (name, o, status, fn) => { const m = mk(o), r = await F.runMint(m.d); results.push(r); t(name + ' -> ' + status, r.status === status && (!fn || fn(r, m.c, m)), r.status + ' ' + JSON.stringify(Object.assign({}, r, { plan: undefined, funding: undefined, entry: undefined }), safe).slice(0, 220)); return { r, c: m.c, m };
+};
+(async () => {
+  await go('dry run', { mode: 'dry' }, 'dry_run', (r, c) => c.key === 0 && c.submit.length === 0 && c.appended.length === 0 && r.plan.ok && !!r.funding && r.ledgerWarning === null);
+  await go('dry run reports a ledger problem', { mode: 'dry', preflight: 'the ledger says 4 mints left' }, 'dry_run', (r, c) => r.ledgerWarning === 'the ledger says 4 mints left' && c.key === 0);
+  await go('stale index', { lane: laneOk({ ok: false, status: 'index_stale', checks: [] }) }, 'lane_index_stale', (r, c) => c.key === 0 && c.submit.length === 0 && c.pick === 0);
+  await go('stale index in dry mode too', { mode: 'dry', lane: laneOk({ ok: false, status: 'index_stale' }) }, 'lane_index_stale');
+  await go('unreadable lane record', { lane: null }, 'lane_unavailable');
+  await go('sold out lane', { lane: laneOk({ soldOut: true }) }, 'sold_out', (r, c) => c.pick === 0);
+  await go('no usable funding', { funding: null }, 'no_funding', (r, c) => c.key === 0);
+  await go('plan refuses a series the factory can never mint', { lane: laneOk({ state: mkState({ royalty_bips: 0n }) }) }, 'plan_failed', (r) => r.failed.indexOf('contract_royalty_range') >= 0);
+  await go('plan refuses sold out state', { lane: laneOk({ state: mkState({ mints_left: 0n }) }) }, 'plan_error');
+  await go('ledger out of sync blocks sign', { mode: 'sign', preflight: 'the ledger says 4 mints left' }, 'ledger_out_of_sync', (r, c) => c.key === 0);
+  await go('ledger out of sync blocks send', { preflight: 'x' }, 'ledger_out_of_sync', (r, c) => c.key === 0 && c.submit.length === 0);
+  await go('send without the serial', { serialOk: false }, 'serial_not_confirmed', (r, c, m) => c.key === 0 && c.submit.length === 0 && r.serial === m.serial);
+  await go('send with the wrong serial', { serialOk: false, confirmSerial: '12345' }, 'serial_not_confirmed', (r, c) => c.key === 0 && c.submit.length === 0);
+  await go('sign mode signs, verifies, sends nothing', { mode: 'sign' }, 'signed_not_sent', (r, c) => c.key === 1 && c.submit.length === 0 && c.appended.length === 0 && r.bytes > 1000);
+  await go('no key', { mode: 'sign', key: new Error('PC_PRIV is not set') }, 'no_key', (r, c) => c.submit.length === 0);
+  await go('wrong key', { mode: 'sign', key: K2.priv }, 'key_mismatch', (r, c) => c.submit.length === 0);
+  await go('wrong key in send mode', { key: K2.priv }, 'key_mismatch', (r, c) => c.submit.length === 0 && c.appended.length === 0);
+  await go('malformed key', { mode: 'sign', key: 'zz' }, 'key_mismatch');
+  const g = await go('happy path: send, confirm, ledger', {}, 'minted', (r, c) => c.submit.length === 1 && c.appended.length === 1 && r.wrote === true && r.txId === OKR.txId);
+  const e = g.r.entry, last = JSON.parse(g.c.submit[0]);
+  t('ledger entry has exactly the 12 legacy fields', JSON.stringify(Object.keys(e).sort()) === JSON.stringify(F.KEYS));
+  t('ledger entry values', e.txId === OKR.txId && e.mintTxId === OKR.txId && e.index === 1 && e.mintIndex === 1 && e.sales === 0 && e.price === 0 && e.amount === 100000000 && e.owner === K.pub && e.serial === g.m.serial && e.cov === g.r.plan.summary.editionCovenantId && e.lineage === CH.genesisLineage(H('c'), 0), JSON.stringify(e).slice(0, 200));
+  t('ledger spk is the hex of the ASCII edition script (140 hex characters)', /^[0-9a-f]{140}$/.test(e.spk) && Buffer.from(e.spk, 'hex').toString() === g.r.plan.draft.outputs[1].spk);
+  t('the node received the signed 2-input, 4-output transaction', last.outputs.length === 4 && last.inputs.length === 2 && /^41[0-9a-f]{128}01$/.test(last.inputs[1].signatureScript));
+  await go('already in the ledger: no duplicate', { hasTx: true }, 'minted', (r, c) => r.wrote === false && c.appended.length === 0);
+  const fr = await go('fee rejection -> rebuild with the node fee + 10% -> success', { submits: [feeErr(9000000), OKR] }, 'minted', (r, c) => c.submit.length === 2 && c.submit[0] !== c.submit[1] && r.plan.fee === 9900001n && c.key === 2);
+  const t2 = JSON.parse(fr.c.submit[1]);
+  t('rebuilt tx pays the new fee out of change, everything else unchanged', t2.outputs[3].value === 9790099999 && t2.outputs[0].value === 100000000 && t2.outputs[1].value === 100000000 && JSON.parse(fr.c.submit[0]).inputs[0].previousOutpoint.transactionId === t2.inputs[0].previousOutpoint.transactionId, t2.outputs[3].value);
+  await go('fee above the cap', { submits: [feeErr(90000000)] }, 'fee_too_high', (r, c) => c.submit.length === 1 && c.appended.length === 0);
+  await go('fee loop is bounded', { submits: [feeErr(6000000), feeErr(7000000), feeErr(8000000), feeErr(9000000)] }, 'fee_loop_exhausted', (r, c) => c.submit.length === 3);
+  await go('timeout + lookup unknown stops', { submits: [new Error('WRPC TIMEOUT after 15s')], ambLooks: ['unknown'] }, 'send_ambiguous', (r, c) => c.submit.length === 1 && c.appended.length === 0);
+  await go('timeout + input still unspent retries identical bytes', { submits: [new Error('WRPC TIMEOUT'), new Error('WRPC TIMEOUT'), OKR], ambLooks: ['absent'] }, 'minted', (r, c) => c.submit.length === 3 && c.submit.every((x) => x === c.submit[0]) && c.appended.length === 1);
+  await go('duplicate answer does not write a ledger entry', { submits: [new Error('transaction is already in the mempool')], ambLooks: ['mempool'] }, 'send_already_known', (r, c) => c.appended.length === 0);
+  await go('fatal rejection', { submits: [new Error('storage mass exceeds the limit')] }, 'send_rejected', (r, c) => c.submit.length === 1 && c.appended.length === 0);
+  await go('accepted but never seen mined: no ledger write', { hintLooks: ['absent'] }, 'submitted_not_confirmed', (r, c) => r.txId === OKR.txId && r.polls === 3 && c.appended.length === 0);
+  await go('mempool then mined', { hintLooks: ['mempool', 'mined'] }, 'minted', (r, c) => c.appended.length === 1);
+  const m2 = mk({}); m2.d.ledger.append = async () => { throw new Error('disk full'); };
+  const r2 = await F.runMint(m2.d); results.push(r2);
+  t('ledger write failure returns the entry', r2.status === 'minted_ledger_write_failed' && r2.ok === false && r2.entry && r2.entry.txId === OKR.txId, r2.status);
+  const everything = JSON.stringify(results, safe) + logs.join('\n');
+  t('the private key appears in no result', everything.indexOf(K.priv) < 0 && everything.indexOf(K2.priv) < 0);
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'reliks-ledger-')), file = path.join(dir, 'ledger.json');
+  const entry0 = { txId: H('a'), index: 1, mintTxId: H('a'), mintIndex: 1, cov: H('4'), serial: '1', lineage: H('5'), sales: 0, owner: K.pub, price: 0, amount: 100000000, spk: 'aa' };
+  const doc = { C: H('9'), genesisTxId: H('e'), series: { mints_left: 6 }, editions: [entry0] };
+  fs.writeFileSync(file, JSON.stringify(doc, null, 2));
+  const S = F.ledgerStore(file), lane = laneOk();
+  t('store: consistent ledger passes preflight', (await S.preflight(lane)) === null);
+  t('store: other covenant refused', /covenant/.test(await S.preflight(laneOk({ covenantId: H('8') }))));
+  t('store: mints-left disagreement refused', /mints left/.test(await S.preflight(laneOk({ state: mkState({ mints_left: 4n }) }))));
+  fs.writeFileSync(file, JSON.stringify(Object.assign({}, doc, { editions: [Object.assign({}, entry0, { extra: 1 })] })));
+  t('store: unexpected entry fields refused', /fields/.test(await S.preflight(lane)));
+  fs.writeFileSync(file, JSON.stringify(doc, null, 2));
+  t('store: hasTx finds a recorded mint', (await S.hasTx(H('a'))) === true && (await S.hasTx(H('b'))) === false);
+  const e1 = Object.assign({}, entry0, { txId: H('b'), mintTxId: H('b') });
+  t('store: append writes a backup, the entry and no temp file', (await S.append(e1)) === true && JSON.parse(fs.readFileSync(file, 'utf8')).editions.length === 2 && JSON.parse(fs.readFileSync(file + '.bak-premint', 'utf8')).editions.length === 1 && !fs.existsSync(file + '.tmp'));
+  t('store: appending the same transaction twice is a no-op', (await S.append(e1)) === false && JSON.parse(fs.readFileSync(file, 'utf8')).editions.length === 2);
+  fs.writeFileSync(file, '{not json');
+  t('store: unreadable ledger refused', /cannot read/.test(await S.preflight(lane)));
+  fs.rmSync(dir, { recursive: true, force: true });
+  console.log(bad ? 'MINT FLOW TESTS FAILED' : 'MINT FLOW TESTS OK'); process.exit(bad);
+})();

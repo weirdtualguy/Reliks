@@ -92,6 +92,9 @@ fi
 if [ -f sdk/test-sign.js ]; then
   if node sdk/test-sign.js >/dev/null 2>&1; then echo "PASS sdk signer tests (sighash equals reliks-lib on recorded vectors)"; else echo "FAIL sdk signer tests"; FAIL=1; fi
 fi
+if [ -f sdk/test-mint-flow.js ]; then
+  if node sdk/test-mint-flow.js >/dev/null 2>&1; then echo "PASS sdk mint flow tests (modes, serial confirm, fee rebuild, no blind resubmit, ledger rules)"; else echo "FAIL sdk mint flow tests"; FAIL=1; fi
+fi
 if [ -f tags.js ]; then
   if node tags.js 2>&1 | grep -q "ALL PASS"; then echo "PASS dispatch tags"; else echo "FAIL dispatch tags"; FAIL=1; fi
 fi

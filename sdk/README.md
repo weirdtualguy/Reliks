@@ -38,3 +38,6 @@ Pure-function helpers for reading Reliks editions and building mint transactions
 
 ## Signing
 `sign.js`: signature hash for a mint draft (equal to the sighash in reliks-lib.js on 60 recorded transactions, `sighash-vectors.json`) and `signWallet`, which signs only wallet inputs with a key passed as a parameter and refuses a key that does not own the input. The key is never read from the environment, printed or stored by the SDK. Pass the result through plan.checkSigned before sending.
+
+## Minting (testnet)
+`mint.js` mints one edition on an existing testnet lane. Default is a dry run (plan only, no key). `--sign` signs and verifies, `--send --confirm-serial <serial>` broadcasts (the serial must be typed back). The flow rules are in `mint-flow.js` and covered by mock tests: key must match the wallet, stale index refused, ledger must agree with the chain, fee rejections rebuild with the node fee (cap 0.5 KAS), ambiguity never resubmits, the ledger is written only after the mint is seen on a node. Not yet exercised against a real node.
