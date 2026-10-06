@@ -1,4 +1,4 @@
-# Reliks: project status (paused 2026-10-03)
+# Reliks: project status (paused 2026-10-06)
 
 Paused, not abandoned. Everything below is committed; nothing is half-done in the working tree.
 
@@ -29,3 +29,5 @@ Generative-art NFTs on Kaspa covenants. An edition's art is rendered from a smal
 
 ## Only on the author's phone (gitignored)
 Ledgers (`data/`, `v13/ledger-*.json`), compiled ABIs (`v13/out/`), constructor args, and the key files. A snapshot of the ledgers and ABIs was taken at freeze time.
+
+Note on dates: the freeze happened on 2026-10-06. The tag `v13-freeze-2026-10-03` and the backup folder name carry a wrong date label, and entries in STATE.md dated 2026-10-03 were written between 2026-10-03 and 2026-10-06.

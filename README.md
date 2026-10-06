@@ -1,4 +1,4 @@
-> **Status:** paused 2026-10-03. See [STATUS.md](STATUS.md) for what exists, what is verified and how to resume.
+> **Status:** paused 2026-10-06. See [STATUS.md](STATUS.md) for what exists, what is verified and how to resume.
 
 # Reliks
 
