@@ -1,3 +1,5 @@
+> **Status:** paused 2026-10-03. See [STATUS.md](STATUS.md) for what exists, what is verified and how to resume.
+
 # Reliks
 
 **Generative art on Kaspa where the artwork is a program, and its hash lives in the contract.**
