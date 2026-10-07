@@ -59,3 +59,6 @@ Generative-art NFTs on Kaspa, built from L1 covenants (SilverScript). A series i
 
 ## silverc pin (reproduced 2026-10-07 on the local build)
 - An unused constructor parameter is silently dropped and the P2SH script is identical for any value (the issue kaspanet/silverscript#258 example gives 760414559d2487637557579c6951676a68). A parameter read by a `require` is kept. byte[] values cannot go in contract state (validateOutputState is fixed-width only), so large baked data must be a constructor parameter that something reads. Before deploying, assert that the compiled bytecode contains the parameter bytes (deploy-v13.js does).
+
+## Anchor finding (measured 2026-10-07, local silverc, v12 factory with data/factory-args-v12.json)
+- Copies of the 3,888 B engine in the template: anchor + `require(program_hash == blake2b(engine_code))` = 2 (15,525 B); require only = 1 (11,594 B); neither = 0 (7,698 B). Silverc inlines a parameter's bytes at every reference, so engineBaked() is redundant in v12 and duplicates the engine (+3.9 KB in every mint reveal). Check the v13 factory for the same require before reusing the anchor. A deployed factory's script is fixed: this only affects new series.
