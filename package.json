@@ -25,7 +25,7 @@
     "blockdag"
   ],
   "scripts": {
-    "test": "node test/self-test.js && node test/chain-test.js && node test/v13-codec-test.js && node test/wallet-test.js && node test/site-test.js",
+    "test": "node test/self-test.js && node test/chain-test.js && node test/v13-codec-test.js && node test/wallet-test.js && node test/site-test.js && node test/kaspire-mass-test.js",
     "args": "node gen-factory-args.js",
     "deploy": "node deploy-v12.js",
     "mint": "node mint-v12.js",

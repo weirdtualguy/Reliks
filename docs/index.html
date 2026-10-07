@@ -3333,7 +3333,7 @@ window.__qr=function(){if(!window.qrcode){(0,eval)(document.getElementById('qr-s
           function fin(v) { if (done) return; done = true; clearTimeout(t); try { ws.close(); } catch (e) { /* closed */ } if (v) resolve(v); else next(k + 1); }
           try { ws = new wsCtor(urls[k]); } catch (e) { last = String(e.message || e); return next(k + 1); }
           t = setTimeout(function () { last = urls[k] + ' timed out'; fin(null); }, 15000);
-          ws.onopen = function () { ws.send(JSON.stringify({ id: 1, method: 'submitTransaction', params: { transaction: rpcTx, allowOrphan: true } })); };
+          ws.onopen = function () { ws.send(JSON.stringify({ id: 1, method: 'submitTransaction', params: { transaction: Object.assign({}, rpcTx, { mass: rpcTx.mass === undefined ? 0 : rpcTx.mass }), allowOrphan: true } })); };
           ws.onerror = function () { last = urls[k] + ' refused the connection'; fin(null); };
           ws.onmessage = function (m) {
             try {
