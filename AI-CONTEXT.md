@@ -56,3 +56,6 @@ Generative-art NFTs on Kaspa, built from L1 covenants (SilverScript). A series i
 ## kascov API pointers (https://kascov.io API page: JSON, no keys, CORS open)
 - Freshness first: /data/<net>-live.json (tip_daa vs processed_daa, tip_at_ms) and /data/<net>/pending (status live or stale). Run `node tools/kascov-status.js` before trusting any kascov-based check.
 - Worth using next: POST /data/<net>/preflight (compute-budget, mass and fee findings, optional script run, before broadcasting), GET /data/<net>/tx/<txid>.json, /pending and /stream (pending_resolved says confirmed or dropped). Nodes forget history after about 30 h and Reliks reads state from kascov reveals, so keep repo ledgers and history snapshots as the fallback.
+
+## silverc pin (reproduced 2026-10-07 on the local build)
+- An unused constructor parameter is silently dropped and the P2SH script is identical for any value (the issue kaspanet/silverscript#258 example gives 760414559d2487637557579c6951676a68). A parameter read by a `require` is kept. byte[] values cannot go in contract state (validateOutputState is fixed-width only), so large baked data must be a constructor parameter that something reads. Before deploying, assert that the compiled bytecode contains the parameter bytes (deploy-v13.js does).
