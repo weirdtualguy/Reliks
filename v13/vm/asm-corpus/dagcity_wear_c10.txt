@@ -1,0 +1,87 @@
+.canvas 1600 1600
+.var RX 0 .var RY 1 .var RZ 2 .var RW 3
+.var X 17 .var Y 18
+.var I 4 .var J 5 .var K 6 .var S 7 .var H 8 .var D 9 .var T 10 .var DK 11 .var C 12
+.var WI 13 .var WJ 14 .var N 15 .var P0 16 .var TM 20 .var TOP 21 .var LF 22 .var RF 23
+.var WN 24 .var AH 25 .var DI 26 .var DJ 27 .var NN 28 .var E2 29 .var QX 30 .var QY 31
+.var BX 32 .var BY 33 .var GX 34 .var GY 35
+gradbegin push 0 push 0xffd9a0 push 100 gradstop push 30 push 0xe8923a push 80 gradstop push 100 push 0xe8923a push 0 gradstop gradend
+push 0xe7dfc8 fill push 0 push 0 push 1600 push 1600 rect
+lane 0 serial xor lane 1 lane 2 lane 3 rnginit
+push 0xd3c9ab stroke push 50 gopen push 0 st I
+scatter: push 60 push 1540 call ri st X push 60 push 1540 call ri st Y push 30 push 130 call ri st K
+ld X ld Y ld X ld K add ld Y ld K push 2 div add line next I 150 scatter gclose
+push 0xcfc5a8 stroke push 55 gopen push 0 st I
+grid: ld I push 0 call ix ld I push 0 call iy ld I push 13 call ix ld I push 13 call iy line
+push 0 ld I call ix push 0 ld I call iy push 13 ld I call ix push 13 ld I call iy line nextle I 13 grid gclose
+push 0 st N push 0 st C
+canal: ld C push 2 mod jz even push 2 push 11 call ri st WI push 0 st WJ jmp start
+even: push 0 st WI push 2 push 11 call ri st WJ
+start: ld N st P0 call addpt
+walk: ld WI push 13 lt ld WJ push 13 lt and jz wdone push 2 call rmod jz incj ld WI push 1 add st WI jmp cont
+incj: ld WJ push 1 add st WJ
+cont: call addpt jmp walk
+wdone: push 30 push 0x2f2f28 push 100 call poly push 22 push 0x49c5b1 push 100 call poly push 6 push 0xbfeee2 push 85 call poly next C 4 canal
+push -1 stroke push 100 opacity
+push 0 st S
+sloop: ld S push 13 sub push 0 max st I
+iloop: ld I push 13 le ld I ld S le and jz idone ld S ld I sub st J
+ld I push 14 mul ld J add push 256 add ldx jnz inext
+push 10 call rmod st T ld T push 1 lt jz notplaza
+push 0xddd4ba fill ld I ld J call ix ld I ld J call iy call dia jmp inext
+notplaza: ld T push 7 gt jz lowh push 6 push 9 call ri st H jmp hset
+lowh: push 2 push 5 call ri st H
+hset: ld T push 3 mod st DK
+ld DK jnz c1 push 0x4b4a3f st TOP push 0x34332b st LF push 0x26251e st RF jmp cdone
+c1: ld DK push 1 eq jz c2 push 0xf0e9d3 st TOP push 0xd8cfb3 st LF push 0xbfb598 st RF jmp cdone
+c2: push 0x49c5b1 pat push 0x040404 mul xor st TOP push 0x2e8f85 st LF push 0x1f6b64 st RF
+cdone: ld I ld J call ix st X ld I ld J call iy ld H push 22 mul sub st Y ld H push 22 mul st D
+ld TOP fill ld X ld Y call dia
+ld LF fill pbegin ld X push 36 sub ld Y push 18 add m push 36 push 18 lr push 0 ld D lr push -36 push -18 lr z pend
+ld RF fill pbegin ld X push 36 add ld Y push 18 add m push -36 push 18 lr push 0 ld D lr push 36 push -18 lr z pend
+push 2 ld H push 3 gt add st WN
+ld DK push 1 eq jz wl1 push 0x34332b fill push 100 opacity jmp wl2
+wl1: push 0x8fe8d8 fill push 90 wear push 50 min sub opacity
+wl2: push 0 st K
+wloop: pbegin ld X push 36 sub push 6 add ld K push 10 mul add ld Y push 18 add push 6 add m push 7 push 4 lr push 0 push 11 lr push -7 push -4 lr z pend next K WN wloop push 100 opacity
+ld H push 6 lt jnz nodoor
+ld DK push 1 eq jz d1 push 0x26251e fill jmp d2
+d1: push 0x123c36 fill
+d2: pbegin ld X push 6 add ld Y push 18 add ld D add push 24 sub m push 0 push -11 lr push 10 push -12 push 20 push 0 qr push 0 push 11 lr z pend
+push 18 push 42 call ri st AH push 0x26251e stroke push 3 swidth
+ld X ld Y push 18 add ld X ld Y push 18 add ld AH sub line
+push -1 stroke push 0x49c5b1 fill ld X ld Y push 18 add ld AH sub push 3 circle
+nodoor: ld T push 6 eq ld T push 7 eq or jz inext
+push 2 call rmod st DI push 1 ld DI sub st DJ push 4 push 7 call ri st NN push 1 st K
+rloop: ld H push 22 mul ld K push 13 mul sub st E2
+ld I ld DI ld K mul add ld J ld DJ ld K mul add call ix st QX
+ld I ld DI ld K mul add ld J ld DJ ld K mul add call iy ld E2 push 0 max sub st QY
+push 0xefe8d2 fill ld QX ld QY call dia
+push 0x34332b fill pbegin ld QX push 36 sub ld QY push 18 add m push 36 push 18 lr push 0 push 13 lr push -36 push -18 lr z pend nextle K NN rloop
+inext: ld I push 1 add st I jmp iloop
+idone: nextle S 26 sloop
+push 100 gopen push 0 st K
+bloop: ld K ld N lt jz bdone push 3 call rmod jnz bskip
+ld K push 512 add ldx push 2 call rmod jz bneg push 26 jmp bx2
+bneg: push -26
+bx2: add st BX ld K push 640 add ldx push 8 add st BY
+push 0x49c5b1 fill push 22 opacity ld BX ld BY push 9 circle push 100 opacity push 0xbfeee2 fill ld BX ld BY push 3 circle
+bskip: ld K push 1 add st K jmp bloop
+bdone: gclose
+wear jz nowash push -1 stroke push 0xe7dfc8 fill wear push 255 min push 255 swap sub dup dup mul mul push 7 mul push 16581375 div push 7 swap sub wear push 0 gt push 3 mul add opacity push 0 push 0 push 1600 push 1600 rect push 100 opacity nowash:
+push 6 push 6 call ix st GX push 6 push 6 call iy push 2 push 4 call ri push 22 mul sub st GY
+push 0x1000000 fill ld GX ld GY push 110 circle push 0xffffff fill ld GX ld GY push 9 circle
+push -1 fill push 2 swidth push 75 opacity push 14 st K
+rings: ld K push 34 gt jz warm push 0x49c5b1 stroke jmp go
+warm: push 0xe8923a stroke
+go: ld GX ld GY ld K circle ld K push 7 add dup st K push 42 le jnz rings
+push -1 fill push 0x3a3a33 stroke push 7 swidth push 100 opacity push 36 push 36 push 1528 push 1528 rect halt
+ix: sub push 36 mul push 800 add ret
+iy: add push 13 sub push 18 mul push 770 add ret
+dia: pbegin over over m push 36 push 18 lr push -36 push 18 lr push -36 push -18 lr z pend drop drop ret
+addpt: push 1 ld WI push 14 mul ld WJ add push 256 add stx ld WI ld WJ call ix ld N push 512 add stx ld WI ld WJ call iy ld N push 640 add stx ld N push 1 add st N ret
+poly: opacity stroke swidth push -1 fill pbegin ld P0 st K ld K push 512 add ldx ld K push 640 add ldx m ld K push 1 add st K
+pl: ld K ld N lt jz pldone ld K push 512 add ldx ld K push 640 add ldx l ld K push 1 add st K jmp pl
+pldone: pend ret
+ri: over sub push 1 add call rmod add ret
+rmod: push 0 swap push 1 sub rndr ret
