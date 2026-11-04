@@ -51,7 +51,7 @@ if (S.render_hash) rep('anchor', sdk.verifyAnchor({ program: P.b, factory: S }))
 else console.log('SKIP anchor: ledger series has no render_hash');
 EDS.forEach((ed, i) => rep('edition ' + i, sdk.verifyEdition({ program: P.b, state: { program_hash: S.program_hash, serial: ed.serial, lineage: ed.lineage, sales: ed.sales } })));
 let CH = null;
-try { CH = require('../web/reliks-chain.js'); CH.init(require('../reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' })); } catch (e) { CH = null; console.log('SKIP script check: ' + e.message); }
+try { CH = require('../web/reliks-chain.js'); CH.init(require('../lib/reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' })); } catch (e) { CH = null; console.log('SKIP script check: ' + e.message); }
 if (CH && LD.C) EDS.forEach((ed, i) => { if (ed.spk) rep('edition ' + i + ' script', sdk.verifyEditionScript({ chain: CH, series: S, covId: LD.C, edition: ed })); });
 console.log(bad ? 'SDK READ FAILED' : 'SDK READ OK');
 process.exit(bad);

@@ -3,7 +3,7 @@
 const path = require('path'), fs = require('fs');
 const root = path.join(__dirname, '..');
 const C = require(path.join(root, 'web', 'reliks-chain.js'));
-const tplFn = require(path.join(root, 'reliks-templates.js'));
+const tplFn = require(path.join(root, 'lib', 'reliks-templates.js'));
 let pass = 0, fail = 0;
 const t = async (name, fn) => { try { await fn(); pass++; console.log('PASS ' + name); } catch (e) { fail++; console.log('FAIL ' + name + ' | ' + e.message); } };
 const eq = (a, b, m) => { if (String(a) !== String(b)) throw new Error((m || 'mismatch') + ': ' + a + ' != ' + b); };

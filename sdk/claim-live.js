@@ -1,8 +1,8 @@
 'use strict';
 // Read-only, no key. Usage: PC_NET=testnet node sdk/claim-live.js <claim.json> | --ledger <ledger.json>
 const fs = require('fs');
-const N = require('../network.js'), CH = require('../web/reliks-chain.js'), R = require('./read.js'), C = require('./claim.js');
-CH.init(require('../reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' }));
+const N = require('../lib/network.js'), CH = require('../web/reliks-chain.js'), R = require('./read.js'), C = require('./claim.js');
+CH.init(require('../lib/reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' }));
 (async () => {
   const a = process.argv.slice(2);
   let claims, series;

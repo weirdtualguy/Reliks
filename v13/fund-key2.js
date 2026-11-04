@@ -1,4 +1,4 @@
-const V=require('../reliks-lib.js'),{feeLoop,pickUtxo,sighash,hex}=V;
+const V=require('../lib/reliks-lib.js'),{feeLoop,pickUtxo,sighash,hex}=V;
 const {schnorr}=require('@noble/curves/secp256k1');
 const pub=process.env.KEY2_PUB, amt=BigInt(process.argv[2]||'1000000000');
 (async()=>{

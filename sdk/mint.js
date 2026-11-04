@@ -5,7 +5,7 @@
 //   ... --send --confirm-serial <serial>                                                                                    broadcasts (PC_PRIV must be exported); add --allow-orphan only if a node asks for it
 const fs = require('fs');
 const { schnorr } = require('@noble/curves/secp256k1');
-const N = require('../network.js'), CH = require('../web/reliks-chain.js'), R = require('./read.js'), T = require('./templates.js'), LN = require('./lane.js');
+const N = require('../lib/network.js'), CH = require('../web/reliks-chain.js'), R = require('./read.js'), T = require('./templates.js'), LN = require('./lane.js');
 const { createNodeSubmit } = require('./submit-node.js'), { createNodeLookup } = require('./node-lookup.js'), { runMint, ledgerStore } = require('./mint-flow.js');
 const argv = process.argv.slice(2), pos = [], flags = {};
 for (let i = 0; i < argv.length; i++) { const a = argv[i]; if (a === '--confirm-serial') flags.serial = argv[++i]; else if (a.indexOf('--') === 0) flags[a.slice(2)] = true; else pos.push(a); }

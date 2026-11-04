@@ -3,15 +3,15 @@
 const path = require('path');
 const root = path.join(__dirname, '..');
 const C = require(path.join(root, 'web', 'reliks-chain.js'));
-const B32 = require(path.join(root, 'bech32-kaspa.js'));
-const E = require(path.join(root, 'reliks-engine-mainnet.js'));
+const B32 = require(path.join(root, 'lib', 'bech32-kaspa.js'));
+const E = require(path.join(root, 'lib', 'reliks-engine-mainnet.js'));
 const anchors = require(path.join(root, 'data', 'mainnet-anchors.json'));
 const S = anchors.series[0];
 let pass = 0, fail = 0;
 const t = async (name, fn) => { try { await fn(); pass++; console.log('PASS ' + name); } catch (e) { fail++; console.log('FAIL ' + name + ' | ' + e.message); } };
 const eq = (a, b, m) => { if (String(a) !== String(b)) throw new Error((m || 'mismatch') + ': ' + a + ' != ' + b); };
 const throws = (fn, re, m) => { try { fn(); } catch (e) { if (re && !re.test(e.message)) throw new Error((m || 'wrong error') + ': ' + e.message); return; } throw new Error(m || 'expected a throw'); };
-C.init(require(path.join(root, 'reliks-templates.js'))());
+C.init(require(path.join(root, 'lib', 'reliks-templates.js'))());
 const H = (s) => Buffer.from(s, 'hex');
 const PK = 'aa'.repeat(32), PK2 = 'bb'.repeat(32);
 
@@ -26,12 +26,12 @@ const PK = 'aa'.repeat(32), PK2 = 'bb'.repeat(32);
     eq(C.encEditionState(e).length, 161);
   });
   await t('template spans match the ABI-derived layout', () => {
-    const tp = require(path.join(root, 'reliks-templates.js'))();
+    const tp = require(path.join(root, 'lib', 'reliks-templates.js'))();
     eq(tp.factory.span.len, 135); eq(tp.edition.span.len, 161);
     eq(tp.factory.entries.mint, 'b781beeb');
   });
   await t('the mainnet engine is baked into the factory template', () => {
-    const tp = require(path.join(root, 'reliks-templates.js'))();
+    const tp = require(path.join(root, 'lib', 'reliks-templates.js'))();
     if (!tp.factory.suffixHex.includes(Buffer.from(E.ENGINE_SRC, 'utf8').toString('hex'))) throw new Error('engine bytes not found in factory suffix');
   });
   await t('addresses: P2PK and P2SH encoders match bech32-kaspa.js', () => {

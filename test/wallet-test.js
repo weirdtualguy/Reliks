@@ -5,7 +5,7 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const K = require(path.join(root, 'web', 'kaspire.js'));
 const C = require(path.join(root, 'web', 'reliks-chain.js'));
-C.init(require(path.join(root, 'reliks-templates.js'))());
+C.init(require(path.join(root, 'lib', 'reliks-templates.js'))());
 const S = require(path.join(root, 'data', 'mainnet-anchors.json')).series[0];
 let pass = 0, fail = 0;
 const t = async (name, fn) => { try { await fn(); pass++; console.log('PASS ' + name); } catch (e) { fail++; console.log('FAIL ' + name + ' | ' + e.message); } };

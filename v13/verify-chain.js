@@ -1,4 +1,4 @@
-const fs=require('fs'),V=require('../reliks-lib.js'),B=Buffer;
+const fs=require('fs'),V=require('../lib/reliks-lib.js'),B=Buffer;
 const LD=JSON.parse(fs.readFileSync('v13/ledger-testnet-v13.json','utf8')),ed=LD.editions[0];
 const Ed=V.parts(JSON.parse(fs.readFileSync('v13/out/v13.json','utf8')));
 const b2=a=>B.from(V.blake2b(B.concat(a),{dkLen:32})).toString('hex');

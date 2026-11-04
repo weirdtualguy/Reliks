@@ -1,5 +1,5 @@
 // Snapshots kascov covenant history for every VM-ledger edition into v13/history-vm-v13.json (read-only).
-const fs = require('fs'), V = require('../reliks-lib.js');
+const fs = require('fs'), V = require('../lib/reliks-lib.js');
 const LD = JSON.parse(require('fs').readFileSync(process.env.RELIKS_LEDGER || 'v13/ledger-vm-v13.json','utf8'));
 (async () => {
   const out = {};

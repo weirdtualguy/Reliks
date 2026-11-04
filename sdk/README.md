@@ -10,9 +10,9 @@ Pure-function helpers for reading Reliks editions and building mint transactions
 
 ## Write half (planning and safe submission)
 - `plan.js`: `planMint` wraps `web/reliks-chain.js` `buildMint` and checks value conservation, next-state lane script, covenant bindings, edition script, serial, artist payout and fee. `checkSigned` verifies a wallet-returned transaction against the reviewed draft. `classifyRejection` returns `duplicate`, `fee`, `transient`, `stale` or `fatal`; only "already in the mempool" is an observed node message, the other patterns are guesses, and unknown text is `fatal`.
-- `submit.js`: `submitSafe` retries identical bytes only after a transient error and a lookup that says `absent`. Any ambiguity stops. Fee errors return `needs_rebuild` with a `nextFee` (required fee + 10% + 1, as in `reliks-lib.js`); the caller must re-plan and re-sign.
+- `submit.js`: `submitSafe` retries identical bytes only after a transient error and a lookup that says `absent`. Any ambiguity stops. Fee errors return `needs_rebuild` with a `nextFee` (required fee + 10% + 1, as in `lib/reliks-lib.js`); the caller must re-plan and re-sign.
 - `node-lookup.js`: `absent` only if every node answers cleanly, a wallet-signed input is still unspent on every node, and the mempool is empty. `mined` and `mempool` need a txid hint. Anything else is `unknown`.
-- `submit-node.js`: wRPC `submitTransaction`. Dry run unless `send: true`. `allowOrphan` defaults to false; `reliks-lib.js` sends true, and whether covenant spends need it is untested.
+- `submit-node.js`: wRPC `submitTransaction`. Dry run unless `send: true`. `allowOrphan` defaults to false; `lib/reliks-lib.js` sends true, and whether covenant spends need it is untested.
 - `flow.js`: `confirmMined`. Write ledger entries only after `mined === true`. "Mined" means the outputs were seen in a node UTXO set; there is no confirmation depth.
 
 ## Known limits
@@ -25,7 +25,7 @@ Pure-function helpers for reading Reliks editions and building mint transactions
 `sh tools/check.sh` runs everything. Tests that need the author's gitignored ledgers skip without them. `npm test` (and CI) does not run `sdk/`.
 
 ## Mainnet v12 (read-only)
-`PC_NET=mainnet PC_MAINNET_WRPC=wss://placeholder.invalid node sdk/verify-v12.js` checks the mainnet series: engine hash, offline edition script rebuild, gated on-chain status. `network.js` demands PC_MAINNET_WRPC on mainnet, but this script never opens a wRPC connection. It does not verify the rendered art (v12 engines are JS; the SDK has no JS runner).
+`PC_NET=mainnet PC_MAINNET_WRPC=wss://placeholder.invalid node sdk/verify-v12.js` checks the mainnet series: engine hash, offline edition script rebuild, gated on-chain status. `lib/network.js` demands PC_MAINNET_WRPC on mainnet, but this script never opens a wRPC connection. It does not verify the rendered art (v12 engines are JS; the SDK has no JS runner).
 
 ## Escrow (read half)
 `escrow.js`: encode the 161-byte escrow state, rebuild the escrow script from `v13/out/escrow-v6.json`, and check it against a recorded script (`verifyEscrowScript`). Offline, no key. No escrow transaction building yet.

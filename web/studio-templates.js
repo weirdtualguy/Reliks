@@ -9,7 +9,7 @@
 // real anchored engine_hash (the Studio prelude gets prepended) -- it's for
 // reading and remixing, not for round-tripping the mainnet series.
 const path = require('path');
-const DAG_CITY = require(path.join(__dirname, '..', 'reliks-engine-mainnet.js')).ENGINE_SRC.trim();
+const DAG_CITY = require(path.join(__dirname, '..', 'lib', 'reliks-engine-mainnet.js')).ENGINE_SRC.trim();
 
 module.exports = {
 dagcity: DAG_CITY,

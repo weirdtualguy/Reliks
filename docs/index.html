@@ -224,7 +224,7 @@ footer a { color: var(--dim); }
     <div class="field"><label for="artist">Artist key (x-only, 64 hex)</label><input id="artist" placeholder="filled from Kaspire when connected" /></div>
     <div class="row"><div class="field"><label for="price">Price (KAS)</label><input id="price" value="1" inputmode="decimal" /></div><div class="field"><label for="roy">Royalty %</label><input id="roy" value="5" inputmode="decimal" /></div><div class="field"><label for="eds">Editions</label><input id="eds" value="8" inputmode="numeric" /></div></div>
     <button class="btn" id="exs">Export series (.json)</button></div>
-  <div class="card"><h3>Then, on your computer</h3><ol class="steps" style="margin-top:6px"><li><span><code>node reliks-lens.js my-engine.js</code></span></li><li><span><code>node gen-factory-args.js series-my-engine.json</code></span></li><li><span>compile with <code>silverc</code>, then <code>node deploy-v12.js</code></span></li></ol></div>
+  <div class="card"><h3>Then, on your computer</h3><ol class="steps" style="margin-top:6px"><li><span><code>node cli/reliks-lens.js my-engine.js</code></span></li><li><span><code>node gen-factory-args.js series-my-engine.json</code></span></li><li><span>compile with <code>silverc</code>, then <code>node deploy-v12.js</code></span></li></ol></div>
 </div></section>
 <section class="view" id="view-protocol" hidden>
 <div class="hero" style="padding-bottom:8px"><span class="eyebrow">Protocol</span><h1>What Reliks is, and what it is <em>not</em>.</h1>
@@ -3799,7 +3799,7 @@ window.__qr=function(){if(!window.qrcode){(0,eval)(document.getElementById('qr-s
         "function seedLanes(serial){const le=B.alloc(8);le.writeBigUInt64LE(BigInt(serial));const h=blake2b(B.concat([B.from('ReliksSeedV10','utf8'),le]),{dkLen:32});const dv=new DataView(h.buffer,h.byteOffset,h.byteLength);const lanes=[];for(let i=0;i<8;i++)lanes.push(dv.getInt32(i*4,true));return lanes;}",
         "const compiled=new Function('L','serial',ENGINE_SRC+'\\nreturn reliks(L,serial);');", 'function render(serial){const s=Number(BigInt(serial)&0xFFFFFFFFn);return compiled(seedLanes(s),s|0);}',
         "const engineHashHex=B.from(blake2b(B.from(ENGINE_SRC,'utf8'),{dkLen:32})).toString('hex');", "const renderHashHex=B.from(blake2b(B.from(render(TEST_SERIAL),'utf8'),{dkLen:32})).toString('hex');", 'module.exports={ENGINE_SRC,seedLanes,render,engineHashHex,renderHashHex,TEST_SERIAL};'].join('\n') + '\n');
-      stat.textContent = 'Exported ' + name + '.js. Next: node reliks-lens.js ' + name + '.js';
+      stat.textContent = 'Exported ' + name + '.js. Next: node cli/reliks-lens.js ' + name + '.js';
     });
     $('#exs').addEventListener('click', function () {
       var w = K.state(), artist = ($('#artist').value.trim() || (w.status === 'connected' ? w.pubkey : '')).toLowerCase();

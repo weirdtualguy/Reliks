@@ -2,7 +2,7 @@
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
 const { schnorr } = require('@noble/curves/secp256k1');
 const CH = require('../web/reliks-chain.js'), F = require('./mint-flow.js');
-try { CH.init(require('../reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' })); } catch (e) { console.log('SKIP default templates not available: ' + e.message); process.exit(0); }
+try { CH.init(require('../lib/reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' })); } catch (e) { console.log('SKIP default templates not available: ' + e.message); process.exit(0); }
 let bad = 0;
 const t = (n, ok, d) => { if (!ok) bad = 1; console.log((ok ? 'PASS ' : 'FAIL ') + n + (ok ? '' : ' | ' + d)); };
 const H = (c) => c.repeat(64), safe = (k, v) => (typeof v === 'bigint' ? v.toString() : v);

@@ -1,5 +1,5 @@
 // Read-only kascov freshness check. Exit 2 if the index looks stale or unreachable.
-const N = require('../network.js');
+const N = require('../lib/network.js');
 (async () => {
   const j = await (await fetch(N.kascov + '-live.json')).json();
   const age = Math.round((Date.now() - j.tip_at_ms) / 1000);

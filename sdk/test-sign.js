@@ -45,7 +45,7 @@ t('wrong key refused', !!thrown(() => S.signInput(base(), 1, privB)));
 t('malformed key refused', !!thrown(() => S.signInput(base(), 1, 'zz')) && !!thrown(() => S.signInput(base(), 1, '11'.repeat(31))));
 const CH = require('../web/reliks-chain.js'), plan = require('./plan.js');
 let ok = true;
-try { CH.init(require('../reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' })); } catch (e) { ok = false; console.log('SKIP plan-based signing test: ' + e.message); }
+try { CH.init(require('../lib/reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' })); } catch (e) { ok = false; console.log('SKIP plan-based signing test: ' + e.message); }
 if (ok) {
   const st = { program_hash: H('1'), artist: H('2'), price: 100000000n, royalty_bips: 500n, mints_left: 5n, engine_lang: 2n, render_hash: H('3') };
   const mkP = () => ({ hrp: 'kaspatest', lane: { state: st, spk: CH.p2shSpk(CH.factoryRedeem(st)), outpoint: { txId: H('c'), index: 0 }, value: 100000000n, covenantId: H('9'), daa: 5n }, funding: { txId: H('d'), index: 1, amount: 10000000000n, daa: 5 }, buyer: { pubkey: pubA, address: CH.p2pkAddress('kaspatest', pubA) } });

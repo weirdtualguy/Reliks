@@ -1,6 +1,6 @@
 // Smallest real testnet transaction: send your largest confirmed UTXO back to your own address (costs only the fee).
 if ((process.env.PC_NET || 'testnet') !== 'testnet') { console.error('testnet only'); process.exit(1); }
-const V = require('../reliks-lib.js');
+const V = require('../lib/reliks-lib.js');
 const { feeLoop, waitForConfirmation, pickUtxo, sighash, hex } = V;
 const { schnorr } = require('@noble/curves/secp256k1');
 const sign = (m, p) => schnorr.sign(m, p);

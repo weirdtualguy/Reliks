@@ -9,7 +9,7 @@ You are joining an ongoing solo project. The owner works ONLY on an Android phon
 - NEVER claim something works unless it was run. Say "untested" plainly.
 - Anything that signs or broadcasts: show the exact command and what it spends BEFORE he runs it. Back up the ledger first.
 - Never ask for or accept private keys in chat. He enters keys with `read -rs -p "PC_PRIV: " PC_PRIV; echo; export PC_PRIV` and then `unset PC_PRIV`.
-- Start every session by asking him to run: `cd ~/pixel-cove && cat STATE.md && sh tools/ctx.sh`
+- Start every session by asking him to run: `cd ~/Reliks && cat docs/STATE.md && sh tools/ctx.sh`
 
 ## What Reliks is
 Generative-art NFTs on Kaspa, built from L1 covenants (SilverScript). A series is a "lane" covenant (SeriesFactory) that mints editions; each edition is its own covenant UTXO with state. The art is a deterministic function of a program whose hash is anchored on chain, so anyone can recompute and verify the image in a browser. Goal: genuinely unique and useful; current direction is "living editions" (art reflects an edition's history).
@@ -29,7 +29,7 @@ Generative-art NFTs on Kaspa, built from L1 covenants (SilverScript). A series i
 - web/: blake2b.js, reliks-chain.js (decode, resolveLane, buildMint, verifySigned), site-app.js, reliks-gallery-runtime.js, kaspire.js (wallet), studio-templates.js.
 - data/: v12 ABIs, series/anchors JSON (mainnet-anchors.json), ledgers.
 - v13/: vm/rvm.js + rvm.py (two interpreters), vm/dagcity.py (+ dagcity_wear.py, the wear-wash variant), out/ (compiled ABIs: factory-vm-v13.json, v13.json edition), ledger-vm-v13.json (the live testnet VM series), mint-v13.js, secondary-v13.js (list|buy|unlist|transfer|sell), offer-v13.js, accept-v13.js, deploy-v13.js, verify-vm-render.js, verify-chain.js, cross-check-wear.js, gen-vm-factory-args.js, gen-factory-args-v13.js, gen-demo-v13.js (standalone browser demo).
-- SESSION-HANDOFF-v13.md / SESSION-HANDOFF-v14.md: detailed history (find with `git ls-files | grep HANDOFF`).
+- docs/history/ (INFRA-HANDOFF.md, SESSION-HANDOFF-v13.md, SESSION-HANDOFF-v14.md): detailed history.
 
 ## Environment traps (all learned the hard way)
 - reliks-lib.js refuses to load without PC_PRIV, and PC_WALLET must equal the address derived from PC_PRIV; it also loads secrets.env to fill missing vars. For read-only/build scripts use a throwaway key AND its derived wallet together (see handoff v14 for the exact prefix). Signing scripts need the real key.

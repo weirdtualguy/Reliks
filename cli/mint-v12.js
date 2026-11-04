@@ -1,10 +1,10 @@
 const fs = require('fs');
-const OL = require('./reliks-lib.js');
-const V = require('./reliks-lib.js');
+const OL = require('../lib/reliks-lib.js');
+const V = require('../lib/reliks-lib.js');
 const { schnorr } = require('@noble/curves/secp256k1');
 const secp = { schnorr: { signSync: (m, p) => schnorr.sign(m, p) } };
 const { feeLoop, waitForConfirmation, pickUtxo, sighash, hex, pushMin, pushMinInt } = OL;
-const covIdGenesis = require('./reliks-lib.js').covIdGenesis || V.covIdGenesis || OL.covIdGenesis;
+const covIdGenesis = require('../lib/reliks-lib.js').covIdGenesis || V.covIdGenesis || OL.covIdGenesis;
 if (typeof covIdGenesis !== 'function') { console.error('covIdGenesis unavailable in reliks-lib'); process.exit(1); }
 const B = Buffer;
 const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v12.json'), 'utf8')));

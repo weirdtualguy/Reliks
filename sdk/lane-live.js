@@ -1,7 +1,7 @@
 'use strict';
 // Read-only, no key. Usage: PC_NET=testnet node sdk/lane-live.js <ledger.json> <factory-abi.json> [<edition-abi.json>]
 const fs = require('fs');
-const N = require('../network.js'), CH = require('../web/reliks-chain.js'), R = require('./read.js'), T = require('./templates.js'), L = require('./lane.js');
+const N = require('../lib/network.js'), CH = require('../web/reliks-chain.js'), R = require('./read.js'), T = require('./templates.js'), L = require('./lane.js');
 const [lp, fa, ea] = process.argv.slice(2);
 if (!lp || !fa) { console.log('usage: node sdk/lane-live.js <ledger.json> <factory-abi.json> [<edition-abi.json>]'); process.exit(2); }
 CH.init(T.templatesFor({ factoryAbi: fa, editionAbi: ea || 'data/edition-abi-v13.json' }));

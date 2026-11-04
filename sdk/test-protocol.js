@@ -1,7 +1,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const CH = require('../web/reliks-chain.js');
-CH.init(require('../reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' }));
+CH.init(require('../lib/reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' }));
 const V = JSON.parse(fs.readFileSync(path.join(__dirname, 'protocol-vectors.json'), 'utf8'));
 let bad = 0;
 const t = (n, ok, d) => { if (!ok) bad = 1; console.log((ok ? 'PASS ' : 'FAIL ') + n + (ok ? '' : ' | ' + d)); };

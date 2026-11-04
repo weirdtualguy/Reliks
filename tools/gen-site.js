@@ -5,13 +5,14 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const read = (...p) => fs.readFileSync(path.join(__dirname, ...p), 'utf8');
+const ROOT = path.join(__dirname, '..');
+const read = (...p) => fs.readFileSync(path.join(ROOT, ...p), 'utf8');
 const scriptSafe = (s) => s.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--');
 const json = (o) => scriptSafe(JSON.stringify(o)).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 
 const anchors = JSON.parse(process.env.RELIKS_ANCHORS ? fs.readFileSync(process.env.RELIKS_ANCHORS, 'utf8') : read('data', 'mainnet-anchors.json')); // RELIKS_ANCHORS / RELIKS_OUT exist for test builds
-const templates = require('./reliks-templates.js')();
-const studioTemplates = require('./web/studio-templates.js');
+const templates = require('../lib/reliks-templates.js')();
+const studioTemplates = require('../web/studio-templates.js');
 
 // Studio prelude: the small integer-only helper API every studio engine starts with.
 const PRELUDE = [
@@ -33,7 +34,7 @@ const CAP = Number(process.env.RELIKS_ENGINE_CAP || 25641);
 
 const engines = {};
 for (const s of anchors.series) {
-  const E = require('./' + s.engine);
+  const E = require(path.join(ROOT, 'lib', s.engine));
   if (E.engineHashHex !== s.programHash) throw new Error('anchor mismatch: ' + s.engine + ' hashes to ' + E.engineHashHex + ', anchors say ' + s.programHash);
   if (E.renderHashHex !== s.renderHash) throw new Error('anchor mismatch: render hash of ' + s.engine);
   engines[s.engine] = E.ENGINE_SRC;
@@ -85,7 +86,7 @@ const studio = `
     <div class="field"><label for="artist">Artist key (x-only, 64 hex)</label><input id="artist" placeholder="filled from Kaspire when connected" /></div>
     <div class="row"><div class="field"><label for="price">Price (KAS)</label><input id="price" value="1" inputmode="decimal" /></div><div class="field"><label for="roy">Royalty %</label><input id="roy" value="5" inputmode="decimal" /></div><div class="field"><label for="eds">Editions</label><input id="eds" value="8" inputmode="numeric" /></div></div>
     <button class="btn" id="exs">Export series (.json)</button></div>
-  <div class="card"><h3>Then, on your computer</h3><ol class="steps" style="margin-top:6px"><li><span><code>node reliks-lens.js my-engine.js</code></span></li><li><span><code>node gen-factory-args.js series-my-engine.json</code></span></li><li><span>compile with <code>silverc</code>, then <code>node deploy-v12.js</code></span></li></ol></div>
+  <div class="card"><h3>Then, on your computer</h3><ol class="steps" style="margin-top:6px"><li><span><code>node cli/reliks-lens.js my-engine.js</code></span></li><li><span><code>node gen-factory-args.js series-my-engine.json</code></span></li><li><span>compile with <code>silverc</code>, then <code>node deploy-v12.js</code></span></li></ol></div>
 </div>`;
 
 const protocol = `
@@ -160,7 +161,7 @@ window.__qr=function(){if(!window.qrcode){(0,eval)(document.getElementById('qr-s
 </html>
 `;
 
-fs.mkdirSync(path.join(__dirname, 'docs'), { recursive: true });
-const OUT = process.env.RELIKS_OUT || path.join(__dirname, 'docs', 'index.html');
+fs.mkdirSync(path.join(ROOT, 'docs'), { recursive: true });
+const OUT = process.env.RELIKS_OUT || path.join(ROOT, 'docs', 'index.html');
 fs.writeFileSync(OUT, html);
-console.log(path.relative(__dirname, OUT) + ' written (' + html.length + ' bytes) | no external scripts | anchors verified against engines');
+console.log(path.relative(ROOT, OUT) + ' written (' + html.length + ' bytes) | no external scripts | anchors verified against engines');

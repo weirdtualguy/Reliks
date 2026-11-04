@@ -1,6 +1,6 @@
 'use strict';
 const CH = require('../web/reliks-chain.js'), C = require('./claim.js'), R = require('./read.js');
-CH.init(require('../reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' }));
+CH.init(require('../lib/reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' }));
 let bad = 0;
 const t = (n, ok, d) => { if (!ok) bad = 1; console.log((ok ? 'PASS ' : 'FAIL ') + n + (ok ? '' : ' | ' + d)); };
 const hexOf = (u) => Buffer.from(u).toString('hex'), H = (c) => c.repeat(64);

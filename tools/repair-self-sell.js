@@ -1,6 +1,6 @@
 // Repairs a ledger after a self-sell that was mined but whose confirmation wait timed out. Usage: <ledger> <edIdx> <sellTxId>
 const fs = require('fs');
-const V = require('../reliks-lib.js');
+const V = require('../lib/reliks-lib.js');
 const { blake2b } = require('@noble/hashes/blake2b');
 const B = Buffer, H = V.H, hex = V.hex;
 const [,, ledgerPath, idxArg, sellTx] = process.argv;

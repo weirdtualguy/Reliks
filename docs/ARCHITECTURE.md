@@ -19,9 +19,9 @@ State lives in P2SH redeem scripts (`prefix || state || suffix`); covenant IDs (
 Mempool fee is about 200 sompi per tx byte; `feeLoop` discovers it from rejections. The mint sigscript carries the engine twice, so engines are capped by PUSHDATA2 at roughly 25.6 KB. Details in [ENGINEERING-NOTES.md](ENGINEERING-NOTES.md).
 
 ## Transport
-Covenant spends are wRPC-only. `network.js` profiles: testnet by default; mainnet requires `PC_MAINNET_WRPC` (hard exit otherwise). Confirmation uses REST, then kascov.
+Covenant spends are wRPC-only. `lib/network.js` profiles: testnet by default; mainnet requires `PC_MAINNET_WRPC` (hard exit otherwise). Confirmation uses REST, then kascov.
 
 ## Verification surface
 - Browser: gallery gates, per-edition lineage checks, live-UTXO anchoring via bech32 P2SH addresses (`web/reliks-gallery-runtime.js`).
-- Node: `verify-render.js` (lineage, serial, spk, F1 engine containment) and `reliks-lens.js` (L0-L10).
+- Node: `cli/verify-render.js` (lineage, serial, spk, F1 engine containment) and `cli/reliks-lens.js` (L0-L10).
 - Offline: `npm test`.

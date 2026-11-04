@@ -25,7 +25,7 @@ Generative-art NFTs on Kaspa covenants. An edition's art is rendered from a smal
 ## To resume
 - Health check: `sh tools/check.sh`
 - Dry-run a mint: `PC_NET=testnet PC_WALLET=<address> node sdk/mint.js v13/ledger-vm-v13.json v13/out/factory-vm-v13.json`
-- Read first: `PROTOCOL.md`, `sdk/README.md`, `v13/SPEC-GAPS.md`, `STATE.md`
+- Read first: `PROTOCOL.md`, `sdk/README.md`, `v13/SPEC-GAPS.md`, `docs/STATE.md`
 
 ## Only on the author's phone (gitignored)
 Ledgers (`data/`, `v13/ledger-*.json`), compiled ABIs (`v13/out/`), constructor args, and the key files. A snapshot of the ledgers and ABIs was taken at freeze time.

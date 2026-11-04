@@ -1,6 +1,6 @@
 # Audit summary
 
-Condensed from the automated review passes in `docs/audit-log/raw/` and the
+Condensed from the automated review passes in `docs/audit-log/raw/` on the `audits` branch (see [AUDIT-LOG.md](AUDIT-LOG.md)) and the
 maintainers' remediation notes. Reviewed sources were v11; v12 carries every
 fix and the deliberate decisions below. This is not a formal third-party audit.
 
@@ -13,11 +13,11 @@ fix and the deliberate decisions below. This is not a formal third-party audit.
 | `close()` had no successor check | High | Covered by the DECL `close` policy (termination allowed, empty state list). |
 | `royalty_bips >= 1` "bricks" 0% series | Flagged | By design: a zero-value royalty output is consensus-invalid, so 0% editions would be unsellable. |
 | `buyerScheme == IDENTIFIER_PUBKEY` hardcoded | Flagged | By design (see covenant-ID entry). Builders assert scheme 0 and a valid x-only key. |
-| Unbounded engine size | Medium | Client gate: `reliks-lens.js` enforces the real PUSHDATA2 ceiling (25641 B default). |
+| Unbounded engine size | Medium | Client gate: `cli/reliks-lens.js` enforces the real PUSHDATA2 ceiling (25641 B default). |
 | Output-index aliasing (`artistOutIdx == platformOutIdx`) | Info | Distinctness guards in Edition and Escrow; negative test rejected on-chain (testnet). |
 | Free mints paid a treasury fee | Low | Removed with the v12 zero-fee pivot. |
-| Stale `PC_WALLET` cross-wiring funding and signing | Operational | Fixed: `reliks-lib.js` derives the address from `PC_PRIV` and refuses to run on mismatch. |
-| Mainnet REST cannot carry `compute_budget` | Operational | Covenant spends are wRPC-only; `network.js` exits on mainnet without `PC_MAINNET_WRPC`. |
+| Stale `PC_WALLET` cross-wiring funding and signing | Operational | Fixed: `lib/reliks-lib.js` derives the address from `PC_PRIV` and refuses to run on mismatch. |
+| Mainnet REST cannot carry `compute_budget` | Operational | Covenant spends are wRPC-only; `lib/network.js` exits on mainnet without `PC_MAINNET_WRPC`. |
 
 ## Known accepted risks
 - **Listing sniping:** an underpriced open listing can be bought by anyone first. Seller always receives the listed price.

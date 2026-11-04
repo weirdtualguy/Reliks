@@ -17,22 +17,22 @@ export PC_WALLET=<address of that key>             # checked against PC_PRIV at 
 
 ## Steps
 ```bash
-node reliks-lens.js reliks-engine-mainnet.js            # 1. engine must be green
-node gen-factory-args.js data/series-mainnet.json       # 2. writes data/factory-args-v12.json
+node cli/reliks-lens.js reliks-engine-mainnet.js            # 1. engine must be green
+node cli/gen-factory-args.js data/series-mainnet.json       # 2. writes data/factory-args-v12.json
 # 3. compile sil/SeriesFactory-v12.sil with those args -> data/factory-abi-v12.json
-node deploy-v12.js                                      # 4. genesis; writes data/factory-ledger-v12.json
-node mint-v12.js                                        # 5. mint next edition
-node verify-render.js                                   # 6. all gates must PASS
-node gen-gallery.js                                     # 7. self-contained gallery HTML
+node cli/deploy-v12.js                                      # 4. genesis; writes data/factory-ledger-v12.json
+node cli/mint-v12.js                                        # 5. mint next edition
+node cli/verify-render.js                                   # 6. all gates must PASS
+node cli/gen-gallery.js                                     # 7. self-contained gallery HTML
 ```
 Secondary market:
 ```bash
-node secondary-v12.js list <edition-index> <price-sompi>
-node secondary-v12.js buy  <edition-index>
-node offer-v5.js <edition-index> <ask-sompi> <expire-daa>
-node accept-v5.js
+node cli/secondary-v12.js list <edition-index> <price-sompi>
+node cli/secondary-v12.js buy  <edition-index>
+node cli/offer-v5.js <edition-index> <ask-sompi> <expire-daa>
+node cli/accept-v5.js
 ```
-Defaults target the v12 files and `reliks-engine-mainnet.js`. Override with `RELIKS_ENGINE`, `RELIKS_ARGS`, `RELIKS_LEDGER`, `RELIKS_FACTORY_ABI`. `verify-render.js` fails fast if the engine hash differs from the ledger's `program_hash`.
+Defaults target the v12 files and `lib/reliks-engine-mainnet.js`. Override with `RELIKS_ENGINE`, `RELIKS_ARGS`, `RELIKS_LEDGER`, `RELIKS_FACTORY_ABI`. `cli/verify-render.js` fails fast if the engine hash differs from the ledger's `program_hash`.
 
 ## Monitoring
 `https://kascov.io/mainnet/c/<covenant-id>` and `https://kascov.io/mainnet/tx/<txid>`.

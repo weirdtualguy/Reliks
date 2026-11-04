@@ -32,7 +32,7 @@ if (cfg.price !== 0 && cfg.price < MIN_PRICE) die('price must be 0 or >= ' + MIN
 if (cfg.royalty_bips < 1 || cfg.royalty_bips > MAX_ROYALTY_BIPS) die('royalty_bips must be in [1, ' + MAX_ROYALTY_BIPS + '] (0% editions are unsellable)');
 if (cfg.mints_left < 1) die('mints_left must be >= 1');
 
-const enginePath = process.env.RELIKS_ENGINE || './reliks-engine-mainnet.js';
+const enginePath = process.env.RELIKS_ENGINE || './lib/reliks-engine-mainnet.js';
 const ENGINE = require(path.resolve(enginePath));
 const engineBytes = Buffer.from(ENGINE.ENGINE_SRC, 'utf8');
 const cap = Number(process.env.RELIKS_ENGINE_CAP || 25641);

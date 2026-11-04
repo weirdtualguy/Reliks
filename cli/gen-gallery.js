@@ -1,10 +1,10 @@
 const fs = require('fs');
 const crypto = require('crypto');
-const N = require('./network.js');
+const N = require('../lib/network.js');
 const { blake2b: noble } = require('@noble/hashes/blake2b');
-const RB = require('./web/blake2b.js');
-const V = require('./reliks-lib.js');
-const ENGINE = require(process.env.RELIKS_ENGINE || './reliks-engine-mainnet.js');
+const RB = require('../web/blake2b.js');
+const V = require('../lib/reliks-lib.js');
+const ENGINE = require(process.env.RELIKS_ENGINE ? require('path').resolve(process.env.RELIKS_ENGINE) : '../lib/reliks-engine-mainnet.js');
 
 const hx = (b) => Buffer.from(b).toString('hex');
 function assert(cond, msg) { if (!cond) { console.error('PARITY FAIL: ' + msg); process.exit(1); } }

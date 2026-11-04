@@ -14,7 +14,7 @@ const hex = u => Buffer.from(u).toString('hex');
 const tryReq = p => { try { return require(p); } catch (e) { if (e.code === 'MODULE_NOT_FOUND') return null; throw e; } };
 
 // --- Kaspa address codec ---
-const B32 = require(path.join(root, 'bech32-kaspa.js'));
+const B32 = require(path.join(root, 'lib', 'bech32-kaspa.js'));
 t('bech32: known P2PK vector', () => B32.selfTest());
 t('bech32: roundtrip P2SH (version 8)', () => {
   const h = '11'.repeat(32), a = B32.encodeP2SH('kaspa', h), d = B32.decode(a);
@@ -40,7 +40,7 @@ t('blake2b: parity vs @noble/hashes (0..600 B)', () => {
 });
 
 // --- Engines: determinism + anchors ---
-for (const f of ['reliks-engine-mainnet.js', 'reliks-engine-v10.js']) {
+for (const f of ['lib/reliks-engine-mainnet.js']) {
   t('engine ' + f + ': deterministic + hashes self-consistent', () => {
     let E; try { E = require(path.join(root, f)); } catch (e) { if (e.code === 'MODULE_NOT_FOUND') return 'skip'; throw e; }
     eq(E.render(42), E.render(42), 'render(42) not deterministic');
@@ -58,7 +58,7 @@ t('canonical ABIs parse; state spans frozen (135/161/161)', () => {
 });
 t('no default path points at superseded versions', () => {
   const bad = /factory-(ledger|args|abi)-v1[01]\.json|edition-abi-v6\.json|escrow-abi-v4|reliks-engine-v10\.js['"]\s*\)/;
-  for (const f of ['deploy-v12.js', 'mint-v12.js', 'secondary-v12.js', 'offer-v5.js', 'accept-v5.js', 'verify-render.js', 'gen-gallery.js', 'gen-site.js']) {
+  for (const f of ['cli/deploy-v12.js', 'cli/mint-v12.js', 'cli/secondary-v12.js', 'cli/offer-v5.js', 'cli/accept-v5.js', 'cli/verify-render.js', 'cli/gen-gallery.js', 'tools/gen-site.js']) {
     const m = fs.readFileSync(path.join(root, f), 'utf8').match(bad);
     if (m) throw new Error(f + ' references ' + m[0]);
   }

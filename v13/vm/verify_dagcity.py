@@ -8,7 +8,7 @@ SERIALS = [1, 2, 3, 7, 42, 99, 12345, 65536, 4294967295, 2884738305227171331]
 
 
 def original(serial):
-    js = "const e=require('./reliks-engine-mainnet.js');process.stdout.write(e.render(%s))" % json.dumps(str(serial))
+    js = "const e=require('./lib/reliks-engine-mainnet.js');process.stdout.write(e.render(%s))" % json.dumps(str(serial))
     return subprocess.run(['node', '-e', js.replace('e.render("%s")' % serial, 'e.render(BigInt("%s"))' % serial)],
                           cwd=ROOT, capture_output=True, text=True, check=True).stdout
 

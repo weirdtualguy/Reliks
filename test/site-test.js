@@ -5,7 +5,7 @@ const root = path.join(__dirname, '..');
 let pass = 0, fail = 0;
 const t = (n, f) => { try { f(); pass++; console.log('PASS ' + n); } catch (e) { fail++; console.log('FAIL ' + n + ' | ' + e.message); } };
 const out = path.join(os.tmpdir(), 'reliks-site-' + process.pid + '.html');
-cp.execFileSync('node', [path.join(root, 'gen-site.js')], { env: { ...process.env, RELIKS_OUT: out }, stdio: 'pipe' });
+cp.execFileSync('node', [path.join(root, 'tools', 'gen-site.js')], { env: { ...process.env, RELIKS_OUT: out }, stdio: 'pipe' });
 const built = fs.readFileSync(out, 'utf8'), shipped = fs.readFileSync(path.join(root, 'docs', 'index.html'), 'utf8');
 fs.unlinkSync(out);
 

@@ -3,7 +3,7 @@ const fs = require('fs');
 const CH = require('../web/reliks-chain.js'), plan = require('./plan.js');
 const { submitSafe } = require('./submit.js'), { createNodeSubmit, prepare } = require('./submit-node.js');
 const { createNodeLookup } = require('./node-lookup.js'), { confirmMined } = require('./flow.js');
-CH.init(require('../reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' }));
+CH.init(require('../lib/reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' }));
 const LP = 'v13/ledger-vm-v13.json';
 if (!fs.existsSync(LP)) { console.log('SKIP no ledger'); process.exit(0); }
 const LD = JSON.parse(fs.readFileSync(LP, 'utf8')), S = LD.series;

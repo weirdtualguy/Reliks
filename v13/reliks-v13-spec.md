@@ -105,7 +105,7 @@ EditionState nextEd = EditionState {
 };
 ```
 
-The escrow co-spends the edition's `buy` route (see `accept-v5.js`), so the edition and the escrow must compute an identical next state or the transaction fails. That equality is the main correctness risk in v13 and needs a dedicated on-chain negative test: escrow next-state differs by one byte, expect rejection.
+The escrow co-spends the edition's `buy` route (see `cli/accept-v5.js`), so the edition and the escrow must compute an identical next state or the transaction fails. That equality is the main correctness risk in v13 and needs a dedicated on-chain negative test: escrow next-state differs by one byte, expect rejection.
 
 ## 6. Engine and render changes
 
@@ -116,7 +116,7 @@ The escrow co-spends the edition's `buy` route (see `accept-v5.js`), so the edit
 - `render_hash` stays anchored at genesis, computed at `serial = 1`, `lineage = zeros`, `sales = 0`.
 - Age is deliberately not in state. If wanted later, feed a display-only value from chain data (mint DAA score); it would not be covenant-anchored. **VERIFY** what DAA info the script can read before considering it. `this.ageDaa` measures time since the current UTXO was created and resets on every transition, so it is not lifetime age.
 
-New `reliks-lens.js` gates:
+New `cli/reliks-lens.js` gates:
 - **L11** base features identical across 1000 random `lineage` values.
 - **L12** `wear` 0..WEAR_CAP produces monotone, distinct outputs.
 - **L13** patina yields at most 64 distinct outputs.

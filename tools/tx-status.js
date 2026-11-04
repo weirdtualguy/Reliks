@@ -1,5 +1,5 @@
 // Usage: node tools/tx-status.js <txid> [wallet]. Read-only (no key): asks the testnet nodes and your wallet UTXO set what happened to a tx.
-const WS = require('ws'), N = require('../network.js');
+const WS = require('ws'), N = require('../lib/network.js');
 const txid = process.argv[2];
 if (!/^[0-9a-f]{64}$/.test(txid || '')) { console.error('usage: node tools/tx-status.js <txid> [wallet]'); process.exit(1); }
 const WALLET = process.argv[3] || process.env.PC_WALLET || 'kaspatest:qqelufw3s9rqemzktcyvamuqwcwzewvs6k2lgvvn5rrkydasm8xxssk52j3kd';

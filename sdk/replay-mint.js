@@ -2,7 +2,7 @@
 // Read-only, no key. Rebuilds each recorded mint with planMint and compares with the chain (kascov).
 // Usage: PC_NET=testnet node sdk/replay-mint.js <ledger.json> <factory-abi.json> [<edition-abi.json>]
 const fs = require('fs');
-const N = require('../network.js'), CH = require('../web/reliks-chain.js'), T = require('./templates.js'), plan = require('./plan.js');
+const N = require('../lib/network.js'), CH = require('../web/reliks-chain.js'), T = require('./templates.js'), plan = require('./plan.js');
 const [lp, fa, ea] = process.argv.slice(2);
 if (!lp || !fa) { console.log('usage: node sdk/replay-mint.js <ledger.json> <factory-abi.json> [<edition-abi.json>]'); process.exit(2); }
 CH.init(T.templatesFor({ factoryAbi: fa, editionAbi: ea || 'data/edition-abi-v13.json' }));

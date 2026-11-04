@@ -21,8 +21,8 @@ We will acknowledge your report within 48 hours and work with you to understand 
 
 The following components are in scope for security reporting:
 - Silverscript covenant logic (`sil/*.sil`).
-- Transaction building, signing, and fee discovery logic (`reliks-lib.js`, `deploy-v12.js`, `mint-v12.js`, etc.).
-- Trustless verification and rendering logic (`reliks-lens.js`, `verify-render.js`, `web/reliks-gallery-runtime.js`).
+- Transaction building, signing, and fee discovery logic (`lib/reliks-lib.js`, `cli/deploy-v12.js`, `cli/mint-v12.js`, etc.).
+- Trustless verification and rendering logic (`cli/reliks-lens.js`, `cli/verify-render.js`, `web/reliks-gallery-runtime.js`).
 
 **Out of Scope**:
 - UI/UX bugs in third-party marketplaces or galleries.
@@ -33,7 +33,7 @@ The following components are in scope for security reporting:
 
 - **Protect Your Keys**: Never share your `PC_PRIV` (private key) or commit it to a public repository. Use environment variables or secure secret managers.
 - **Verify Before You Buy**: Always use the `reliks-gallery-runtime.js` to verify that the `program_hash` and `render_hash` of an edition match the on-chain state before purchasing.
-- **Audit Custom Engines**: If you are an artist baking a custom generative engine, always run it through `reliks-lens.js` to ensure it contains no banned constructs (e.g., `Math.random`, `fetch`, `Date`) and is fully deterministic.
+- **Audit Custom Engines**: If you are an artist baking a custom generative engine, always run it through `cli/reliks-lens.js` to ensure it contains no banned constructs (e.g., `Math.random`, `fetch`, `Date`) and is fully deterministic.
 
 ## 🏆 Recognition
 

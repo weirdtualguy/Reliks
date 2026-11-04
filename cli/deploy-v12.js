@@ -1,13 +1,13 @@
 const fs = require('fs');
-const OL = require('./reliks-lib.js');
-const V = require('./reliks-lib.js');
+const OL = require('../lib/reliks-lib.js');
+const V = require('../lib/reliks-lib.js');
 const { schnorr } = require('@noble/curves/secp256k1');
 const secp = { schnorr: { signSync: (m, p) => schnorr.sign(m, p) } };
 const need = ['feeLoop','waitForConfirmation','pickUtxo','sighash','hex','pushMin','pushMinInt'];
 const missing = need.filter(k => typeof OL[k] !== 'function');
 if (missing.length) { console.error('reliks-lib missing exports:', missing.join(', ')); process.exit(1); }
 const { feeLoop, waitForConfirmation, pickUtxo, sighash, hex } = OL;
-const covIdGenesis = require('./reliks-lib.js').covIdGenesis || V.covIdGenesis || OL.covIdGenesis;
+const covIdGenesis = require('../lib/reliks-lib.js').covIdGenesis || V.covIdGenesis || OL.covIdGenesis;
 if (typeof covIdGenesis !== 'function') { console.error('covIdGenesis unavailable in reliks-lib'); process.exit(1); }
 const B = Buffer;
 const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v12.json'), 'utf8')));
@@ -16,7 +16,7 @@ if (!fs.existsSync(ARGS_PATH)) { console.error('FATAL: ' + ARGS_PATH + ' not fou
 const args = JSON.parse(fs.readFileSync(ARGS_PATH, 'utf8'));
 
   // H1-BAKE inline bake assertion
-  const ENGINE=require(process.env.RELIKS_ENGINE||"./reliks-engine-mainnet.js");
+  const ENGINE=require(process.env.RELIKS_ENGINE?require("path").resolve(process.env.RELIKS_ENGINE):"../lib/reliks-engine-mainnet.js");
   const engineBytes=B.from(ENGINE.ENGINE_SRC,"utf8");
   if(F.bc.indexOf(engineBytes)===-1){console.error("BAKE ASSERTION FAILED: compiled bytecode does not embed ENGINE_SRC");process.exit(1)}
 const hxb = (i) => B.from(args[i].value).toString('hex');

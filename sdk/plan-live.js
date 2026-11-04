@@ -2,7 +2,7 @@
 // Read-only, no key: plans the NEXT mint on a lane with the series' own templates and your wallet's real UTXO. Signs and sends nothing.
 // Usage: PC_NET=testnet PC_WALLET=<address> node sdk/plan-live.js <ledger.json> <factory-abi.json> [<edition-abi.json>]
 const fs = require('fs');
-const N = require('../network.js'), CH = require('../web/reliks-chain.js'), R = require('./read.js'), T = require('./templates.js'), LN = require('./lane.js'), plan = require('./plan.js');
+const N = require('../lib/network.js'), CH = require('../web/reliks-chain.js'), R = require('./read.js'), T = require('./templates.js'), LN = require('./lane.js'), plan = require('./plan.js');
 const [lp, fa, ea] = process.argv.slice(2), addr = process.env.PC_WALLET;
 if (!lp || !fa || !addr) { console.log('usage: PC_WALLET=<address> node sdk/plan-live.js <ledger.json> <factory-abi.json> [<edition-abi.json>]'); process.exit(2); }
 CH.init(T.templatesFor({ factoryAbi: fa, editionAbi: ea || 'data/edition-abi-v13.json' }));

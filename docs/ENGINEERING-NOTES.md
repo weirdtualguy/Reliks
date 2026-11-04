@@ -14,7 +14,7 @@ Hard-won facts from building Reliks against Toccata-era Kaspa. Each cost at leas
 - KIP-20 genesis covenant id = keyed BLAKE2b (`CovenantID`) over auth outpoint, `le64(count)`, then per output `le32 idx || le64 value || le16 ver || le64 len || script`.
 - Version-1 inputs: `sigOpCount` must be 0. The txid excludes signature scripts.
 - P2SH state lives in the redeem preimage: `prefix || current-state || suffix`. Never use constructor bytecode.
-- Address codec: Bech32 charset, `:` separator, 40-bit CashAddr-style polymod. HRP is folded with `& 0x1f` (no BIP-173 expansion). See `bech32-kaspa.js`.
+- Address codec: Bech32 charset, `:` separator, 40-bit CashAddr-style polymod. HRP is folded with `& 0x1f` (no BIP-173 expansion). See `lib/bech32-kaspa.js`.
 
 ## Mass, fees, sizes
 - Storage mass scales roughly inversely with output value. Carriers stay at 1 KAS or more; a 3-input escrow accept exceeded the 500k cap, hence the 2-input design.

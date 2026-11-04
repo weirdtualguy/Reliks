@@ -26,16 +26,16 @@
   ],
   "scripts": {
     "test": "node test/self-test.js && node test/chain-test.js && node test/v13-codec-test.js && node test/wallet-test.js && node test/site-test.js && node test/kaspire-mass-test.js",
-    "args": "node gen-factory-args.js",
-    "deploy": "node deploy-v12.js",
-    "mint": "node mint-v12.js",
-    "secondary": "node secondary-v12.js",
-    "offer": "node offer-v5.js",
-    "accept": "node accept-v5.js",
-    "verify": "node verify-render.js",
-    "gallery": "node gen-gallery.js",
-    "site": "node gen-site.js",
-    "lens": "node reliks-lens.js"
+    "args": "node cli/gen-factory-args.js",
+    "deploy": "node cli/deploy-v12.js",
+    "mint": "node cli/mint-v12.js",
+    "secondary": "node cli/secondary-v12.js",
+    "offer": "node cli/offer-v5.js",
+    "accept": "node cli/accept-v5.js",
+    "verify": "node cli/verify-render.js",
+    "gallery": "node cli/gen-gallery.js",
+    "site": "node tools/gen-site.js",
+    "lens": "node cli/reliks-lens.js"
   },
   "dependencies": {
     "@noble/curves": "^1.6.0",

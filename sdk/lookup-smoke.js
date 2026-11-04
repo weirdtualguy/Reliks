@@ -1,6 +1,6 @@
 'use strict';
 // Read-only smoke test against the real testnet nodes. No key, no broadcast.
-const fs = require('fs'), N = require('../network.js'), L = require('./node-lookup.js');
+const fs = require('fs'), N = require('../lib/network.js'), L = require('./node-lookup.js');
 const A = process.env.PC_WALLET || 'kaspatest:qqelufw3s9rqemzktcyvamuqwcwzewvs6k2lgvvn5rrkydasm8xxssk52j3kd';
 (async () => {
   const j = JSON.parse(await L.defaultCall(N.wrpc[0], 'getUtxosByAddresses', { addresses: [A] }));

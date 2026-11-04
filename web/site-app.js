@@ -420,7 +420,7 @@
         "function seedLanes(serial){const le=B.alloc(8);le.writeBigUInt64LE(BigInt(serial));const h=blake2b(B.concat([B.from('ReliksSeedV10','utf8'),le]),{dkLen:32});const dv=new DataView(h.buffer,h.byteOffset,h.byteLength);const lanes=[];for(let i=0;i<8;i++)lanes.push(dv.getInt32(i*4,true));return lanes;}",
         "const compiled=new Function('L','serial',ENGINE_SRC+'\\nreturn reliks(L,serial);');", 'function render(serial){const s=Number(BigInt(serial)&0xFFFFFFFFn);return compiled(seedLanes(s),s|0);}',
         "const engineHashHex=B.from(blake2b(B.from(ENGINE_SRC,'utf8'),{dkLen:32})).toString('hex');", "const renderHashHex=B.from(blake2b(B.from(render(TEST_SERIAL),'utf8'),{dkLen:32})).toString('hex');", 'module.exports={ENGINE_SRC,seedLanes,render,engineHashHex,renderHashHex,TEST_SERIAL};'].join('\n') + '\n');
-      stat.textContent = 'Exported ' + name + '.js. Next: node reliks-lens.js ' + name + '.js';
+      stat.textContent = 'Exported ' + name + '.js. Next: node cli/reliks-lens.js ' + name + '.js';
     });
     $('#exs').addEventListener('click', function () {
       var w = K.state(), artist = ($('#artist').value.trim() || (w.status === 'connected' ? w.pubkey : '')).toLowerCase();

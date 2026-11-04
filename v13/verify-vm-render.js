@@ -7,7 +7,7 @@
 // not fetched back. Usage (repo root): RELIKS_LEDGER=v13/ledger-vm-v13.json node v13/verify-vm-render.js [editionIndex]
 'use strict';
 const fs = require('fs'), path = require('path'), cp = require('child_process');
-const V = require(path.resolve('reliks-lib.js'));
+const V = require(path.resolve('lib/reliks-lib.js'));
 const R = require(path.resolve('v13/vm/rvm.js'));
 const b2 = u => require(path.resolve('web/blake2b.js')).blake2b(u, 32);
 const hx = u => Buffer.from(u).toString('hex'), B = Buffer;

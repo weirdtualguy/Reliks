@@ -21,7 +21,7 @@ A Reliks edition is `render(engine, serial)`. The engine is a few kilobytes of d
 
 ## Mainnet status
 
-The v12 mainnet genesis is a **single-edition series**: factory lane `1569a69f…9c09`, one DAG-city edition (serial `2884738305227171331`), primary price **1 KAS**, 5% resale royalty, engine hash `16440384…eaa4`. Its lane is sold out. The site recomputes every one of these from chain data and shows PASS or FAIL for each check. Do not take this paragraph on faith: open the site, or run `node verify-render.js`.
+The v12 mainnet genesis is a **single-edition series**: factory lane `1569a69f…9c09`, one DAG-city edition (serial `2884738305227171331`), primary price **1 KAS**, 5% resale royalty, engine hash `16440384…eaa4`. Its lane is sold out. The site recomputes every one of these from chain data and shows PASS or FAIL for each check. Do not take this paragraph on faith: open the site, or run `node cli/verify-render.js`.
 
 ## Use it
 
@@ -48,8 +48,8 @@ Neither path gives the site a key. After signing, the site checks that every inp
 ```bash
 cp secrets.env.example secrets.env   # PC_PRIV, PC_WALLET (+ PC_NET / PC_MAINNET_WRPC for mainnet)
 set -a; . ./secrets.env; set +a
-node reliks-lens.js my-engine.js                       # engine gate suite (or design it in the site's Studio tab)
-node gen-factory-args.js series-my-engine.json
+node cli/reliks-lens.js my-engine.js                       # engine gate suite (or design it in the site's Studio tab)
+node cli/gen-factory-args.js series-my-engine.json
 # compile sil/SeriesFactory-v12.sil with those args -> data/factory-abi-v12.json
 npm run deploy && npm run mint && npm run verify && npm run gallery
 ```
@@ -71,12 +71,14 @@ Serials come from the consumed mint-lane outpoint, so parallel lanes never colli
 | Path | Contents |
 |---|---|
 | `sil/`, `data/` | Canonical contracts and compiled ABIs; `data/mainnet-anchors.json` is what the site verifies |
+| `lib/` | Shared Node code: `reliks-lib.js` (signing, fees), `reliks-templates.js` (browser contract templates derived from the compiled ABIs), `reliks-engine-mainnet.js`, `network.js`, `config.js`, `bech32-kaspa.js` |
+| `cli/` | Node reference builders (`deploy-v12.js`, `mint-v12.js`, `secondary-v12.js`, `offer-v5.js`, `accept-v5.js`) and gates (`reliks-lens.js`, `verify-render.js`, `gen-gallery.js`, `gen-factory-args.js`) |
 | `web/` | Zero-dependency browser code: `blake2b.js`, `reliks-chain.js` (state codec, lane resolution, mint builder, post-sign verification), `kaspire.js` (wallet), `site-app.js`, `site.css` |
-| `gen-site.js` | Builds the single-file `docs/index.html` (inlines everything; fails if an anchor stops matching its engine) |
-| `reliks-templates.js` | Derives the browser contract templates from the compiled ABIs, so there is no pasted copy to drift |
-| `reliks-lib.js`, `network.js`, `config.js`, `deploy-v12.js`, `mint-v12.js`, `secondary-v12.js`, `offer-v5.js`, `accept-v5.js` | Node reference builders |
-| `reliks-lens.js`, `verify-render.js`, `gen-gallery.js` | Engine gates, chain-anchored verification, standalone gallery |
-| `test/` | `self-test.js`, `chain-test.js`, `wallet-test.js`, `site-test.js` |
+| `tools/` | `gen-site.js` (builds the single-file `docs/index.html`; fails if an anchor stops matching its engine), `check.sh` (health check), `tags.js`, chain and context helpers |
+| `sdk/` | Read, plan, sign, send and confirm for the v13 testnet lines |
+| `v13/` | Reliks-VM (`v13/vm/`), v13 drafts, specs and testnet scripts |
+| `test/` | `self-test.js`, `chain-test.js`, `wallet-test.js`, `site-test.js`, and more |
+| `docs/` | Architecture, runbook, audit summary, `STATE.md`, `AI-CONTEXT.md`, `history/` |
 
 ## Dependencies
 

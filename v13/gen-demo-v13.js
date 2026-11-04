@@ -1,6 +1,6 @@
 'use strict';
 const fs = require('fs'), path = require('path');
-const V = require(path.resolve('reliks-lib.js'));
+const V = require(path.resolve('lib/reliks-lib.js'));
 const R = require(path.resolve('v13/vm/rvm.js'));
 const BL = require(path.resolve('web/blake2b.js'));
 const b2 = u => BL.blake2b(u, 32);

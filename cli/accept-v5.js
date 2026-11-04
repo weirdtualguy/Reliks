@@ -1,6 +1,6 @@
 const fs = require('fs');
-const OL = require('./reliks-lib.js');
-const V = require('./reliks-lib.js');
+const OL = require('../lib/reliks-lib.js');
+const V = require('../lib/reliks-lib.js');
 const { feeLoop, waitForConfirmation, pickUtxo, sighash, hex, pushMin, pushMinInt } = OL;
 const { schnorr } = require('@noble/curves/secp256k1');
 const secp = { schnorr: { signSync: (m, p) => schnorr.sign(m, p) } };

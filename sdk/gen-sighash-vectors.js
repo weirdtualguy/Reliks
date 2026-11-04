@@ -5,9 +5,9 @@
 process.env.PC_NET = process.env.PC_NET || 'testnet';
 const fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..');
-const src = fs.readFileSync(path.join(root, 'reliks-lib.js'), 'utf8');
+const src = fs.readFileSync(path.join(root, 'lib', 'reliks-lib.js'), 'utf8');
 const cut = src.indexOf("const PRIV = require('./config').PRIV;");
-if (cut < 0) throw new Error("anchor not found in reliks-lib.js: const PRIV = require('./config').PRIV;");
+if (cut < 0) throw new Error("anchor not found in lib/reliks-lib.js: const PRIV = require('./config').PRIV;");
 const head = src.slice(0, cut);
 if (head.indexOf("require('./config')") >= 0) throw new Error('config is required before the cut; cannot extract safely');
 const mod = { exports: {} };

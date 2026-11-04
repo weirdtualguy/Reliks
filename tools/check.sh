@@ -95,8 +95,8 @@ fi
 if [ -f sdk/test-mint-flow.js ]; then
   if node sdk/test-mint-flow.js >/dev/null 2>&1; then echo "PASS sdk mint flow tests (modes, serial confirm, fee rebuild, no blind resubmit, ledger rules)"; else echo "FAIL sdk mint flow tests"; FAIL=1; fi
 fi
-if [ -f tags.js ]; then
-  if node tags.js 2>&1 | grep -q "ALL PASS"; then echo "PASS dispatch tags"; else echo "FAIL dispatch tags"; FAIL=1; fi
+if [ -f tools/tags.js ]; then
+  if node tools/tags.js 2>&1 | grep -q "ALL PASS"; then echo "PASS dispatch tags"; else echo "FAIL dispatch tags"; FAIL=1; fi
 fi
 if [ "$1" = "full" ]; then
   if npm test >${TMPDIR:-$HOME}/npmtest.log 2>&1; then echo "PASS npm test"; else echo "FAIL npm test (see ${TMPDIR:-$HOME}/npmtest.log)"; FAIL=1; fi

@@ -1,9 +1,9 @@
 'use strict';
 // Read-only, no key. v12-style ledger (no lineage/sales). Usage: PC_NET=mainnet node sdk/verify-v12.js [ledger.json]
 const fs = require('fs');
-const N = require('../network.js'), CH = require('../web/reliks-chain.js'), sdk = require('./read.js');
+const N = require('../lib/network.js'), CH = require('../web/reliks-chain.js'), sdk = require('./read.js');
 if (/test/i.test(String(N.label))) { console.log('FAIL network is ' + N.label + '; need PC_NET=mainnet'); process.exit(2); }
-CH.init(require('../reliks-templates.js')());
+CH.init(require('../lib/reliks-templates.js')());
 const L = JSON.parse(fs.readFileSync(process.argv[2] || 'data/factory-ledger-mainnet.json', 'utf8')), S = L.series;
 const want = String(S.program_hash).toLowerCase();
 let bad = 0;
