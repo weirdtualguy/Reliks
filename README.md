@@ -46,8 +46,8 @@ Neither path gives the site a key. After signing, the site checks that every inp
 ### Publish a series (CLI, needs the external Silverscript compiler `silverc`)
 
 ```bash
-cp secrets.env.example secrets.env   # PC_PRIV, PC_WALLET (+ PC_NET / PC_MAINNET_WRPC for mainnet)
-set -a; . ./secrets.env; set +a
+cp secrets.env.example ~/reliks-private/secrets.env   # keep keys outside the repo; PC_PRIV, PC_WALLET (+ PC_NET / PC_MAINNET_WRPC for mainnet)
+set -a; . ~/reliks-private/secrets.env; set +a
 node cli/reliks-lens.js my-engine.js                       # engine gate suite (or design it in the site's Studio tab)
 node cli/gen-factory-args.js series-my-engine.json
 # compile sil/SeriesFactory-v12.sil with those args -> data/factory-abi-v12.json
