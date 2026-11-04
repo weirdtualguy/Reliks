@@ -1,0 +1,15 @@
+; Starter: 40 circles. Position and size come from the seed (RNG), opacity from wear, colour from patina.
+.canvas 400 400
+.var I 0 .var X 1 .var Y 2 .var R 3
+lane 0 serial xor lane 1 lane 2 lane 3 rnginit
+push 0x0b0f14 fill push 0 push 0 push 400 push 400 rect
+push 0 st I
+loop:
+push 20 push 380 rndr st X
+push 20 push 380 rndr st Y
+push 6 push 40 rndr st R
+push 0x49c5b1 pat push 16 shl xor fill
+push 100 wear push 6 div sub opacity
+ld X ld Y ld R circle
+next I 40 loop
+halt

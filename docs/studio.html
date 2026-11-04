@@ -1,0 +1,480 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reliks-VM Studio</title><style>:root{color-scheme:dark;--ink:#06080b;--panel:#10151c;--line:#212a35;--text:#e9e6df;--dim:#98a2ad;--teal:#49c5b1;--red:#ff6b6b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:8px 0}
+.small{color:var(--dim);font-size:13px}
+.ok{color:var(--teal)}.bad{color:var(--red)}
+textarea,input,select{width:100%;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px;font:16px ui-monospace,Menlo,Consolas,monospace}
+textarea{min-height:260px;resize:vertical;white-space:pre;overflow:auto;tab-size:2}
+.row{display:flex;gap:8px;align-items:center;margin:10px 0;flex-wrap:wrap}
+.row>*{flex:1 1 140px}
+.row label{flex:0 0 auto;color:var(--dim);font-size:14px}
+.btn{background:var(--teal);color:var(--ink);border:0;border-radius:8px;padding:10px 12px;font-weight:600;font-size:15px;cursor:pointer}
+.btn.ghost{background:var(--line);color:var(--text)}
+#img{width:100%;aspect-ratio:1;background:#000;border-radius:10px;display:block;border:1px solid var(--line)}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;overflow-x:auto;font-size:13px;white-space:pre-wrap;word-break:break-all}
+</style></head><body><main>
+<h1>Reliks-VM Studio</h1>
+<p class="small">Write a Reliks-VM program, preview it, download the bytecode. Everything runs in your browser; nothing is sent anywhere. Reliks-VM spec rev 2 is still a draft. Publishing a series on chain is not done here.</p>
+<div class="row"><select id="tpl" aria-label="Template"><option value="starter" selected>Starter (40 circles)</option><option value="dagcity">DAG-City (clean port)</option></select><button class="btn ghost" id="load">Load template</button></div>
+<textarea id="ed" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" aria-label="Assembler source"></textarea>
+<div class="row"><label for="ser">Serial</label><input id="ser" value="1" inputmode="numeric"><button class="btn ghost" id="rs">Random</button></div>
+<div class="row"><label for="lin">Lineage</label><input id="lin" value="0000000000000000000000000000000000000000000000000000000000000000"><button class="btn ghost" id="rl">Random</button></div>
+<div class="row"><label for="wr">Sales <span id="wv">0</span></label><input id="wr" type="range" min="0" max="255" value="0"></div>
+<div class="row"><button class="btn" id="go">Run</button><span id="st" class="small">Starting…</span></div>
+<img id="img" alt="Rendered artwork">
+<pre id="info"></pre>
+<div class="row"><input id="name" value="my-program" aria-label="File name"><button class="btn" id="dlhex">Download .hex</button><button class="btn ghost" id="dlsrc">Download source</button></div>
+<p class="small">The .hex file is the raw program (what the series commits to). Check it in Termux with <code>node tools/preview-program.js my-program.hex</code>.</p>
+</main><script>window.STUDIO={"templates":{"starter":"; Starter: 40 circles. Position and size come from the seed (RNG), opacity from wear, colour from patina.\n.canvas 400 400\n.var I 0 .var X 1 .var Y 2 .var R 3\nlane 0 serial xor lane 1 lane 2 lane 3 rnginit\npush 0x0b0f14 fill push 0 push 0 push 400 push 400 rect\npush 0 st I\nloop:\npush 20 push 380 rndr st X\npush 20 push 380 rndr st Y\npush 6 push 40 rndr st R\npush 0x49c5b1 pat push 16 shl xor fill\npush 100 wear push 6 div sub opacity\nld X ld Y ld R circle\nnext I 40 loop\nhalt\n","dagcity":".canvas 1600 1600\n.var RX 0 .var RY 1 .var RZ 2 .var RW 3\n.var X 17 .var Y 18\n.var I 4 .var J 5 .var K 6 .var S 7 .var H 8 .var D 9 .var T 10 .var DK 11 .var C 12\n.var WI 13 .var WJ 14 .var N 15 .var P0 16 .var TM 20 .var TOP 21 .var LF 22 .var RF 23\n.var WN 24 .var AH 25 .var DI 26 .var DJ 27 .var NN 28 .var E2 29 .var QX 30 .var QY 31\n.var BX 32 .var BY 33 .var GX 34 .var GY 35\ngradbegin push 0 push 0xffd9a0 push 100 gradstop push 30 push 0xe8923a push 80 gradstop push 100 push 0xe8923a push 0 gradstop gradend\npush 0xe7dfc8 fill push 0 push 0 push 1600 push 1600 rect\nlane 0 serial xor lane 1 lane 2 lane 3 rnginit\npush 0xd3c9ab stroke push 50 gopen push 0 st I\nscatter: push 60 push 1540 call ri st X push 60 push 1540 call ri st Y push 30 push 130 call ri st K\nld X ld Y ld X ld K add ld Y ld K push 2 div add line next I 150 scatter gclose\npush 0xcfc5a8 stroke push 55 gopen push 0 st I\ngrid: ld I push 0 call ix ld I push 0 call iy ld I push 13 call ix ld I push 13 call iy line\npush 0 ld I call ix push 0 ld I call iy push 13 ld I call ix push 13 ld I call iy line nextle I 13 grid gclose\npush 0 st N push 0 st C\ncanal: ld C push 2 mod jz even push 2 push 11 call ri st WI push 0 st WJ jmp start\neven: push 0 st WI push 2 push 11 call ri st WJ\nstart: ld N st P0 call addpt\nwalk: ld WI push 13 lt ld WJ push 13 lt and jz wdone push 2 call rmod jz incj ld WI push 1 add st WI jmp cont\nincj: ld WJ push 1 add st WJ\ncont: call addpt jmp walk\nwdone: push 30 push 0x2f2f28 push 100 call poly push 22 push 0x49c5b1 push 100 call poly push 6 push 0xbfeee2 push 85 call poly next C 4 canal\npush -1 stroke push 100 opacity\npush 0 st S\nsloop: ld S push 13 sub push 0 max st I\niloop: ld I push 13 le ld I ld S le and jz idone ld S ld I sub st J\nld I push 14 mul ld J add push 256 add ldx jnz inext\npush 10 call rmod st T ld T push 1 lt jz notplaza\npush 0xddd4ba fill ld I ld J call ix ld I ld J call iy call dia jmp inext\nnotplaza: ld T push 7 gt jz lowh push 6 push 9 call ri st H jmp hset\nlowh: push 2 push 5 call ri st H\nhset: ld T push 3 mod st DK\nld DK jnz c1 push 0x4b4a3f st TOP push 0x34332b st LF push 0x26251e st RF jmp cdone\nc1: ld DK push 1 eq jz c2 push 0xf0e9d3 st TOP push 0xd8cfb3 st LF push 0xbfb598 st RF jmp cdone\nc2: push 0x49c5b1 pat push 0x040404 mul xor st TOP push 0x2e8f85 st LF push 0x1f6b64 st RF\ncdone: ld I ld J call ix st X ld I ld J call iy ld H push 22 mul sub st Y ld H push 22 mul st D\nld TOP fill ld X ld Y call dia\nld LF fill pbegin ld X push 36 sub ld Y push 18 add m push 36 push 18 lr push 0 ld D lr push -36 push -18 lr z pend\nld RF fill pbegin ld X push 36 add ld Y push 18 add m push -36 push 18 lr push 0 ld D lr push 36 push -18 lr z pend\npush 2 ld H push 3 gt add st WN\nld DK push 1 eq jz wl1 push 0x34332b fill push 100 opacity jmp wl2\nwl1: push 0x8fe8d8 fill push 90 wear push 50 min sub opacity\nwl2: push 0 st K\nwloop: pbegin ld X push 36 sub push 6 add ld K push 10 mul add ld Y push 18 add push 6 add m push 7 push 4 lr push 0 push 11 lr push -7 push -4 lr z pend next K WN wloop push 100 opacity\nld H push 6 lt jnz nodoor\nld DK push 1 eq jz d1 push 0x26251e fill jmp d2\nd1: push 0x123c36 fill\nd2: pbegin ld X push 6 add ld Y push 18 add ld D add push 24 sub m push 0 push -11 lr push 10 push -12 push 20 push 0 qr push 0 push 11 lr z pend\npush 18 push 42 call ri st AH push 0x26251e stroke push 3 swidth\nld X ld Y push 18 add ld X ld Y push 18 add ld AH sub line\npush -1 stroke push 0x49c5b1 fill ld X ld Y push 18 add ld AH sub push 3 circle\nnodoor: ld T push 6 eq ld T push 7 eq or jz inext\npush 2 call rmod st DI push 1 ld DI sub st DJ push 4 push 7 call ri st NN push 1 st K\nrloop: ld H push 22 mul ld K push 13 mul sub st E2\nld I ld DI ld K mul add ld J ld DJ ld K mul add call ix st QX\nld I ld DI ld K mul add ld J ld DJ ld K mul add call iy ld E2 push 0 max sub st QY\npush 0xefe8d2 fill ld QX ld QY call dia\npush 0x34332b fill pbegin ld QX push 36 sub ld QY push 18 add m push 36 push 18 lr push 0 push 13 lr push -36 push -18 lr z pend nextle K NN rloop\ninext: ld I push 1 add st I jmp iloop\nidone: nextle S 26 sloop\npush 100 gopen push 0 st K\nbloop: ld K ld N lt jz bdone push 3 call rmod jnz bskip\nld K push 512 add ldx push 2 call rmod jz bneg push 26 jmp bx2\nbneg: push -26\nbx2: add st BX ld K push 640 add ldx push 8 add st BY\npush 0x49c5b1 fill push 22 opacity ld BX ld BY push 9 circle push 100 opacity push 0xbfeee2 fill ld BX ld BY push 3 circle\nbskip: ld K push 1 add st K jmp bloop\nbdone: gclose\npush 6 push 6 call ix st GX push 6 push 6 call iy push 2 push 4 call ri push 22 mul sub st GY\npush 0x1000000 fill ld GX ld GY push 110 circle push 0xffffff fill ld GX ld GY push 9 circle\npush -1 fill push 2 swidth push 75 opacity push 14 st K\nrings: ld K push 34 gt jz warm push 0x49c5b1 stroke jmp go\nwarm: push 0xe8923a stroke\ngo: ld GX ld GY ld K circle ld K push 7 add dup st K push 42 le jnz rings\npush -1 fill push 0x3a3a33 stroke push 7 swidth push 100 opacity push 36 push 36 push 1528 push 1528 rect halt\nix: sub push 36 mul push 800 add ret\niy: add push 13 sub push 18 mul push 770 add ret\ndia: pbegin over over m push 36 push 18 lr push -36 push 18 lr push -36 push -18 lr z pend drop drop ret\naddpt: push 1 ld WI push 14 mul ld WJ add push 256 add stx ld WI ld WJ call ix ld N push 512 add stx ld WI ld WJ call iy ld N push 640 add stx ld N push 1 add st N ret\npoly: opacity stroke swidth push -1 fill pbegin ld P0 st K ld K push 512 add ldx ld K push 640 add ldx m ld K push 1 add st K\npl: ld K ld N lt jz pldone ld K push 512 add ldx ld K push 640 add ldx l ld K push 1 add st K jmp pl\npldone: pend ret\nri: over sub push 1 add call rmod add ret\nrmod: push 0 swap push 1 sub rndr ret"}};</script><script>/* Reliks BLAKE2b: zero-dependency, unkeyed or keyed, digest 1..64 bytes.
+   Shared by the site, the Studio, the gallery and the Node tooling.
+   Validated against Python hashlib and @noble/hashes in `npm test`.
+   API: blake2b(bytes, dkLen = 32, keyBytes?) -> Uint8Array */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.ReliksBlake2b = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+  var M64 = (1n << 64n) - 1n;
+  var IV = [0x6a09e667f3bcc908n, 0xbb67ae8584caa73bn, 0x3c6ef372fe94f82bn, 0xa54ff53a5f1d36f1n,
+            0x510e527fade682d1n, 0x9b05688c2b3e6c1fn, 0x1f83d9abfb41bd6bn, 0x5be0cd19137e2179n];
+  var SIGMA = [
+    [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15], [14,10,4,8,9,15,13,6,1,12,0,2,11,7,5,3],
+    [11,8,12,0,5,2,15,13,10,14,3,6,7,1,9,4], [7,9,3,1,13,12,11,14,2,6,5,10,4,0,15,8],
+    [9,0,5,7,2,4,10,15,14,1,11,12,6,8,3,13], [2,12,6,10,0,11,8,3,4,13,7,5,15,14,1,9],
+    [12,5,1,15,14,13,4,10,0,7,6,3,9,2,8,11], [13,11,7,14,12,1,3,9,5,0,15,4,8,6,2,10],
+    [6,15,14,9,11,3,0,8,12,2,13,7,1,4,10,5], [10,2,8,4,7,6,1,5,15,11,9,14,3,12,13,0],
+    [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15], [14,10,4,8,9,15,13,6,1,12,0,2,11,7,5,3]];
+  function rotr(x, n) { return ((x >> n) | (x << (64n - n))) & M64; }
+  function G(v, a, b, c, d, x, y) {
+    v[a] = (v[a] + v[b] + x) & M64; v[d] = rotr(v[d] ^ v[a], 32n);
+    v[c] = (v[c] + v[d]) & M64;     v[b] = rotr(v[b] ^ v[c], 24n);
+    v[a] = (v[a] + v[b] + y) & M64; v[d] = rotr(v[d] ^ v[a], 16n);
+    v[c] = (v[c] + v[d]) & M64;     v[b] = rotr(v[b] ^ v[c], 63n);
+  }
+  function compress(h, blk, off, t, last) {
+    var m = new Array(16), i, j;
+    for (i = 0; i < 16; i++) {
+      var w = 0n;
+      for (j = 7; j >= 0; j--) w = (w << 8n) | BigInt(blk[off + i * 8 + j]);
+      m[i] = w;
+    }
+    var v = h.slice(); for (i = 0; i < 8; i++) v.push(IV[i]);
+    v[12] ^= t & M64; v[13] ^= (t >> 64n) & M64;
+    if (last) v[14] ^= M64;
+    for (i = 0; i < 12; i++) {
+      var s = SIGMA[i];
+      G(v, 0, 4, 8, 12, m[s[0]], m[s[1]]);  G(v, 1, 5, 9, 13, m[s[2]], m[s[3]]);
+      G(v, 2, 6, 10, 14, m[s[4]], m[s[5]]); G(v, 3, 7, 11, 15, m[s[6]], m[s[7]]);
+      G(v, 0, 5, 10, 15, m[s[8]], m[s[9]]); G(v, 1, 6, 11, 12, m[s[10]], m[s[11]]);
+      G(v, 2, 7, 8, 13, m[s[12]], m[s[13]]); G(v, 3, 4, 9, 14, m[s[14]], m[s[15]]);
+    }
+    for (i = 0; i < 8; i++) h[i] = h[i] ^ v[i] ^ v[i + 8];
+  }
+  function blake2b(input, dkLen, key) {
+    dkLen = dkLen || 32;
+    if (dkLen < 1 || dkLen > 64) throw new Error('blake2b: bad digest length');
+    key = key || new Uint8Array(0);
+    if (key.length > 64) throw new Error('blake2b: key too long');
+    var data;
+    if (key.length) {
+      data = new Uint8Array(128 + input.length);
+      data.set(key, 0); data.set(input, 128);
+    } else data = input;
+    var h = IV.slice();
+    h[0] ^= 0x01010000n ^ (BigInt(key.length) << 8n) ^ BigInt(dkLen);
+    var t = 0n, off = 0;
+    while (data.length - off > 128) { t += 128n; compress(h, data, off, t, false); off += 128; }
+    var lastBlk = new Uint8Array(128), rem = data.length - off;
+    lastBlk.set(data.subarray(off, off + rem));
+    t += BigInt(rem);
+    compress(h, lastBlk, 0, t, true);
+    var out = new Uint8Array(64);
+    for (var i = 0; i < 8; i++) { var x = h[i]; for (var j = 0; j < 8; j++) { out[i * 8 + j] = Number(x & 0xffn); x >>= 8n; } }
+    return out.slice(0, dkLen);
+  }
+  return { blake2b: blake2b };
+});
+</script><script>var RVM=(function(){var module={exports:{}};/* Reliks-VM v1: second reference interpreter (JavaScript, no dependencies; hostInputs takes a blake2b-256 function as a parameter). */
+'use strict';
+var MAGIC = [0x52, 0x56, 0x4d, 0x01];
+var FUEL_MAX = 1000000, STACK_MAX = 256, CALL_MAX = 64, MAX_ELEMS = 10000, MAX_SEGS = 2048, MAX_SVG = 1 << 20, WEAR_CAP = 255, MEM_SIZE = 1024, GROUP_MAX = 4, GRAD_MAX = 8, STOP_MAX = 8;
+var INT_MIN = -2147483648, INT_MAX = 2147483647;
+var OPS = {
+  0x00: ['halt'], 0x01: ['push', 's'], 0x02: ['dup'], 0x03: ['drop'], 0x04: ['swap'], 0x05: ['over'], 0x06: ['rot'],
+  0x10: ['add'], 0x11: ['sub'], 0x12: ['mul'], 0x13: ['div'], 0x14: ['mod'], 0x15: ['neg'], 0x16: ['abs'], 0x17: ['min'], 0x18: ['max'],
+  0x20: ['and'], 0x21: ['or'], 0x22: ['xor'], 0x23: ['not'], 0x24: ['shl'], 0x25: ['shr'], 0x26: ['ushr'],
+  0x30: ['eq'], 0x31: ['ne'], 0x32: ['lt'], 0x33: ['le'], 0x34: ['gt'], 0x35: ['ge'],
+  0x40: ['jmp', 'u16'], 0x41: ['jz', 'u16'], 0x42: ['jnz', 'u16'], 0x43: ['call', 'u16'], 0x44: ['ret'],
+  0x50: ['load', 'u8'], 0x51: ['store', 'u8'], 0x52: ['ldx'], 0x53: ['stx'],
+  0x60: ['lane', 'u8'], 0x61: ['serial'], 0x62: ['pat'], 0x63: ['wear'],
+  0x70: ['rnginit'], 0x71: ['rnd'], 0x72: ['rndr'],
+  0x80: ['fill'], 0x81: ['stroke'], 0x82: ['swidth'], 0x83: ['opacity'],
+  0x90: ['rect'], 0x91: ['circle'], 0x92: ['line'],
+  0x94: ['pbegin'], 0x95: ['m'], 0x96: ['l'], 0x97: ['z'], 0x98: ['pend'],
+  0x99: ['lr'], 0x9a: ['qr'], 0x9b: ['gopen'], 0x9c: ['gclose'], 0x9d: ['gradbegin'], 0x9e: ['gradstop'], 0x9f: ['gradend']
+};
+function Fault(code) { this.code = code; }
+function sc(x) { return (x | 0); }
+
+function slebEnc(v) {
+  var out = [];
+  for (;;) {
+    var b = v & 0x7f; v >>= 7;
+    if ((v === 0 && !(b & 0x40)) || (v === -1 && (b & 0x40))) { out.push(b); return out; }
+    out.push(b | 0x80);
+  }
+}
+function slebDec(code, i) {
+  var start = i, result = 0, shift = 0, n = 0, b;
+  for (;;) {
+    if (i >= code.length) throw new Fault('E_DECODE');
+    b = code[i++]; n++;
+    if (n > 5) throw new Fault('E_DECODE');
+    result += (b & 0x7f) * Math.pow(2, shift); shift += 7;
+    if (!(b & 0x80)) break;
+  }
+  if (b & 0x40) result -= Math.pow(2, shift);
+  if (result < INT_MIN || result > INT_MAX) throw new Fault('E_DECODE');
+  var enc = slebEnc(result);
+  if (enc.length !== i - start) throw new Fault('E_DECODE');
+  for (var k = 0; k < enc.length; k++) if (enc[k] !== code[start + k]) throw new Fault('E_DECODE');
+  return [result, i];
+}
+function parse(prog) {
+  if (prog.length < 9) throw new Fault('E_HEADER');
+  for (var k = 0; k < 4; k++) if (prog[k] !== MAGIC[k]) throw new Fault('E_HEADER');
+  var W = prog[4] | (prog[5] << 8), H = prog[6] | (prog[7] << 8);
+  var code = prog.subarray(8);
+  if (W < 1 || W > 4096 || H < 1 || H > 4096 || code.length > 65535) throw new Fault('E_HEADER');
+  var insns = new Map(), i = 0;
+  while (i < code.length) {
+    var op = code[i], def = OPS[op];
+    if (!def) throw new Fault('E_DECODE');
+    var start = i, imm = null; i++;
+    if (def[1] === 's') { var r = slebDec(code, i); imm = r[0]; i = r[1]; }
+    else if (def[1] === 'u8') { if (i >= code.length) throw new Fault('E_DECODE'); imm = code[i++]; }
+    else if (def[1] === 'u16') { if (i + 2 > code.length) throw new Fault('E_DECODE'); imm = code[i] | (code[i + 1] << 8); i += 2; }
+    if (def[0] === 'lane' && imm > 7) throw new Fault('E_DECODE');
+    insns.set(start, [def[0], imm, i]);
+  }
+  insns.forEach(function (v) { if ((v[0] === 'jmp' || v[0] === 'jz' || v[0] === 'jnz' || v[0] === 'call') && !insns.has(v[1])) throw new Fault('E_TARGET'); });
+  return { W: W, H: H, insns: insns };
+}
+function tdiv(a, b) { return Math.trunc(a / b); }
+function fmtOp(n) { if (n === 100) return '1'; if (n === 0) return '0'; return '0.' + (n < 10 ? '0' + n : '' + n).replace(/0+$/, ''); }
+function hex6(c) { return ('000000' + c.toString(16)).slice(-6); }
+
+function render(progIn, lanes, serial32, pat, wear) {
+  var prog = progIn instanceof Uint8Array ? progIn : Uint8Array.from(progIn);
+  var P = parse(prog), insns = P.insns;
+  var OPEN = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + P.W + ' ' + P.H + '">';
+  var stack = [], calls = [], mem = new Array(MEM_SIZE).fill(0);
+  var fuel = FUEL_MAX, pc = 0, fill = 0, stroke = -1, sw = 1, opac = 100, rng = null;
+  var body = [], total = OPEN.length, elems = 0, path = null, groups = [], grad = null, ngrad = 0;
+  function pop() { if (!stack.length) throw new Fault('E_UNDERFLOW'); return stack.pop(); }
+  function need(n) { if (stack.length < n) throw new Fault('E_UNDERFLOW'); }
+  function push(v) { if (stack.length >= STACK_MAX) throw new Fault('E_OVERFLOW'); stack.push(v); }
+  function emit(s, nocount) {
+    if (!nocount) elems++;
+    if (elems > MAX_ELEMS) throw new Fault('E_ELEMS');
+    total += s.length; if (total > MAX_SVG) throw new Fault('E_SIZE');
+    body.push(s);
+  }
+  function fcol(c) { return c < 0 ? 'none' : c > 0xFFFFFF ? 'url(#g' + (c - 0x1000000) + ')' : '#' + hex6(c); }
+  function tail(ws) {
+    var s = '';
+    if (ws && stroke >= 0) s += ' stroke="#' + hex6(stroke) + '" stroke-width="' + sw + '"';
+    if (opac !== 100) s += ' opacity="' + fmtOp(opac) + '"';
+    return s + '/>';
+  }
+  for (;;) {
+    if (!insns.has(pc)) throw new Fault('E_NOHALT');
+    if (fuel === 0) throw new Fault('E_FUEL');
+    fuel--;
+    var ins = insns.get(pc), name = ins[0], imm = ins[1], nxt = ins[2];
+    pc = nxt;
+    var a, b, c, r;
+    switch (name) {
+      case 'halt': if (path !== null) throw new Fault('E_PATH'); if (groups.length) throw new Fault('E_GROUP'); if (grad !== null) throw new Fault('E_GRAD'); return finish();
+      case 'push': push(imm); break;
+      case 'dup': need(1); push(stack[stack.length - 1]); break;
+      case 'drop': pop(); break;
+      case 'swap': need(2); a = stack[stack.length - 1]; stack[stack.length - 1] = stack[stack.length - 2]; stack[stack.length - 2] = a; break;
+      case 'over': need(2); push(stack[stack.length - 2]); break;
+      case 'rot': need(3); a = stack.splice(stack.length - 3, 1)[0]; stack.push(a); break;
+      case 'add': case 'sub': case 'mul': case 'div': case 'mod': case 'min': case 'max': case 'and': case 'or': case 'xor':
+      case 'shl': case 'shr': case 'ushr': case 'eq': case 'ne': case 'lt': case 'le': case 'gt': case 'ge':
+        b = pop(); a = pop();
+        if (name === 'add') r = (a + b) | 0;
+        else if (name === 'sub') r = (a - b) | 0;
+        else if (name === 'mul') r = Math.imul(a, b);
+        else if (name === 'div' || name === 'mod') {
+          if (b === 0) throw new Fault('E_DIV0');
+          r = name === 'div' ? (tdiv(a, b) | 0) : ((a % b) | 0);
+        }
+        else if (name === 'min') r = Math.min(a, b);
+        else if (name === 'max') r = Math.max(a, b);
+        else if (name === 'and') r = a & b;
+        else if (name === 'or') r = a | b;
+        else if (name === 'xor') r = a ^ b;
+        else if (name === 'shl' || name === 'shr' || name === 'ushr') {
+          if (b < 0 || b > 31) throw new Fault('E_RANGE');
+          r = name === 'shl' ? (a << b) : name === 'shr' ? (a >> b) : ((a >>> b) | 0);
+        }
+        else r = ({ eq: a === b, ne: a !== b, lt: a < b, le: a <= b, gt: a > b, ge: a >= b })[name] ? 1 : 0;
+        push(r); break;
+      case 'neg': push((-pop()) | 0); break;
+      case 'abs': a = pop(); push(a < 0 ? ((-a) | 0) : a); break;
+      case 'not': push(~pop()); break;
+      case 'jmp': pc = imm; break;
+      case 'jz': if (pop() === 0) pc = imm; break;
+      case 'jnz': if (pop() !== 0) pc = imm; break;
+      case 'call': if (calls.length >= CALL_MAX) throw new Fault('E_CALLDEPTH'); calls.push(nxt); pc = imm; break;
+      case 'ret': if (!calls.length) throw new Fault('E_UNDERFLOW'); pc = calls.pop(); break;
+      case 'load': push(mem[imm]); break;
+      case 'store': mem[imm] = pop(); break;
+      case 'ldx': a = pop(); if (!(a >= 0 && a < MEM_SIZE)) throw new Fault('E_RANGE'); push(mem[a]); break;
+      case 'stx': a = pop(); b = pop(); if (!(a >= 0 && a < MEM_SIZE)) throw new Fault('E_RANGE'); mem[a] = b; break;
+      case 'lane': push(lanes[imm]); break;
+      case 'serial': push(serial32); break;
+      case 'pat': push(pat); break;
+      case 'wear': push(wear); break;
+      case 'rnginit': {
+        var w = pop() >>> 0, z = pop() >>> 0, y = pop() >>> 0, x = pop() >>> 0;
+        if (x === 0 && y === 0 && z === 0 && w === 0) x = 1;
+        rng = [x, y, z, w]; break;
+      }
+      case 'rnd': case 'rndr': {
+        var hi, lo;
+        if (name === 'rndr') { hi = pop(); lo = pop(); }
+        if (rng === null) throw new Fault('E_RNG');
+        var rx = rng[0], ry = rng[1], rz = rng[2], rw = rng[3];
+        var t = (rx ^ (rx << 11)) >>> 0;
+        rx = ry; ry = rz; rz = rw;
+        rw = (((rw ^ (rw >>> 19)) ^ (t ^ (t >>> 8))) >>> 0);
+        rng = [rx, ry, rz, rw];
+        var rr = rw >>> 1;
+        if (name === 'rnd') push(rr);
+        else { if (hi < lo) throw new Fault('E_RANGE'); push(lo + (rw % (hi - lo + 1))); }
+        break;
+      }
+      case 'fill': case 'stroke':
+        c = pop();
+        if (!(name === 'fill' && c >= 0x1000000 && c < 0x1000000 + ngrad) && !(c === -1 || (c >= 0 && c <= 0xFFFFFF))) throw new Fault('E_RANGE');
+        if (name === 'fill') fill = c; else stroke = c; break;
+      case 'swidth': c = pop(); if (c < 1 || c > 64) throw new Fault('E_RANGE'); sw = c; break;
+      case 'opacity': c = pop(); if (c < 0 || c > 100) throw new Fault('E_RANGE'); opac = c; break;
+      case 'rect': {
+        need(4); var h = pop(), wd = pop(), ry2 = pop(), rx2 = pop();
+        if (wd < 0 || h < 0) throw new Fault('E_RANGE');
+        emit('<rect x="' + rx2 + '" y="' + ry2 + '" width="' + wd + '" height="' + h + '" fill="' + fcol(fill) + '"' + tail(true)); break;
+      }
+      case 'circle': {
+        need(3); var cr = pop(), cy = pop(), cx = pop();
+        if (cr < 0) throw new Fault('E_RANGE');
+        emit('<circle cx="' + cx + '" cy="' + cy + '" r="' + cr + '" fill="' + fcol(fill) + '"' + tail(true)); break;
+      }
+      case 'line': {
+        need(4); var y2 = pop(), x2 = pop(), y1 = pop(), x1 = pop();
+        if (stroke < 0) throw new Fault('E_STROKE');
+        emit('<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="#' + hex6(stroke) + '" stroke-width="' + sw + '"' + tail(false)); break;
+      }
+      case 'pbegin': if (path !== null) throw new Fault('E_PATH'); path = []; break;
+      case 'm': case 'l': {
+        need(2); var py = pop(), px = pop();
+        if (path === null || (name === 'l' && !path.length) || path.length >= MAX_SEGS) throw new Fault('E_PATH');
+        if (name === 'm' && path.length) throw new Fault('E_PATH');
+        path.push(name.toUpperCase() + px + ' ' + py); break;
+      }
+      case 'lr': case 'qr': {
+        var qdy, qdx, qcy, qcx;
+        if (name === 'qr') { need(4); qdy = pop(); qdx = pop(); qcy = pop(); qcx = pop(); }
+        else { need(2); qdy = pop(); qdx = pop(); }
+        if (path === null || !path.length || path.length >= MAX_SEGS) throw new Fault('E_PATH');
+        path.push(name === 'lr' ? 'l' + qdx + ' ' + qdy : 'q' + qcx + ' ' + qcy + ' ' + qdx + ' ' + qdy); break;
+      }
+      case 'gopen': {
+        var gv = pop();
+        if (path !== null) throw new Fault('E_PATH');
+        if (gv < 0 || gv > 100) throw new Fault('E_RANGE');
+        if (groups.length >= GROUP_MAX) throw new Fault('E_GROUP');
+        emit(gv === 100 ? '<g>' : '<g opacity="' + fmtOp(gv) + '">');
+        groups.push([fill, stroke, sw, opac]); opac = 100; break;
+      }
+      case 'gclose': {
+        if (path !== null) throw new Fault('E_PATH');
+        if (!groups.length) throw new Fault('E_GROUP');
+        emit('</g>', true);
+        var sv = groups.pop(); fill = sv[0]; stroke = sv[1]; sw = sv[2]; opac = sv[3]; break;
+      }
+      case 'gradbegin': if (grad !== null || ngrad >= GRAD_MAX) throw new Fault('E_GRAD'); grad = []; break;
+      case 'gradstop': {
+        need(3); var so = pop(), sc2 = pop(), soff = pop();
+        if (grad === null || grad.length >= STOP_MAX) throw new Fault('E_GRAD');
+        if (!(soff >= 0 && soff <= 100 && sc2 >= 0 && sc2 <= 0xFFFFFF && so >= 0 && so <= 100)) throw new Fault('E_RANGE');
+        if (grad.length && soff < grad[grad.length - 1][0]) throw new Fault('E_RANGE');
+        grad.push([soff, sc2, so]); break;
+      }
+      case 'gradend': {
+        if (grad === null || grad.length < 2) throw new Fault('E_GRAD');
+        var stops = grad.map(function (g) { return '<stop offset="' + g[0] + '%" stop-color="#' + hex6(g[1]) + '"' + (g[2] === 100 ? '' : ' stop-opacity="' + fmtOp(g[2]) + '"') + '/>'; }).join('');
+        emit('<defs><radialGradient id="g' + ngrad + '">' + stops + '</radialGradient></defs>');
+        ngrad++; grad = null; break;
+      }
+      case 'z': if (path === null || !path.length || path.length >= MAX_SEGS) throw new Fault('E_PATH'); path.push('Z'); break;
+      case 'pend':
+        if (path === null || !path.length) throw new Fault('E_PATH');
+        emit('<path d="' + path.join('') + '" fill="' + fcol(fill) + '"' + tail(true)); path = null; break;
+      default: throw new Fault('E_DECODE');
+    }
+  }
+  function finish() {
+    var svg = OPEN + body.join('') + '</svg>';
+    if (svg.length > MAX_SVG) throw new Fault('E_SIZE');
+    return svg;
+  }
+}
+
+function hostInputs(blake2b, serial, lineage, sales) {
+  var enc = new TextEncoder(), s = BigInt(serial);
+  var m = new Uint8Array(12 + 8); m.set(enc.encode('ReliksSeedV2'), 0);
+  for (var i = 0; i < 8; i++) m[12 + i] = Number((s >> BigInt(8 * i)) & 0xffn);
+  var h = blake2b(m, 32), lanes = [];
+  for (var k = 0; k < 8; k++) lanes.push((h[4 * k] | (h[4 * k + 1] << 8) | (h[4 * k + 2] << 16) | (h[4 * k + 3] << 24)) | 0);
+  var pl = new Uint8Array(14 + 32); pl.set(enc.encode('ReliksPatinaV2'), 0); pl.set(lineage, 14);
+  var pat = blake2b(pl, 32)[0] & 63;
+  return { lanes: lanes, serial32: Number(BigInt.asIntN(32, s)), pat: pat, wear: Math.min(Number(sales), WEAR_CAP) };
+}
+module.exports = { render: render, hostInputs: hostInputs, Fault: Fault, limits: { FUEL_MAX: FUEL_MAX, STACK_MAX: STACK_MAX, CALL_MAX: CALL_MAX, MAX_ELEMS: MAX_ELEMS, MAX_SEGS: MAX_SEGS, MAX_SVG: MAX_SVG, WEAR_CAP: WEAR_CAP } };
+
+return module.exports;})();</script><script>var RvmAsm=(function(){var module={exports:{}};// Reliks-VM assembler (JS port of assemble() in v13/vm/rvm.py). Reference output: rvm.py. Works in Node and browsers.
+(function (g) {
+  'use strict';
+  var OPS = {
+    halt: [0x00, null], push: [0x01, 's'], dup: [0x02, null], drop: [0x03, null], swap: [0x04, null], over: [0x05, null], rot: [0x06, null],
+    add: [0x10, null], sub: [0x11, null], mul: [0x12, null], div: [0x13, null], mod: [0x14, null], neg: [0x15, null], abs: [0x16, null], min: [0x17, null], max: [0x18, null],
+    and: [0x20, null], or: [0x21, null], xor: [0x22, null], not: [0x23, null], shl: [0x24, null], shr: [0x25, null], ushr: [0x26, null],
+    eq: [0x30, null], ne: [0x31, null], lt: [0x32, null], le: [0x33, null], gt: [0x34, null], ge: [0x35, null],
+    jmp: [0x40, 'u16'], jz: [0x41, 'u16'], jnz: [0x42, 'u16'], call: [0x43, 'u16'], ret: [0x44, null],
+    load: [0x50, 'u8'], store: [0x51, 'u8'], ldx: [0x52, null], stx: [0x53, null],
+    lane: [0x60, 'u8'], serial: [0x61, null], pat: [0x62, null], wear: [0x63, null],
+    rnginit: [0x70, null], rnd: [0x71, null], rndr: [0x72, null],
+    fill: [0x80, null], stroke: [0x81, null], swidth: [0x82, null], opacity: [0x83, null],
+    rect: [0x90, null], circle: [0x91, null], line: [0x92, null],
+    pbegin: [0x94, null], m: [0x95, null], l: [0x96, null], z: [0x97, null], pend: [0x98, null],
+    lr: [0x99, null], qr: [0x9a, null], gopen: [0x9b, null], gclose: [0x9c, null],
+    gradbegin: [0x9d, null], gradstop: [0x9e, null], gradend: [0x9f, null]
+  };
+  var has = function (o, k) { return Object.prototype.hasOwnProperty.call(o, k); };
+  function int0(s) {
+    if (s === undefined) throw new Error('missing operand');
+    var m = /^([+-]?)(?:0[xX]([0-9a-fA-F]+)|0[bB]([01]+)|0[oO]([0-7]+)|(0+|[1-9][0-9]*))$/.exec(s);
+    if (!m) throw new Error('bad integer: ' + s);
+    var v = m[2] !== undefined ? BigInt('0x' + m[2]) : m[3] !== undefined ? BigInt('0b' + m[3]) : m[4] !== undefined ? BigInt('0o' + m[4]) : BigInt(m[5]);
+    return m[1] === '-' ? -v : v;
+  }
+  function sleb(v) {
+    var out = [];
+    for (;;) {
+      var b = Number(v & 0x7fn); v >>= 7n;
+      if ((v === 0n && !(b & 0x40)) || (v === -1n && (b & 0x40))) { out.push(b); return out; }
+      out.push(b | 0x80);
+    }
+  }
+  function rng(v, max, what) { if (v < 0n || v > BigInt(max)) throw new Error(what + ' out of range'); return Number(v); }
+  function assemble(src) {
+    var toks = [], lines = String(src).split('\n'), i, j;
+    for (i = 0; i < lines.length; i++) { var p = lines[i].split(';')[0].split(/\s+/); for (j = 0; j < p.length; j++) if (p[j]) toks.push(p[j]); }
+    var at = function (a, k) { if (k >= a.length) throw new Error('missing operand'); return a[k]; };
+    var exp = [], names = new Map();
+    i = 0;
+    while (i < toks.length) {
+      var t = toks[i], tl = t.toLowerCase();
+      if (tl === '.var') { names.set(at(toks, i + 1), int0(at(toks, i + 2))); i += 3; continue; }
+      if (tl === 'show') exp.push('store', '255', 'load', '255', 'push', '0', 'push', '1', 'push', '1', 'rect');
+      else if (tl === 'next' || tl === 'nextle') {
+        var v = at(toks, i + 1), lim = at(toks, i + 2), lab = at(toks, i + 3);
+        exp.push('load', v, 'push', '1', 'add', 'dup', 'store', v);
+        if (names.has(lim)) exp.push('load', lim); else exp.push('push', lim);
+        exp.push(tl === 'next' ? 'lt' : 'le', 'jnz', lab);
+        i += 3;
+      } else if (tl === 'ld' || tl === 'st') { exp.push(tl === 'ld' ? 'load' : 'store', at(toks, i + 1)); i += 1; }
+      else exp.push(t);
+      i += 1;
+    }
+    var W = 64n, H = 64n, items = [];
+    i = 0;
+    while (i < exp.length) {
+      var x = exp[i];
+      if (x === '.canvas') { W = int0(at(exp, i + 1)); H = int0(at(exp, i + 2)); i += 3; }
+      else if (x === '.byte') { items.push({ k: 'raw', b: rng(int0(at(exp, i + 1)), 255, '.byte') }); i += 2; }
+      else if (x.charAt(x.length - 1) === ':') { items.push({ k: 'label', n: x.slice(0, -1) }); i += 1; }
+      else {
+        var name = x.toLowerCase();
+        if (!has(OPS, name)) throw new Error('unknown mnemonic: ' + x);
+        var o = OPS[name];
+        if (o[1] === null) { items.push({ k: 'op', op: o[0], kind: null }); i += 1; }
+        else { items.push({ k: 'op', op: o[0], kind: o[1], arg: at(exp, i + 1) }); i += 2; }
+      }
+    }
+    var labels = new Map(), off = 0;
+    items.forEach(function (it) {
+      if (it.k === 'label') labels.set(it.n, off);
+      else if (it.k === 'raw') off += 1;
+      else { off += 1; if (it.kind === 's') off += sleb(int0(it.arg)).length; else if (it.kind === 'u8') off += 1; else if (it.kind === 'u16') off += 2; }
+    });
+    var code = [];
+    items.forEach(function (it) {
+      if (it.k === 'label') return;
+      if (it.k === 'raw') { code.push(it.b); return; }
+      code.push(it.op);
+      if (it.kind === 's') sleb(int0(it.arg)).forEach(function (b) { code.push(b); });
+      else if (it.kind === 'u8') code.push(rng(names.has(it.arg) ? names.get(it.arg) : int0(it.arg), 255, 'u8'));
+      else if (it.kind === 'u16') { var tg = rng(labels.has(it.arg) ? BigInt(labels.get(it.arg)) : int0(it.arg), 65535, 'u16'); code.push(tg & 255, tg >> 8); }
+    });
+    var w = rng(W, 65535, 'canvas'), h = rng(H, 65535, 'canvas');
+    return Uint8Array.from([0x52, 0x56, 0x4d, 0x01, w & 255, w >> 8, h & 255, h >> 8].concat(code));
+  }
+  var api = { assemble: assemble, OPS: OPS };
+  if (typeof module === 'object' && module.exports) module.exports = api; else g.RvmAsm = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+return module.exports;})();</script><script>/* Reliks-VM Studio: assemble, render, download. Needs ReliksBlake2b, RVM, RvmAsm and window.STUDIO (templates). No network. */
+(function () {
+  'use strict';
+  var B = ReliksBlake2b.blake2b, enc = new TextEncoder(), D = window.STUDIO;
+  var $ = function (id) { return document.getElementById(id); };
+  var ed = $('ed'), ser = $('ser'), lin = $('lin'), wr = $('wr'), wv = $('wv'), tpl = $('tpl'), st = $('st'), img = $('img'), info = $('info'), nm = $('name');
+  var prog = null, timer = 0;
+  function hex(u) { var s = ''; for (var i = 0; i < u.length; i++) s += ('0' + u[i].toString(16)).slice(-2); return s; }
+  function unhex(h) { var o = new Uint8Array(h.length / 2); for (var i = 0; i < o.length; i++) o[i] = parseInt(h.substr(i * 2, 2), 16); return o; }
+  function say(msg, bad) { st.textContent = msg; st.className = bad ? 'bad' : 'ok'; }
+  function run() {
+    var s = ser.value.trim() || '1', l = lin.value.trim().toLowerCase();
+    wv.textContent = wr.value;
+    if (!/^\d{1,19}$/.test(s) || BigInt(s) >= BigInt('9223372036854775808')) { say('Serial must be a whole number below 2^63.', true); return; }
+    if (!/^[0-9a-f]{64}$/.test(l)) { say('Lineage must be 64 hex characters.', true); return; }
+    try { prog = RvmAsm.assemble(ed.value); } catch (e) { prog = null; say('Assemble error: ' + e.message, true); return; }
+    try {
+      var hi = RVM.hostInputs(B, s, unhex(l), Number(wr.value));
+      var svg = RVM.render(prog, hi.lanes, hi.serial32, hi.pat, hi.wear);
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      info.textContent = 'program       ' + prog.length + ' B\nprogram_hash  ' + hex(B(prog, 32)) + '\nrender_hash   ' + hex(B(enc.encode(svg), 32)) + '\nsvg           ' + svg.length + ' B\nwear          ' + hi.wear + ' / 255\npatina        ' + hi.pat + ' / 63';
+      say('Rendered.');
+    } catch (e) { say('Render fault: ' + (e.code || e.message), true); }
+  }
+  function later() { clearTimeout(timer); timer = setTimeout(run, 600); }
+  function download(fn, text) { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' })); a.download = fn; document.body.appendChild(a); a.click(); a.remove(); }
+  function slug() { return (nm.value || 'my-program').replace(/[^a-z0-9-]/gi, '').slice(0, 40) || 'my-program'; }
+  $('load').addEventListener('click', function () { ed.value = D.templates[tpl.value] || D.templates.starter; run(); });
+  $('rs').addEventListener('click', function () { ser.value = String(Math.floor(Math.random() * 4294967296)); run(); });
+  $('rl').addEventListener('click', function () { var o = new Uint8Array(32); crypto.getRandomValues(o); lin.value = hex(o); run(); });
+  $('go').addEventListener('click', run);
+  $('dlhex').addEventListener('click', function () { run(); if (prog) download(slug() + '.hex', hex(prog) + '\n'); });
+  $('dlsrc').addEventListener('click', function () { download(slug() + '.rvm.txt', ed.value); });
+  ed.addEventListener('input', later); ser.addEventListener('change', run); lin.addEventListener('change', run); wr.addEventListener('input', run);
+  ed.value = D.templates.starter; run();
+})();
+</script></body></html>
