@@ -1,4 +1,4 @@
-// Guards docs/studio.html: no drift from its generator, self-contained, templates assemble and render in Node.
+// Guards docs/studio.html: no drift from its generator, self-contained, templates assemble and render in Node across many patinas.
 'use strict';
 const fs = require('fs'), path = require('path'), cp = require('child_process'), os = require('os');
 const root = path.join(__dirname, '..');
@@ -17,13 +17,18 @@ t('no external script, stylesheet or network call', () => {
   if (urls.length) throw new Error(urls.join(', '));
 });
 const A = require('../web/rvm-asm.js'), R = require('../v13/vm/rvm.js'), b2 = u => require('../web/blake2b.js').blake2b(u, 32);
-const T = { starter: fs.readFileSync(path.join(root, 'web', 'vm-templates', 'starter.txt'), 'utf8'), dagcity: fs.readFileSync(path.join(root, 'v13', 'vm', 'asm-corpus', 'dagcity_clean.txt'), 'utf8') };
-for (const [name, src] of Object.entries(T)) t('template ' + name + ' assembles and renders (3 serials x wear 0/255)', () => {
-  const prog = A.assemble(src);
-  for (const s of ['1', '12345', '9223372036854775807']) for (const w of [0, 255]) {
-    const hi = R.hostInputs(b2, s, new Uint8Array(32), w), svg = R.render(prog, hi.lanes, hi.serial32, hi.pat, hi.wear);
-    if (svg.indexOf('<svg') !== 0 || !/<\/svg>$/.test(svg)) throw new Error('bad svg for serial ' + s);
+const T = { starter: fs.readFileSync(path.join(root, 'web', 'vm-templates', 'iso.txt'), 'utf8'), circles: fs.readFileSync(path.join(root, 'web', 'vm-templates', 'starter.txt'), 'utf8'), dagcity: fs.readFileSync(path.join(root, 'v13', 'vm', 'asm-corpus', 'dagcity_clean.txt'), 'utf8') };
+for (const [name, src] of Object.entries(T)) t('template ' + name + ' assembles and renders (16 lineages x 2 serials x wear 0/255)', () => {
+  const prog = A.assemble(src), themes = new Set(); let big = 0;
+  for (let l = 0; l < 16; l++) {
+    const lin = b2(Uint8Array.of(l));
+    for (const s of ['1', '9223372036854775807']) for (const w of [0, 255]) {
+      const hi = R.hostInputs(b2, s, lin, w), svg = R.render(prog, hi.lanes, hi.serial32, hi.pat, hi.wear);
+      if (svg.indexOf('<svg') !== 0 || !/<\/svg>$/.test(svg)) throw new Error('bad svg, lineage ' + l + ' serial ' + s + ' wear ' + w);
+      themes.add(hi.pat & 3); big = Math.max(big, svg.length);
+    }
   }
+  console.log('  ' + name + ': program ' + prog.length + ' B, patina themes seen ' + themes.size + '/4, largest svg ' + big + ' B');
 });
 console.log('studio-test:', pass, 'passed,', fail, 'failed');
 process.exit(fail ? 1 : 0);

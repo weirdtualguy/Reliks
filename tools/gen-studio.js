@@ -4,11 +4,11 @@ const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const read = (...p) => fs.readFileSync(path.join(ROOT, ...p), 'utf8');
 const safe = s => s.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--');
-const TEMPLATES = { starter: read('web', 'vm-templates', 'starter.txt'), dagcity: read('v13', 'vm', 'asm-corpus', 'dagcity_clean.txt') };
+const TEMPLATES = { starter: read('web', 'vm-templates', 'iso.txt'), circles: read('web', 'vm-templates', 'starter.txt'), dagcity: read('v13', 'vm', 'asm-corpus', 'dagcity_clean.txt') };
 const body = `<main>
 <h1>Reliks-VM Studio</h1>
 <p class="small">Write a Reliks-VM program, preview it, download the bytecode. Everything runs in your browser; nothing is sent anywhere. Reliks-VM spec rev 2 is still a draft. Publishing a series on chain is not done here.</p>
-<div class="row"><select id="tpl" aria-label="Template"><option value="starter" selected>Starter (40 circles)</option><option value="dagcity">DAG-City (clean port)</option></select><button class="btn ghost" id="load">Load template</button></div>
+<div class="row"><select id="tpl" aria-label="Template"><option value="starter" selected>Isometric city (starter)</option><option value="circles">40 circles (smoke test)</option><option value="dagcity">DAG-City (clean port)</option></select><button class="btn ghost" id="load">Load template</button></div>
 <textarea id="ed" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" aria-label="Assembler source"></textarea>
 <div class="row"><label for="ser">Serial</label><input id="ser" value="1" inputmode="numeric"><button class="btn ghost" id="rs">Random</button></div>
 <div class="row"><label for="lin">Lineage</label><input id="lin" value="0000000000000000000000000000000000000000000000000000000000000000"><button class="btn ghost" id="rl">Random</button></div>

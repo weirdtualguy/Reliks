@@ -1,0 +1,192 @@
+; Reliks metropolis diorama. Patina: bits 0-1 theme (paper, dusk, night, rose), bits 2-3 district style. Wear: shorter towers, fewer lit windows, dust veil, scratches.
+.canvas 1600 1600
+.var X 0 .var Y 1 .var I 2 .var J 3 .var S 4 .var K 5 .var H 6 .var D 7 .var T 8
+.var WR 9 .var TH 10 .var STY 11 .var BB 12 .var BT 13 .var MT 14 .var FG 15 .var DC 16 .var A 17 .var B 18 .var R 19
+.var COL 20 .var TY 21 .var E 22 .var DW 23 .var DH 24
+.var S0 30 .var S1 31 .var SUC 32 .var SUD 33 .var M0 34 .var M1 35 .var M2 36 .var SHD 37 .var RD 38 .var PV1 39 .var PV2 40
+.var GRS 41 .var TRE 42 .var WLT 43 .var WDK 44 .var LITP 45 .var STR 46 .var INK 47 .var SR 48
+.var BX 50 .var BY 51 .var BW 52 .var BWH 53 .var BD 54 .var CT 55 .var CL 56 .var CR 57
+.var C0 58 .var C1 59 .var MT2 60 .var CA 61 .var CB 62 .var CTT 63 .var WX 64 .var WY 65 .var SLP 66
+.var PK 68 .var LO 69 .var MD 70
+lane 0 serial xor lane 1 lane 2 lane 3 rnginit
+wear st WR
+pat push 3 and st TH
+pat push 2 shr push 3 and st STY
+call theme
+push 12 st PK push 25 st LO push 30 st MD
+ld STY push 3 eq jz y3 push 35 st PK
+y3: ld STY push 1 eq jz y1 push 10 st LO push 20 st MD
+y1: ld STY push 2 eq jz y2 push 50 st LO
+y2: push 0 st K
+bl: push 100 call rmod st T
+ld T ld PK lt jz b1 push 0 st BT jmp bset
+b1: ld T ld PK ld LO add lt jz b2 push 1 st BT jmp bset
+b2: ld T ld PK ld LO add ld MD add lt jz b3 push 2 st BT jmp bset
+b3: push 3 st BT
+bset: ld BT ld K push 256 add stx
+push 3 call rmod ld K push 272 add stx
+next K 16 bl
+push -1 stroke push 100 opacity push 0 st K
+sky: ld S0 ld S1 ld K call mix fill push 0 ld K push 25 mul push 1600 push 26 rect next K 64 sky
+push 30 gopen ld S1 fill push 0 st K
+cl: push -100 push 900 rndr st X push 120 push 520 rndr st Y push 240 push 700 rndr st A push 8 push 16 rndr st B
+ld X ld Y ld A ld B rect
+ld X ld Y ld B push 2 div add ld B push 2 div circle
+ld X ld A add ld Y ld B push 2 div add ld B push 2 div circle
+next K 6 cl
+gclose
+ld SUD fill push 70 opacity
+ld STR jz nost push 0 st K
+stars: push 20 push 1580 rndr push 20 push 640 rndr push 1 push 3 rndr circle next K STR stars
+nost: push 100 opacity
+gradbegin push 0 ld SUC push 100 gradstop push 40 ld SUC push 45 gradstop push 100 ld SUC push 0 gradstop gradend
+push 0x1000000 fill push 800 push 560 push 520 circle
+ld SUD fill push 800 push 560 ld SR circle
+push -1 fill ld SUD stroke push 2 swidth push 45 opacity
+push 800 push 560 ld SR push 40 add circle push 800 push 560 ld SR push 90 add circle push 800 push 560 ld SR push 160 add circle
+push -1 stroke push 100 opacity
+ld INK fill push 8 opacity push 40 st E
+sh: call bigdia ld E push 12 sub st E ld E push 0 gt jnz sh
+push 100 opacity
+ld RD ld SHD push 14 call mix fill
+pbegin push 140 push 970 m push 800 push 1300 l push 800 push 1340 l push 140 push 1010 l z pend
+ld RD ld SHD push 28 call mix fill
+pbegin push 1460 push 970 m push 800 push 1300 l push 800 push 1340 l push 1460 push 1010 l z pend
+push 0 st S
+sloop: ld S push 14 sub push 0 max st I
+iloop: ld I push 14 le ld I ld S le and jz idone ld S ld I sub st J
+call tile
+ld I push 1 add st I jmp iloop
+idone: nextle S 28 sloop
+push -1 fill ld INK stroke push 3 swidth push 70 opacity
+pbegin push 140 push 970 m push 800 push 1300 l push 1460 push 970 l pend
+push -1 stroke push 100 opacity
+ld WR jz nowear
+ld S1 ld SHD push 24 call mix fill ld WR push 9 div opacity push 0 push 0 push 1600 push 1600 rect push 100 opacity
+push -1 fill ld INK stroke push 2 swidth push 40 opacity
+ld WR push 6 div st A
+ld A jz nowear
+push 0 st K
+scr: push 60 push 1540 rndr st X push 60 push 1540 rndr st Y
+ld X ld Y ld X push -90 push 90 rndr add ld Y push -90 push 90 rndr add line
+next K A scr
+nowear: push 100 opacity push -1 fill ld INK stroke push 7 swidth push 36 push 36 push 1528 push 1528 rect halt
+tile: ld I ld J call ix st X
+ld I ld J call iy st Y
+push 28 ld S sub push 5 mul push 8 div st FG
+push 44 st DW push 22 st DH
+ld I push 4 mod push 3 eq st A
+ld J push 4 mod push 3 eq st B
+ld A ld B or jz noroad
+ld RD ld S1 ld FG call mix fill
+ld X ld Y call dia
+ld A ld B and jnz plaza
+ld A jz alongi
+ld WLT stroke push 3 swidth push 60 opacity
+ld X push 18 add ld Y push 13 add ld X push 18 sub ld Y push 31 add line
+push -1 stroke push 100 opacity ret
+alongi: ld WLT stroke push 3 swidth push 60 opacity
+ld X push 18 sub ld Y push 13 add ld X push 18 add ld Y push 31 add line
+push -1 stroke push 100 opacity ret
+plaza: ld PV2 ld S1 ld FG call mix fill push 30 st DW push 15 st DH ld X ld Y push 7 add call dia
+ld I push 7 eq ld J push 7 eq and jz pz
+call spire
+pz: ret
+noroad: ld I ld J add push 2 mod jz p1 ld PV1 jmp p2
+p1: ld PV2
+p2: ld S1 ld FG call mix fill
+call dia0
+ld I push 12 and ld J push 2 shr add st BB
+ld BB push 256 add ldx st BT
+ld BT jnz bld
+ld GRS ld S1 ld FG call mix fill push 36 st DW push 18 st DH ld X ld Y push 4 add call dia
+push 0 st K
+tr: push -20 push 20 rndr st A push -6 push 6 rndr st B push 8 push 13 rndr st R
+ld TRE ld S1 ld FG call mix fill
+ld X ld A add ld Y push 12 add ld B add ld R circle
+ld GRS ld S1 ld FG call mix fill
+ld X ld A add push 2 sub ld Y push 10 add ld B add ld R push 3 sub circle
+next K 3 tr
+ret
+bld: ld I push 7 sub abs ld J push 7 sub abs add st DC
+push 14 ld DC sub ld BT push 4 mul push 1 add mul push 12 div push 1 push 3 rndr add st H
+ld H push 18 min st H
+ld H ld H ld WR mul push 400 div sub push 1 max st H
+ld H push 22 mul st D
+ld BB push 272 add ldx st MT
+push 100 call rmod push 30 lt jz km push 3 call rmod st MT
+km: ld MT jnz ma ld M0 st CT jmp ms
+ma: ld MT push 1 eq jz mb ld M1 st CT jmp ms
+mb: ld M2 st CT
+ms: ld CT ld SHD push 12 call mix st CL
+ld CT ld SHD push 24 call mix st CR
+ld CT ld S1 ld FG call mix st CT
+ld CL ld S1 ld FG call mix st CL
+ld CR ld S1 ld FG call mix st CR
+ld X st BX ld Y push 4 add st BY ld D st BD push 36 st BW push 18 st BWH call cube
+ld BY ld BD sub st TY
+call windows
+ld H push 8 lt jnz done2
+push 100 call rmod push 60 lt jz done2
+ld X st BX ld TY push 8 add st BY push 20 st BW push 10 st BWH push 2 push 4 rndr push 22 mul st BD call cube
+ld H push 10 lt jnz done2
+ld BY ld BD sub push 10 add st TY
+push 18 push 40 rndr st A
+ld INK stroke push 3 swidth ld X ld TY ld X ld TY ld A sub line push -1 stroke
+ld WLT fill ld X ld TY ld A sub push 3 circle
+done2: ret
+dia0: push 44 st DW push 22 st DH ld X ld Y call dia ret
+dia: pbegin over over m ld DW ld DH lr ld DW neg ld DH lr ld DW neg ld DH neg lr z pend drop drop ret
+cube: ld CT fill
+pbegin ld BX ld BY ld BD sub m ld BW ld BWH lr ld BW neg ld BWH lr ld BW neg ld BWH neg lr z pend
+ld CL fill
+pbegin ld BX ld BW sub ld BY ld BD sub ld BWH add m ld BW ld BWH lr push 0 ld BD lr ld BW neg ld BWH neg lr z pend
+ld CR fill
+pbegin ld BX ld BW add ld BY ld BD sub ld BWH add m ld BW neg ld BWH lr push 0 ld BD lr ld BW ld BWH neg lr z pend
+ret
+windows: push 0 st K
+wrow: push 0 st COL
+wcol: ld X push 31 sub ld COL push 16 mul add st WX
+ld TY push 18 add push 5 ld COL push 16 mul add push 2 div add ld K push 22 mul add push 6 add st WY
+push 1 st SLP call win
+ld X push 5 add ld COL push 16 mul add st WX
+ld TY push 36 add push 5 ld COL push 16 mul add push 2 div sub ld K push 22 mul add push 6 add st WY
+push -1 st SLP call win
+next COL 2 wcol
+next K H wrow
+ret
+win: push 100 call rmod st T
+ld LITP ld WR push 6 div sub st B
+ld T ld B lt jz wdark
+ld WLT fill push 100 opacity jmp wdraw
+wdark: ld WDK fill push 55 opacity
+wdraw: pbegin ld WX ld WY m push 9 push 4 ld SLP mul lr push 0 push 10 lr push -9 push -4 ld SLP mul lr z pend
+push 100 opacity ret
+spire: ld M2 st CT
+ld CT ld SHD push 12 call mix st CL
+ld CT ld SHD push 24 call mix st CR
+ld X st BX ld Y push 17 add st BY push 10 st BW push 5 st BWH push 540 st BD call cube
+ld INK stroke push 3 swidth ld X ld Y push 22 add push 540 sub ld X ld Y push 22 add push 600 sub line push -1 stroke
+push 0x1000000 fill ld X ld Y push 22 add push 604 sub push 80 circle
+ld SUD fill ld X ld Y push 22 add push 604 sub push 7 circle
+ret
+bigdia: pbegin push 800 push 680 ld E push 2 div sub m push 1460 ld E add push 1010 l push 800 push 1340 ld E push 2 div add l push 140 ld E sub push 1010 l z pend ret
+ix: sub push 44 mul push 800 add ret
+iy: add push 22 mul push 640 add ret
+rmod: push 0 swap push 1 sub rndr ret
+ch: st CTT st CB st CA ld CA ld CB ld CA sub ld CTT mul push 63 div add ret
+mix: st MT2 st C1 st C0
+ld C0 push 16 ushr push 255 and ld C1 push 16 ushr push 255 and ld MT2 call ch push 16 shl
+ld C0 push 8 ushr push 255 and ld C1 push 8 ushr push 255 and ld MT2 call ch push 8 shl or
+ld C0 push 255 and ld C1 push 255 and ld MT2 call ch or ret
+theme: ld TH jnz t1
+push 0xe0d8c0 st S0 push 0xeee7d1 st S1 push 0xe8923a st SUC push 0xffd9a0 st SUD push 0x4b4a3f st M0 push 0xf0e9d3 st M1 push 0x49c5b1 st M2 push 0x1c1c16 st SHD
+push 0x3a3a33 st RD push 0xd8cfb2 st PV1 push 0xe0d8bf st PV2 push 0x7fbfa4 st GRS push 0x2e8f85 st TRE push 0x8fe8d8 st WLT push 0x34332b st WDK push 40 st LITP push 0 st STR push 0x3a3a33 st INK push 150 st SR ret
+t1: ld TH push 1 eq jz t2
+push 0x3b2a5c st S0 push 0xf29a5b st S1 push 0xff7a3d st SUC push 0xffe2a8 st SUD push 0x2d2438 st M0 push 0xf0d5b8 st M1 push 0x49c5b1 st M2 push 0x1a0f26 st SHD
+push 0x2a2233 st RD push 0x8a6a78 st PV1 push 0x967483 st PV2 push 0x3f7f78 st GRS push 0x1f5c58 st TRE push 0xffd27a st WLT push 0x1a1424 st WDK push 55 st LITP push 25 st STR push 0x1a0f26 st INK push 190 st SR ret
+t2: ld TH push 2 eq jz t3
+push 0x060a14 st S0 push 0x1b2f4f st S1 push 0x9ad8e8 st SUC push 0xf4f8ff st SUD push 0x1c2233 st M0 push 0x5b6b8f st M1 push 0x2a8c88 st M2 push 0x000208 st SHD
+push 0x0c1018 st RD push 0x1a2236 st PV1 push 0x202a40 st PV2 push 0x12403f st GRS push 0x0d2c2e st TRE push 0xffe39a st WLT push 0x0a0e18 st WDK push 60 st LITP push 70 st STR push 0x2a3a5c st INK push 90 st SR ret
+t3: push 0xf3cfc8 st S0 push 0xfaf0e0 st S1 push 0xe86a8a st SUC push 0xfff4e0 st SUD push 0x5a3446 st M0 push 0xfff0e6 st M1 push 0xe86a8a st M2 push 0x3a1c2c st SHD
+push 0x6b4a5a st RD push 0xf0d9d0 st PV1 push 0xf6e4dc st PV2 push 0xa8d5b5 st GRS push 0x4f9a78 st TRE push 0xffe8b0 st WLT push 0x5a3446 st WDK push 35 st LITP push 0 st STR push 0x5a3446 st INK push 130 st SR ret
