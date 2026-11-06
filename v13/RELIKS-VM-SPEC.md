@@ -4,7 +4,7 @@ Status: draft, revised after porting the DAG-City engine. Two independent interp
 
 ## 0. What the DAG-City port changed
 
-I ported the mainnet engine (5,323 bytes of JS) to bytecode. The faithful port (1,615 bytes) produces **element-for-element identical SVG** on 310 serials (10 named, 300 random), with worst-case 127,617 fuel, 1,709 elements, 105 KB of SVG and stack depth 7, all far below the limits.
+I ported the mainnet engine (3,888 bytes of JS; the module file is 5,323 bytes) to bytecode. The faithful port (1,615 bytes) produces **element-for-element identical SVG** on 310 serials (10 named, 300 random), with worst-case 127,617 fuel, 1,709 elements, 105 KB of SVG and stack depth 7, all far below the limits.
 
 The original engine could not be ported with revision 1. The gaps, and what closed them:
 
@@ -157,7 +157,7 @@ Free-form tokens, `;` comments, `label:`, numbers decimal or `0x`. Directives `.
 
 | | Original JS | Faithful port | Clean port |
 |---|---|---|---|
-| Source / program size | 5,323 bytes | **1,615 bytes** | **1,567 bytes** |
+| Source / program size | 3,888 bytes | **1,615 bytes** | **1,567 bytes** |
 | Output vs original | | identical elements, 310 of 310 serials | different city (RNG alias fixed) |
 | Worst fuel / elements / SVG | | 127,617 / 1,709 / 105 KB | about 84k / 1,499 / 92 KB (serial 1) |
 | History inputs | none | none | `PAT` tints one building family, `WEAR` fades window lights |
