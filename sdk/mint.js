@@ -60,7 +60,7 @@ function pubkeyOf(a) {
   console.log('result: ' + r.status);
   if (r.plan) show(r.plan, r.funding);
   if (r.status === 'dry_run') { if (r.ledgerWarning) console.log('ledger warning: ' + r.ledgerWarning); console.log('dry run: no key read, nothing signed or sent. Next: add --sign (needs PC_PRIV exported).'); }
-  else if (r.status === 'signed_not_sent') console.log('signed and verified against the plan (' + r.bytes + ' B of JSON); nothing was sent. To send: add --send --confirm-serial ' + r.plan.summary.serial);
+  else if (r.status === 'signed_not_sent' && flags.dump && require('fs').writeFileSync('signed-mint.json', JSON.stringify(r.rpcTx, (k, v) => typeof v === 'bigint' ? v.toString() : v))) {} else if (r.status === 'signed_not_sent') console.log('signed and verified against the plan (' + r.bytes + ' B of JSON); nothing was sent. To send: add --send --confirm-serial ' + r.plan.summary.serial);
   else if (r.status === 'serial_not_confirmed') console.log('to send, repeat the command with: --send --confirm-serial ' + r.serial);
   else if (r.status === 'minted') console.log('minted: ' + r.txId + (r.wrote ? ' | ledger updated (backup: ' + lp + '.bak-premint)' : ' | ledger already had it') + '\nnext: node sdk/claim-live.js --ledger ' + lp + '   (once kascov has caught up)');
   else if (r.status === 'minted_ledger_write_failed') console.log('mined: ' + r.txId + ' but the ledger write failed (' + r.error + '). Add this entry to the ledger editions by hand:\n' + JSON.stringify(r.entry));

@@ -39,7 +39,7 @@ async function runMint(d) {
   };
   let cur = pl, s = prep(cur);
   if (s.error) return out(s.error, { message: s.message });
-  if (mode === 'sign') return out('signed_not_sent', { plan: cur, funding, bytes: s.bytes });
+  if (mode === 'sign') return out('signed_not_sent', { plan: cur, funding, bytes: s.bytes, rpcTx: s.rpcTx });
   const maxTries = d.maxFeeTries || 3, maxFee = d.maxFee == null ? DEFAULT_MAX_FEE : BigInt(d.maxFee);
   let r;
   for (let t = 1; t <= maxTries; t++) {

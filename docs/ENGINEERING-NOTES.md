@@ -19,6 +19,7 @@ Hard-won facts from building Reliks against Toccata-era Kaspa. Each cost at leas
 ## Mass, fees, sizes
 - Storage mass scales roughly inversely with output value. Carriers stay at 1 KAS or more; a 3-input escrow accept exceeded the 500k cap, hence the 2-input design.
 - Mempool fee: `2 * tx_bytes` mass at 100 sompi/unit, so about 200 sompi per tx byte. `feeLoop` parses the required fee from rejections and pays `required * 1.1 + 1`.
+- Metropolis mint tx (testnet-10, 2026-11-06): 14,895 B, compute mass 27,471, transient 59,724 (kascov preflight; storage mass not checked). Transient is 4.01 x tx bytes; tx bytes = about 9,323 + 2 x program bytes. If the 100,000-gram per-tx cap still applies the program limit is about 7.8 KB; series program cap is 6,000 B (about 85%). SDK planner fee 0.0374 KAS vs kascov estimate 0.0295 KAS.
 - The mint sigscript carries the engine twice (template suffix plus the `engineBaked()` anchor). Compiled bytecode is about `2E + 7.1K` and must fit one PUSHDATA2 push (65535 B). Default engine cap: 25641 B.
 - Covenant/royalty outputs must clear dust padding (KIP-9); contracts check `>=` on carriers so overpay is valid.
 
