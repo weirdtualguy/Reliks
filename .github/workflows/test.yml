@@ -7,5 +7,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - run: npm install --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm test
+      - name: RVM conformance (JS + C99 + ASan/UBSan)
+        run: |
+          node v13/vm/check.js
+          mkdir -p .build
+          cc -O2 -std=c99 -o .build/rvm3 v13/vm/rvm.c
+          node v13/vm/check3.js .build/rvm3
+          cc -O2 -std=c99 -fsanitize=address,undefined -fno-omit-frame-pointer -o .build/rvm3_san v13/vm/rvm.c
+          node v13/vm/check3.js .build/rvm3_san
+          rm -rf .build

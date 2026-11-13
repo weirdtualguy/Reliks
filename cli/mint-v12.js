@@ -11,6 +11,12 @@ const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 
 const Ed = V.parts(JSON.parse(fs.readFileSync('data/edition-abi-v12.json', 'utf8')));
 const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v12.json'), 'utf8'));
 const CARRIER = 100000000n;
+const INITIAL_FEE = 3000000n;
+const fmtKas = (sompi) => {
+  const v = BigInt(sompi), neg = v < 0n ? '-' : '', a = v < 0n ? -v : v;
+  const whole = a / 100000000n, frac = (a % 100000000n).toString().padStart(8, '0').replace(/0+$/, '');
+  return neg + whole.toString() + (frac ? '.' + frac : '');
+};
 const TAG = (n) => B.from(F.c.entries[n].dispatch_tag, 'hex');
 const serialOfV10 = (txId, idx) => {
   const h = V.blake2b(B.concat([B.from('ReliksSerialV10', 'utf8'), B.from(txId, 'hex'), (() => { const b = B.alloc(4); b.writeUInt32LE(idx); return b; })()]), { dkLen: 32 });
@@ -51,11 +57,16 @@ const BUYER_SCHEME = 0; // IDENTIFIER_PUBKEY
   const serial = serialOfV10(laneTxId, 0);
   const edState = { ownerIdentifier: V.USER, identifierType: BUYER_SCHEME, price: 0, artist: LD.series.artist, royalty_bips: LD.series.royalty_bips, program_hash: LD.series.program_hash, factory_covid: LD.C, serial };
   const edRedeem = B.concat([Ed.prefix, V.encState(Ed, edState), Ed.suffix]);
-  const wIn = await pickUtxo();
-  console.log('funding mint with 1 UTXO(s) totaling', (Number(wIn.amount) / 1e8), 'KAS');
-  const covEd = covHex(covIdGenesis(wIn.txId, wIn.index, [{ idx: 1, value: Number(CARRIER), script: V.p2sh(edRedeem) }]));
   const price = BigInt(LD.series.price);
   const artistCut = price;
+  const needAtLeast = artistCut + CARRIER + INITIAL_FEE;
+  const wIn = await pickUtxo();
+  if (BigInt(wIn.amount) < needAtLeast) {
+    console.error('FATAL: largest confirmed output holds ' + fmtKas(wIn.amount) + ' KAS; a mint needs a single output of at least ' + fmtKas(needAtLeast) + ' KAS (price + 1 KAS carrier + fee). Compound your UTXOs first (e.g. node tools/send-self.js).');
+    process.exit(1);
+  }
+  console.log('funding mint with 1 UTXO(s) totaling', (Number(wIn.amount) / 1e8), 'KAS');
+  const covEd = covHex(covIdGenesis(wIn.txId, wIn.index, [{ idx: 1, value: Number(CARRIER), script: V.p2sh(edRedeem) }]));
   const artistOutIdx = 2;   // dummy when free
   const hsInputs = [
     { txId: laneTxId, index: 0, sequence: 0, spk: laneSpk, amount: laneAmt },
@@ -66,19 +77,20 @@ const BUYER_SCHEME = 0; // IDENTIFIER_PUBKEY
     { previousOutpoint: { transactionId: wIn.txId, index: wIn.index }, signatureScript: '', sequence: 0, sigOpCount: 0, computeBudget: 10 }
   ];
   function build(fee) {
+    const changeAmt = BigInt(wIn.amount) - artistCut - CARRIER - fee;
+    if (changeAmt < 0n) throw new Error('funding output (' + fmtKas(wIn.amount) + ' KAS) cannot cover price + carrier + fee (' + fmtKas(artistCut + CARRIER + fee) + ' KAS); compound UTXOs first');
     const outputs = [
       { amount: laneAmt, scriptPublicKey: V.p2sh(B.concat([F.prefix, V.encState(F, { ...LD.series, mints_left: LD.series.mints_left - LD.editions.length - 1 }), F.suffix])), covenant: { authorizingInput: 0, covenantId: LD.C } },
       { amount: CARRIER, scriptPublicKey: V.p2sh(edRedeem), covenant: { authorizingInput: 1, covenantId: covEd } }
     ];
     if (artistCut > 0n) outputs.push({ amount: artistCut, scriptPublicKey: '20' + LD.series.artist + 'ac' });
-    const changeAmt = BigInt(wIn.amount) - artistCut - CARRIER - fee;
     outputs.push({ amount: changeAmt, scriptPublicKey: wIn.spk });
     const ss = B.concat([pushMin(B.from(V.USER, 'hex')), pushMin(B.from([BUYER_SCHEME])), pushMinInt(1), pushMinInt(artistOutIdx), pushMin(TAG('mint')), pushMin(B.concat([F.prefix, V.encState(F, { ...LD.series, mints_left: LD.series.mints_left - LD.editions.length }), F.suffix]))]);
     inputs[0].signatureScript = hex(ss);
     inputs[1].signatureScript = '41' + hex(secp.schnorr.signSync(sighash(hsInputs, outputs, 1), V.PRIV)) + '01';
     return rpc(inputs, outputs);
   }
-  const { txId, fee } = await feeLoop(build);
+  const { txId, fee } = await feeLoop(build, INITIAL_FEE);
   await waitForConfirmation(txId);
   LD.editions.push({ txId, index: 1, mintTxId: txId, mintIndex: 1, cov: covEd, serial, owner: V.USER, price: 0, amount: Number(CARRIER), spk: hex(V.p2sh(edRedeem)) });
   fs.writeFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v12.json'), JSON.stringify(LD, null, 2));

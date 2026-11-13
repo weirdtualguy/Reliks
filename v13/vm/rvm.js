@@ -64,20 +64,28 @@ function parse(prog) {
   insns.forEach(function (v) { if ((v[0] === 'jmp' || v[0] === 'jz' || v[0] === 'jnz' || v[0] === 'call') && !insns.has(v[1])) throw new Fault('E_TARGET'); });
   return { W: W, H: H, insns: insns };
 }
+// Exact for int32 operands (b != 0): IEEE-754 float64 has a 53-bit significand. For |a| <= 2^31 and |b| >= 1,
+// any non-zero fractional part satisfies k/|b| >= 2^-31, which strictly exceeds the float64 rounding ulp |a/b|*2^-53 <= 2^-22,
+// so Math.trunc(a / b) never crosses an integer boundary (and INT_MIN / -1 wraps to INT_MIN via | 0).
 function tdiv(a, b) { return Math.trunc(a / b); }
 function fmtOp(n) { if (n === 100) return '1'; if (n === 0) return '0'; return '0.' + (n < 10 ? '0' + n : '' + n).replace(/0+$/, ''); }
 function hex6(c) { return ('000000' + c.toString(16)).slice(-6); }
 
-function render(progIn, lanes, serial32, pat, wear) {
+function render(progIn, lanes, serial32, pat, wear, stats) {
   var prog = progIn instanceof Uint8Array ? progIn : Uint8Array.from(progIn);
   var P = parse(prog), insns = P.insns;
   var OPEN = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + P.W + ' ' + P.H + '">';
   var stack = [], calls = [], mem = new Array(MEM_SIZE).fill(0);
   var fuel = FUEL_MAX, pc = 0, fill = 0, stroke = -1, sw = 1, opac = 100, rng = null;
   var body = [], total = OPEN.length, elems = 0, path = null, groups = [], grad = null, ngrad = 0;
+  var maxStack = 0, maxCalls = 0, maxGroups = 0, maxSegs = 0;
   function pop() { if (!stack.length) throw new Fault('E_UNDERFLOW'); return stack.pop(); }
   function need(n) { if (stack.length < n) throw new Fault('E_UNDERFLOW'); }
-  function push(v) { if (stack.length >= STACK_MAX) throw new Fault('E_OVERFLOW'); stack.push(v); }
+  function push(v) {
+    if (stack.length >= STACK_MAX) throw new Fault('E_OVERFLOW');
+    stack.push(v);
+    if (stack.length > maxStack) maxStack = stack.length;
+  }
   function emit(s, nocount) {
     if (!nocount) elems++;
     if (elems > MAX_ELEMS) throw new Fault('E_ELEMS');
@@ -133,7 +141,7 @@ function render(progIn, lanes, serial32, pat, wear) {
       case 'jmp': pc = imm; break;
       case 'jz': if (pop() === 0) pc = imm; break;
       case 'jnz': if (pop() !== 0) pc = imm; break;
-      case 'call': if (calls.length >= CALL_MAX) throw new Fault('E_CALLDEPTH'); calls.push(nxt); pc = imm; break;
+      case 'call': if (calls.length >= CALL_MAX) throw new Fault('E_CALLDEPTH'); calls.push(nxt); if (calls.length > maxCalls) maxCalls = calls.length; pc = imm; break;
       case 'ret': if (!calls.length) throw new Fault('E_UNDERFLOW'); pc = calls.pop(); break;
       case 'load': push(mem[imm]); break;
       case 'store': mem[imm] = pop(); break;
@@ -188,14 +196,18 @@ function render(progIn, lanes, serial32, pat, wear) {
         need(2); var py = pop(), px = pop();
         if (path === null || (name === 'l' && !path.length) || path.length >= MAX_SEGS) throw new Fault('E_PATH');
         if (name === 'm' && path.length) throw new Fault('E_PATH');
-        path.push(name.toUpperCase() + px + ' ' + py); break;
+        path.push(name.toUpperCase() + px + ' ' + py);
+        if (path.length > maxSegs) maxSegs = path.length;
+        break;
       }
       case 'lr': case 'qr': {
         var qdy, qdx, qcy, qcx;
         if (name === 'qr') { need(4); qdy = pop(); qdx = pop(); qcy = pop(); qcx = pop(); }
         else { need(2); qdy = pop(); qdx = pop(); }
         if (path === null || !path.length || path.length >= MAX_SEGS) throw new Fault('E_PATH');
-        path.push(name === 'lr' ? 'l' + qdx + ' ' + qdy : 'q' + qcx + ' ' + qcy + ' ' + qdx + ' ' + qdy); break;
+        path.push(name === 'lr' ? 'l' + qdx + ' ' + qdy : 'q' + qcx + ' ' + qcy + ' ' + qdx + ' ' + qdy);
+        if (path.length > maxSegs) maxSegs = path.length;
+        break;
       }
       case 'gopen': {
         var gv = pop();
@@ -203,7 +215,9 @@ function render(progIn, lanes, serial32, pat, wear) {
         if (gv < 0 || gv > 100) throw new Fault('E_RANGE');
         if (groups.length >= GROUP_MAX) throw new Fault('E_GROUP');
         emit(gv === 100 ? '<g>' : '<g opacity="' + fmtOp(gv) + '">');
-        groups.push([fill, stroke, sw, opac]); opac = 100; break;
+        groups.push([fill, stroke, sw, opac]);
+        if (groups.length > maxGroups) maxGroups = groups.length;
+        opac = 100; break;
       }
       case 'gclose': {
         if (path !== null) throw new Fault('E_PATH');
@@ -225,7 +239,7 @@ function render(progIn, lanes, serial32, pat, wear) {
         emit('<defs><radialGradient id="g' + ngrad + '">' + stops + '</radialGradient></defs>');
         ngrad++; grad = null; break;
       }
-      case 'z': if (path === null || !path.length || path.length >= MAX_SEGS) throw new Fault('E_PATH'); path.push('Z'); break;
+      case 'z': if (path === null || !path.length || path.length >= MAX_SEGS) throw new Fault('E_PATH'); path.push('Z'); if (path.length > maxSegs) maxSegs = path.length; break;
       case 'pend':
         if (path === null || !path.length) throw new Fault('E_PATH');
         emit('<path d="' + path.join('') + '" fill="' + fcol(fill) + '"' + tail(true)); path = null; break;
@@ -235,6 +249,16 @@ function render(progIn, lanes, serial32, pat, wear) {
   function finish() {
     var svg = OPEN + body.join('') + '</svg>';
     if (svg.length > MAX_SVG) throw new Fault('E_SIZE');
+    if (stats && typeof stats === 'object') {
+      stats.fuel = FUEL_MAX - fuel;
+      stats.elems = elems;
+      stats.svg_len = svg.length;
+      stats.max_stack = maxStack;
+      stats.max_calls = maxCalls;
+      stats.max_groups = maxGroups;
+      stats.max_segs = maxSegs;
+      stats.grads = ngrad;
+    }
     return svg;
   }
 }
@@ -249,4 +273,4 @@ function hostInputs(blake2b, serial, lineage, sales) {
   var pat = blake2b(pl, 32)[0] & 63;
   return { lanes: lanes, serial32: Number(BigInt.asIntN(32, s)), pat: pat, wear: Math.min(Number(sales), WEAR_CAP) };
 }
-module.exports = { render: render, hostInputs: hostInputs, Fault: Fault, limits: { FUEL_MAX: FUEL_MAX, STACK_MAX: STACK_MAX, CALL_MAX: CALL_MAX, MAX_ELEMS: MAX_ELEMS, MAX_SEGS: MAX_SEGS, MAX_SVG: MAX_SVG, WEAR_CAP: WEAR_CAP } };
+module.exports = { render: render, parse: parse, hostInputs: hostInputs, Fault: Fault, limits: { FUEL_MAX: FUEL_MAX, STACK_MAX: STACK_MAX, CALL_MAX: CALL_MAX, MAX_ELEMS: MAX_ELEMS, MAX_SEGS: MAX_SEGS, MAX_SVG: MAX_SVG, WEAR_CAP: WEAR_CAP, MEM_SIZE: MEM_SIZE, GROUP_MAX: GROUP_MAX, GRAD_MAX: GRAD_MAX, STOP_MAX: STOP_MAX, BAKE_CAP: 25641 } };

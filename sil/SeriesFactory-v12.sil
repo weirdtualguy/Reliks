@@ -40,6 +40,9 @@ contract SeriesFactory(
         int serial;
     }
 
+    // F-12 note: silverc constant-folds pure expressions over constructor parameters and drops
+    // unreferenced parameters. Mixing engine_code with the runtime lane input outpoint txid forces
+    // the compiler to keep the full engine_code bytes baked inside the compiled redeem script.
     function engineBaked() {
         require(blake2b(engine_code + OpOutpointTxId(this.activeInputIndex)) != byte[32](0x0000000000000000000000000000000000000000000000000000000000000000));
     }

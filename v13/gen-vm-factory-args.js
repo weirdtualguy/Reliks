@@ -33,6 +33,7 @@ const bc = Buffer.from(ed.bytecode);
 const prefix = bc.subarray(0, ed.state_span.offset), suffix = bc.subarray(ed.state_span.offset + ed.state_span.len);
 const tplHash = Array.isArray(ed.template_hash) ? Buffer.from(ed.template_hash) : Buffer.from(ed.template_hash, 'hex');
 const bytes = b => ({ kind: 'bytes', value: Array.from(b) }), int = n => ({ kind: 'int', value: n });
+const engineLang = Number(process.env.ENGINE_LANG || 2);
 const args = [
   bytes(Buffer.from(PROGRAM_HASH, 'hex')), bytes(Buffer.from(cfg.artist, 'hex')), int(cfg.price), int(cfg.royalty_bips), int(cfg.mints_left),
   bytes(prog), int(Number(process.env.ENGINE_LANG || 2)), bytes(Buffer.from(renderHash, 'hex')), bytes(prefix), bytes(suffix), bytes(tplHash)
@@ -40,4 +41,4 @@ const args = [
 const out = outArg || 'v13/factory-args-vm-v13.json';
 fs.writeFileSync(out, JSON.stringify(args));
 fs.writeFileSync(CUSTOM ? (process.env.SHIM_OUT || 'v13/vm-engine-shim2.js') : 'v13/vm-engine-shim.js', "// Lets deploy-v13.js's bake assertion see the VM program bytes.\nmodule.exports = { ENGINE_SRC: '', ENGINE_BYTES: Buffer.from('" + PROG_HEX + "', 'hex') };\n");
-console.log('wrote ' + out + ' | program ' + prog.length + ' B | program_hash ' + PROGRAM_HASH.slice(0, 16) + '... | render_hash ' + renderHash.slice(0, 16) + '... | engine_lang 1 | render svg ' + svg.length + ' B');
+console.log('wrote ' + out + ' | program ' + prog.length + ' B | program_hash ' + PROGRAM_HASH.slice(0, 16) + '... | render_hash ' + renderHash.slice(0, 16) + '... | engine_lang ' + engineLang + ' | render svg ' + svg.length + ' B');

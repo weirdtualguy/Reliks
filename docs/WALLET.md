@@ -23,9 +23,12 @@ Source: `web/kaspire.js`. Protocol references: kaspire.kaslab.space/developers a
 
 The wallet's own public key is checked against the connected address before anything is built.
 
-## Known limits
+## Known limits & pre-announcement live gate (F-03)
 
-- Tested against mocks that follow Kaspire's published API. **The first real-wallet mint has not been run.** Try it on a series with editions left, with a low-value wallet, and report the result.
+- Tested against mocks that follow Kaspire's published API (`test/wallet-test.js`, `test/kaspire-mass-test.js`). **The first real-wallet mint through the browser extension has not been run yet.** Before announcing a public mintable series, run one live mint through the Kaspire Extension on a fresh lane with a low-value wallet:
+  1. Deploy a fresh lane (e.g. v13 Reliks-VM genesis with `engine_lang = 2`, after passing `node cli/reliks-lens-vm.js`), add its anchor to `data/mainnet-anchors.json`, and run `npm run site`.
+  2. Connect a low-value Kaspire Extension wallet on `docs/index.html`, click **Mint**, inspect Kaspire's PSKT covenant review window, approve, and verify that `verifySigned` and `pushTx` succeed and the transaction confirms on chain.
+  3. Record the confirmed transaction ID and date here in `docs/WALLET.md` and generate the updated provenance bundle (`npm run bundle`).
 - The SafeJSON field names for covenant metadata follow the rusty-kaspa v1 transaction layout. If Kaspire rejects the payload, the review step's "Transaction details" shows exactly what was sent.
-- The mainnet genesis series is sold out, so there is currently nothing to mint on mainnet from the site.
-- No public mainnet wRPC endpoints are pinned on purpose (see AUDIT-SUMMARY).
+- The mainnet v12 genesis series is sold out, so there is currently nothing to mint on mainnet from the site until the next series lane is deployed.
+- No public mainnet wRPC endpoints are pinned on purpose (see `docs/AUDIT-SUMMARY.md` and `docs/ENGINEERING-NOTES.md`).

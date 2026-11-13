@@ -1,4 +1,5 @@
 // Reliks-VM assembler (JS port of assemble() in v13/vm/rvm.py). Reference output: rvm.py. Works in Node and browsers.
+// Preserves source line numbers on tokens so errors report the offending line.
 (function (g) {
   'use strict';
   var OPS = {
@@ -17,10 +18,11 @@
     gradbegin: [0x9d, null], gradstop: [0x9e, null], gradend: [0x9f, null]
   };
   var has = function (o, k) { return Object.prototype.hasOwnProperty.call(o, k); };
-  function int0(s) {
-    if (s === undefined) throw new Error('missing operand');
+  function errAt(msg, ln) { return new Error(ln ? msg + ' (line ' + ln + ')' : msg); }
+  function int0(s, ln) {
+    if (s === undefined) throw errAt('missing operand', ln);
     var m = /^([+-]?)(?:0[xX]([0-9a-fA-F]+)|0[bB]([01]+)|0[oO]([0-7]+)|(0+|[1-9][0-9]*))$/.exec(s);
-    if (!m) throw new Error('bad integer: ' + s);
+    if (!m) throw errAt('bad integer: ' + s, ln);
     var v = m[2] !== undefined ? BigInt('0x' + m[2]) : m[3] !== undefined ? BigInt('0b' + m[3]) : m[4] !== undefined ? BigInt('0o' + m[4]) : BigInt(m[5]);
     return m[1] === '-' ? -v : v;
   }
@@ -32,58 +34,62 @@
       out.push(b | 0x80);
     }
   }
-  function rng(v, max, what) { if (v < 0n || v > BigInt(max)) throw new Error(what + ' out of range'); return Number(v); }
+  function rng(v, max, what, ln) { if (v < 0n || v > BigInt(max)) throw errAt(what + ' out of range', ln); return Number(v); }
   function assemble(src) {
-    var toks = [], lines = String(src).split('\n'), i, j;
-    for (i = 0; i < lines.length; i++) { var p = lines[i].split(';')[0].split(/\s+/); for (j = 0; j < p.length; j++) if (p[j]) toks.push(p[j]); }
-    var at = function (a, k) { if (k >= a.length) throw new Error('missing operand'); return a[k]; };
-    var exp = [], names = new Map();
+    var toks = [], tlines = [], lines = String(src).split('\n'), i, j;
+    for (i = 0; i < lines.length; i++) {
+      var p = lines[i].split(';')[0].split(/\s+/);
+      for (j = 0; j < p.length; j++) if (p[j]) { toks.push(p[j]); tlines.push(i + 1); }
+    }
+    var at = function (a, lns, k, refLn) { if (k >= a.length) throw errAt('missing operand', refLn || (lns && lns[a.length - 1])); return a[k]; };
+    var exp = [], elines = [], names = new Map();
+    function pushE(ln) { for (var k = 1; k < arguments.length; k++) { exp.push(arguments[k]); elines.push(ln); } }
     i = 0;
     while (i < toks.length) {
-      var t = toks[i], tl = t.toLowerCase();
-      if (tl === '.var') { names.set(at(toks, i + 1), int0(at(toks, i + 2))); i += 3; continue; }
-      if (tl === 'show') exp.push('store', '255', 'load', '255', 'push', '0', 'push', '1', 'push', '1', 'rect');
+      var t = toks[i], tl = t.toLowerCase(), ln = tlines[i];
+      if (tl === '.var') { names.set(at(toks, tlines, i + 1, ln), int0(at(toks, tlines, i + 2, ln), tlines[i + 2] || ln)); i += 3; continue; }
+      if (tl === 'show') pushE(ln, 'store', '255', 'load', '255', 'push', '0', 'push', '1', 'push', '1', 'rect');
       else if (tl === 'next' || tl === 'nextle') {
-        var v = at(toks, i + 1), lim = at(toks, i + 2), lab = at(toks, i + 3);
-        exp.push('load', v, 'push', '1', 'add', 'dup', 'store', v);
-        if (names.has(lim)) exp.push('load', lim); else exp.push('push', lim);
-        exp.push(tl === 'next' ? 'lt' : 'le', 'jnz', lab);
+        var v = at(toks, tlines, i + 1, ln), lim = at(toks, tlines, i + 2, ln), lab = at(toks, tlines, i + 3, ln);
+        pushE(ln, 'load', v, 'push', '1', 'add', 'dup', 'store', v);
+        if (names.has(lim)) pushE(ln, 'load', lim); else pushE(ln, 'push', lim);
+        pushE(ln, tl === 'next' ? 'lt' : 'le', 'jnz', lab);
         i += 3;
-      } else if (tl === 'ld' || tl === 'st') { exp.push(tl === 'ld' ? 'load' : 'store', at(toks, i + 1)); i += 1; }
-      else exp.push(t);
+      } else if (tl === 'ld' || tl === 'st') { pushE(ln, tl === 'ld' ? 'load' : 'store', at(toks, tlines, i + 1, ln)); i += 1; }
+      else pushE(ln, t);
       i += 1;
     }
-    var W = 64n, H = 64n, items = [];
+    var W = 64n, H = 64n, canvasLn = 1, items = [];
     i = 0;
     while (i < exp.length) {
-      var x = exp[i];
-      if (x === '.canvas') { W = int0(at(exp, i + 1)); H = int0(at(exp, i + 2)); i += 3; }
-      else if (x === '.byte') { items.push({ k: 'raw', b: rng(int0(at(exp, i + 1)), 255, '.byte') }); i += 2; }
-      else if (x.charAt(x.length - 1) === ':') { items.push({ k: 'label', n: x.slice(0, -1) }); i += 1; }
+      var x = exp[i], xln = elines[i];
+      if (x === '.canvas') { canvasLn = xln; W = int0(at(exp, elines, i + 1, xln), elines[i + 1] || xln); H = int0(at(exp, elines, i + 2, xln), elines[i + 2] || xln); i += 3; }
+      else if (x === '.byte') { items.push({ k: 'raw', b: rng(int0(at(exp, elines, i + 1, xln), elines[i + 1] || xln), 255, '.byte', xln), ln: xln }); i += 2; }
+      else if (x.charAt(x.length - 1) === ':') { items.push({ k: 'label', n: x.slice(0, -1), ln: xln }); i += 1; }
       else {
         var name = x.toLowerCase();
-        if (!has(OPS, name)) throw new Error('unknown mnemonic: ' + x);
+        if (!has(OPS, name)) throw errAt('unknown mnemonic: ' + x, xln);
         var o = OPS[name];
-        if (o[1] === null) { items.push({ k: 'op', op: o[0], kind: null }); i += 1; }
-        else { items.push({ k: 'op', op: o[0], kind: o[1], arg: at(exp, i + 1) }); i += 2; }
+        if (o[1] === null) { items.push({ k: 'op', op: o[0], kind: null, ln: xln }); i += 1; }
+        else { items.push({ k: 'op', op: o[0], kind: o[1], arg: at(exp, elines, i + 1, xln), ln: xln }); i += 2; }
       }
     }
     var labels = new Map(), off = 0;
     items.forEach(function (it) {
       if (it.k === 'label') labels.set(it.n, off);
       else if (it.k === 'raw') off += 1;
-      else { off += 1; if (it.kind === 's') off += sleb(int0(it.arg)).length; else if (it.kind === 'u8') off += 1; else if (it.kind === 'u16') off += 2; }
+      else { off += 1; if (it.kind === 's') off += sleb(int0(it.arg, it.ln)).length; else if (it.kind === 'u8') off += 1; else if (it.kind === 'u16') off += 2; }
     });
     var code = [];
     items.forEach(function (it) {
       if (it.k === 'label') return;
       if (it.k === 'raw') { code.push(it.b); return; }
       code.push(it.op);
-      if (it.kind === 's') sleb(int0(it.arg)).forEach(function (b) { code.push(b); });
-      else if (it.kind === 'u8') code.push(rng(names.has(it.arg) ? names.get(it.arg) : int0(it.arg), 255, 'u8'));
-      else if (it.kind === 'u16') { var tg = rng(labels.has(it.arg) ? BigInt(labels.get(it.arg)) : int0(it.arg), 65535, 'u16'); code.push(tg & 255, tg >> 8); }
+      if (it.kind === 's') sleb(int0(it.arg, it.ln)).forEach(function (b) { code.push(b); });
+      else if (it.kind === 'u8') code.push(rng(names.has(it.arg) ? names.get(it.arg) : int0(it.arg, it.ln), 255, 'u8', it.ln));
+      else if (it.kind === 'u16') { var tg = rng(labels.has(it.arg) ? BigInt(labels.get(it.arg)) : int0(it.arg, it.ln), 65535, 'u16', it.ln); code.push(tg & 255, tg >> 8); }
     });
-    var w = rng(W, 65535, 'canvas'), h = rng(H, 65535, 'canvas');
+    var w = rng(W, 65535, 'canvas', canvasLn), h = rng(H, 65535, 'canvas', canvasLn);
     return Uint8Array.from([0x52, 0x56, 0x4d, 0x01, w & 255, w >> 8, h & 255, h >> 8].concat(code));
   }
   var api = { assemble: assemble, OPS: OPS };
