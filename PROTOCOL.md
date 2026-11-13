@@ -1,6 +1,6 @@
-# Reliks protocol (v12 mainnet & v13 Reliks-VM specification)
+# Reliks protocol (v13 final specification; v12 deprecated)
 
-Status: v12 is frozen on mainnet; v13 (adding `lineage`, `sales`, and Reliks-VM v1) is verified on testnet-10 and ready for mainnet genesis. Reference code: `web/reliks-chain.js` and `sdk/`. Independent check: `sdk/ref_protocol.py` generates `sdk/protocol-vectors.json`, and `sdk/test-protocol.js` verifies the JS codec against it (`npm test` / `sh tools/check.sh`). Items marked UNREVIEWED were not checked against the `silverc` compiler internals. Where this text and the contract disagree, the contract wins and this text is a bug.
+Status: v13 (adding `lineage`, `sales`, and Reliks-VM v1) is the final protocol version. Legacy v12 is deprecated and retained only for historical verification. Reference code: `web/reliks-chain.js` and `sdk/`. Independent check: `sdk/ref_protocol.py` generates `sdk/protocol-vectors.json`, and `sdk/test-protocol.js` verifies the JS codec against it (`npm test` / `sh tools/check.sh`). Items marked UNREVIEWED were not checked against the `silverc` compiler internals. Where this text and the contract disagree, the contract wins and this text is a bug.
 
 ## 1. Conventions
 - H(x) is blake2b-256. H_k(x) is the keyed variant. le16/le32/le64 are little-endian unsigned. Hex is lowercase.

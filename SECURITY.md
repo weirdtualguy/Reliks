@@ -4,7 +4,7 @@ Reliks handles real value on the Kaspa mainnet. Security is our highest priority
 
 ## 🛡 Supported Versions
 
-Only the latest major version of the protocol (**v12** on mainnet and **v13 / Reliks-VM v1** for upcoming genesis) is actively maintained and receives security updates. Legacy versions (v1-v11) are considered deprecated and are maintained on-chain only as historical artifacts.
+Only the latest major version of the protocol (**v13 / Reliks-VM v1**) is actively maintained and receives security updates. Legacy versions (v1-v12, including the deprecated v12 JS engine path) are considered deprecated and are maintained on-chain only as historical artifacts.
 
 ## 🐛 Reporting a Vulnerability
 

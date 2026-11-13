@@ -1,6 +1,6 @@
 # Changelog
 
-## 12.1.1: public-release audit fixes & v13 Reliks-VM genesis readiness (2026-11-13)
+## 13.0.0: final v13 Reliks-VM release & public-release audit fixes (2026-11-13; v12 deprecated)
 - **Public-Release Audit Fixes (F-01 through F-13):**
   - **F-01:** Fixed `README.md` reference to superseded contract versions (`v13-lineage` branch and annotated freeze tags instead of removed `sil/legacy/` and `data/legacy/` directories).
   - **F-02:** Replaced all string-concatenated `innerHTML` assignments in `web/reliks-gallery-runtime.js` with a text-only DOM helper (`h()`), guarded by `test/vm-conformance-test.js`, and added `Content-Security-Policy` `<meta>` headers to generated pages (`tools/gen-site.js`, `cli/gen-gallery.js`, `tools/gen-studio.js`, `cli/reliks-lens.js`).

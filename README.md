@@ -1,4 +1,4 @@
-> **Status:** v12.1.1 release-ready & v13 Reliks-VM genesis ready (2026-11-13). See [STATUS.md](STATUS.md) for what exists, what is verified, and how to deploy a v13 Reliks-VM series.
+> **Status:** v13.0.0 final release — Reliks-VM genesis ready (2026-11-13; v12 deprecated). See [STATUS.md](STATUS.md) for what exists, what is verified, and how to deploy a v13 Reliks-VM series.
 
 # Reliks
 
