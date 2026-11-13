@@ -1,5 +1,6 @@
 /* rvm.c: third Reliks-VM implementation (C99), written from v13/RELIKS-VM-SPEC.md sections 2-8.
    Build: cc -O2 -std=c99 -o rvm3 v13/vm/rvm.c
+   Sanitizers: cc -O2 -std=c99 -fsanitize=address,undefined -fno-omit-frame-pointer -o rvm3_san v13/vm/rvm.c
    Run:   rvm3 <lane0,...,lane7> <serial32> <pat> <wear> < program.hex   ->   "FAULT <code>"  or  "OK <len>\n<svg>" */
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +12,9 @@ typedef int32_t i32; typedef uint32_t u32; typedef int64_t i64; typedef uint64_t
 enum { E_NONE, E_HEADER, E_DECODE, E_TARGET, E_UNDERFLOW, E_OVERFLOW, E_DIV0, E_RANGE, E_FUEL, E_ELEMS, E_SIZE, E_CALLDEPTH, E_NOHALT, E_PATH, E_RNG, E_STROKE, E_GROUP, E_GRAD };
 static const char *FN[] = { "", "E_HEADER", "E_DECODE", "E_TARGET", "E_UNDERFLOW", "E_OVERFLOW", "E_DIV0", "E_RANGE", "E_FUEL", "E_ELEMS", "E_SIZE", "E_CALLDEPTH", "E_NOHALT", "E_PATH", "E_RNG", "E_STROKE", "E_GROUP", "E_GRAD" };
 static jmp_buf jb; static int fcode;
+static char *body = NULL; static char *tmp_path_buf = NULL;
+static void oom(void) __attribute__((noreturn));
+static void oom(void) { fprintf(stderr, "FATAL: out of memory\n"); exit(2); }
 static void fault(int c) __attribute__((noreturn));
 static void fault(int c) { fcode = c; longjmp(jb, 1); }
 
@@ -84,7 +88,7 @@ static i32 fillc, strokec, sw, opac;
 static u32 rx, ry, rz, rw; static int rinit;
 static i32 gfill[4], gstroke[4], gsw[4], gop[4]; static int gd;
 static int ngrad, gradopen, nst, sto[8], stc[8], sta[8];
-static char *body; static size_t blen, bcap, total; static int elems;
+static size_t blen, bcap, total; static int elems;
 static char pd[140000]; static size_t pdlen; static int nseg, pathopen;
 static i32 LANES[8], SER, PAT, WEAR; static char OPEN[96];
 
@@ -94,7 +98,11 @@ static void emit(const char *s, size_t n, int count) {
   if (count) elems++;
   if (elems > 10000) fault(E_ELEMS);
   total += n; if (total > 1048576) fault(E_SIZE);
-  if (blen + n + 1 > bcap) { while (blen + n + 1 > bcap) bcap *= 2; body = realloc(body, bcap); }
+  if (blen + n + 1 > bcap) {
+    while (blen + n + 1 > bcap) bcap *= 2;
+    body = realloc(body, bcap);
+    if (!body) oom();
+  }
   memcpy(body + blen, s, n); blen += n;
 }
 static void emits(const char *s, int count) { emit(s, strlen(s), count); }
@@ -124,6 +132,7 @@ static void run(void) {
   snprintf(OPEN, sizeof OPEN, "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 %d %d\">", W, H);
   total = strlen(OPEN); fillc = 0; strokec = -1; sw = 1; opac = 100;
   bcap = 1 << 16; body = malloc(bcap);
+  if (!body) oom();
   for (;;) {
     char buf[1100]; i32 a, b, c, d; int n, op; i32 v;
     if (pc >= codelen || !isstart[pc]) fault(E_NOHALT);
@@ -207,13 +216,16 @@ static void run(void) {
     case 0x95: b = pop(); a = pop(); if (!pathopen || nseg > 0) fault(E_PATH); sprintf(buf, "M%d %d", a, b); seg(buf); break;
     case 0x96: b = pop(); a = pop(); if (!pathopen || nseg == 0) fault(E_PATH); sprintf(buf, "L%d %d", a, b); seg(buf); break;
     case 0x97: if (!pathopen || nseg == 0) fault(E_PATH); seg("Z"); break;
-    case 0x98: { char *e; size_t m;
+    case 0x98: { size_t m;
                  if (!pathopen || nseg == 0) fault(E_PATH);
-                 e = malloc(pdlen + 400); m = (size_t)sprintf(e, "<path d=\"");
-                 memcpy(e + m, pd, pdlen); m += pdlen;
-                 m += (size_t)sprintf(e + m, "\" fill=\""); m += (size_t)colstr(e + m, fillc);
-                 m += (size_t)sprintf(e + m, "\""); m += (size_t)tail(e + m, 1);
-                 emit(e, m, 1); free(e); pathopen = 0; break; }
+                 tmp_path_buf = malloc(pdlen + 400);
+                 if (!tmp_path_buf) oom();
+                 m = (size_t)sprintf(tmp_path_buf, "<path d=\"");
+                 memcpy(tmp_path_buf + m, pd, pdlen); m += pdlen;
+                 m += (size_t)sprintf(tmp_path_buf + m, "\" fill=\""); m += (size_t)colstr(tmp_path_buf + m, fillc);
+                 m += (size_t)sprintf(tmp_path_buf + m, "\""); m += (size_t)tail(tmp_path_buf + m, 1);
+                 emit(tmp_path_buf, m, 1);
+                 free(tmp_path_buf); tmp_path_buf = NULL; pathopen = 0; break; }
     case 0x99: b = pop(); a = pop(); if (!pathopen || nseg == 0) fault(E_PATH); sprintf(buf, "l%d %d", a, b); seg(buf); break;
     case 0x9a: d = pop(); c = pop(); b = pop(); a = pop(); if (!pathopen || nseg == 0) fault(E_PATH);
                sprintf(buf, "q%d %d %d %d", a, b, c, d); seg(buf); break;
@@ -252,9 +264,16 @@ int main(int argc, char **argv) {
     if (ch >= '0' && ch <= '9') h = ch - '0'; else if (ch >= 'a' && ch <= 'f') h = ch - 'a' + 10; else if (ch >= 'A' && ch <= 'F') h = ch - 'A' + 10; else continue;
     if (hi < 0) hi = h; else { if (plen < (int)sizeof prog) prog[plen] = (uint8_t)(hi * 16 + h); plen++; hi = -1; }
   }
-  if (setjmp(jb)) { printf("FAULT %s\n", FN[fcode]); return 0; }
+  if (setjmp(jb)) {
+    free(tmp_path_buf); tmp_path_buf = NULL;
+    free(body); body = NULL;
+    printf("FAULT %s\n", FN[fcode]);
+    return 0;
+  }
   parse(); run();
   printf("OK %zu\n", strlen(OPEN) + blen + 6);
   fwrite(OPEN, 1, strlen(OPEN), stdout); fwrite(body, 1, blen, stdout); fputs("</svg>", stdout);
+  free(tmp_path_buf); tmp_path_buf = NULL;
+  free(body); body = NULL;
   return 0;
 }

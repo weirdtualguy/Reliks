@@ -5,7 +5,7 @@
 //   node reliks-lens.js <engine.js>          run all gates, human report
 //   node reliks-lens.js <engine.js> --json   machine-readable report (CI gate)
 //   node reliks-lens.js html <engine.js>     write interactive reliks-lens.html
-// Env: RELIKS_ENGINE_CAP (default 32768)
+// Env: RELIKS_ENGINE_CAP (default 25641, the PUSHDATA2 ceiling)
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
@@ -115,6 +115,7 @@ function htmlMode(enginePath) {
   const srcJson = JSON.stringify(SRC).replace(/</g, '\\u003c');
   const page = ['<!doctype html>', '<html lang="en"><head><meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\' \'unsafe-eval\'; style-src \'unsafe-inline\'; frame-src \'self\' data: blob:; connect-src \'none\'">',
     '<title>Reliks Lens</title>',
     '<style>body{background:#0b0d10;color:#e8e6e3;font-family:ui-monospace,Menlo,Consolas,monospace;margin:0;padding:20px}h1{font-size:18px;letter-spacing:2px}h1 span{color:#7fd1ae}.row{margin:8px 0;font-size:12px;line-height:1.6}.pass{color:#7fd1ae;font-weight:700}.fail{color:#ff6b6b;font-weight:700}input,button{background:#101418;color:#e8e6e3;border:1px solid #23282e;border-radius:6px;padding:8px;font-family:inherit;font-size:12px;margin-right:6px}iframe{width:100%;max-width:520px;aspect-ratio:1/1;border:1px solid #23282e;border-radius:8px;background:#000;display:block;margin-top:12px}</style></head><body>',
     '<h1>RELIKS <span>// lens</span></h1>',
@@ -140,10 +141,10 @@ function htmlMode(enginePath) {
     'h+="<div>node-side engine_hash "+STATIC.engineHash+"</div>";',
     'h+="<div>in-page recompute engine_hash "+hx(ReliksBlake2b.blake2b(utf8(ENGINE_SRC),32))+" | render_hash(1) "+hx(ReliksBlake2b.blake2b(utf8(render(1)),32))+"</div>";',
     'document.getElementById("static").innerHTML=h;',
-    'function show(){var s=document.getElementById("ser").value.trim();var svg=render(s);document.getElementById("art").srcdoc="<!doctype html><html><head><meta charset=utf-8><style>html,body{margin:0;height:100%;background:#000}svg{display:block;width:100vw;height:100vh}</style></head><body>"+svg+"</body></html>";document.getElementById("live").innerHTML="serial "+s+" | svg bytes "+svg.length+" | render_hash "+hx(ReliksBlake2b.blake2b(utf8(svg),32));}',
+    'function show(){var s=document.getElementById("ser").value.trim();var svg=render(s);document.getElementById("art").srcdoc="<!doctype html><html><head><meta charset=utf-8><style>html,body{margin:0;height:100%;background:#000}svg{display:block;width:100vw;height:100vh}</style></head><body>"+svg+"</body></html>";document.getElementById("live").textContent="serial "+s+" | svg bytes "+svg.length+" | render_hash "+hx(ReliksBlake2b.blake2b(utf8(svg),32));}',
     'document.getElementById("go").onclick=show;',
     'document.getElementById("rnd").onclick=function(){document.getElementById("ser").value=String(Math.floor(Math.random()*4294967296));show();};',
-    'document.getElementById("det").onclick=function(){var s=document.getElementById("ser").value.trim();var a=render(s);var b=render(s);var c2=new Function("L","serial",ENGINE_SRC+"\\nreturn reliks(L,serial);");var s32=Number(BigInt(s)&0xFFFFFFFFn);var c=c2(seedLanes(s32),s32|0);var ok=(a===b&&b===c);document.getElementById("live").innerHTML=(ok?"<span class=\\"pass\\">DETERMINISTIC</span>":"<span class=\\"fail\\">NON-DETERMINISTIC</span>")+" - 3 independent compiles @ serial "+s;};',
+    'document.getElementById("det").onclick=function(){var s=document.getElementById("ser").value.trim();var a=render(s);var b=render(s);var c2=new Function("L","serial",ENGINE_SRC+"\\nreturn reliks(L,serial);");var s32=Number(BigInt(s)&0xFFFFFFFFn);var c=c2(seedLanes(s32),s32|0);var ok=(a===b&&b===c);document.getElementById("live").innerHTML=(ok?"<span class=\\"pass\\">DETERMINISTIC</span>":"<span class=\\"fail\\">NON-DETERMINISTIC</span>")+" - 3 independent compiles @ serial "+s.replace(/[^0-9]/g,"");};',
     'show();',
     '</' + 'script>', '</body></html>'].join('\n');
   fs.writeFileSync('reliks-lens.html', page);

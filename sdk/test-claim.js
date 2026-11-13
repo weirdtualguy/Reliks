@@ -72,5 +72,21 @@ const chk = (r, n) => r.checks.find((c) => c.name === n);
   t('missing io throws', !!(await thrown(() => C.verifyClaim({ chain: CH, claim: claimOf() }))));
   const cl = claimOf(), snap = JSON.stringify(cl); await run({ io: mkIo([LIVE()]), claim: cl });
   t('claim never mutated', JSON.stringify(cl) === snap);
+
+  // Signed Ownership Challenge (PROTOCOL.md section 11.1)
+  const privKey = '11'.repeat(32), ownerPub = C.bip340Pubkey(privKey);
+  const signedClaim = claimOf(null, { ownerIdentifier: ownerPub });
+  const chStr = 'reliks.verify:2026-11-13:nonce-42';
+  const proof = C.signOwnershipChallenge(CH, signedClaim, chStr, privKey);
+  t('signOwnershipChallenge produces ReliksOwnerChallengeV1 proof', proof.scheme === 'ReliksOwnerChallengeV1' && proof.challenge === chStr && /^[0-9a-f]{128}$/.test(proof.signature));
+  const vp = C.verifyOwnershipProof({ chain: CH, claim: signedClaim, proof, expectedChallenge: chStr });
+  t('verifyOwnershipProof accepts valid owner signature', vp.ok === true && vp.owner === ownerPub);
+  t('verifyOwnershipProof rejects wrong challenge', C.verifyOwnershipProof({ chain: CH, claim: signedClaim, proof, expectedChallenge: 'other' }).reason === 'challenge_mismatch');
+  t('verifyOwnershipProof rejects tampered claim state', C.verifyOwnershipProof({ chain: CH, claim: claimOf(null, { ownerIdentifier: ownerPub, price: '100000000' }), proof }).reason === 'bad_signature');
+  r = await run({ io: mkIo([LIVE({ ownerIdentifier: ownerPub })]), claim: Object.assign({}, signedClaim, { proof }), expectedChallenge: chStr });
+  t('verifyClaim with valid ownership proof -> current', r.status === 'current' && chk(r, 'ownership_proof').ok === true, r.status);
+  r = await run({ io: mkIo([LIVE({ ownerIdentifier: ownerPub })]), claim: signedClaim, requireProof: true });
+  t('verifyClaim with requireProof and missing proof -> proof_failed', r.status === 'proof_failed' && r.proofError === 'missing_proof', r.status);
+
   console.log(bad ? 'CLAIM TESTS FAILED' : 'CLAIM TESTS OK'); process.exit(bad);
 })();

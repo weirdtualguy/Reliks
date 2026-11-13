@@ -444,66 +444,83 @@ def render_hash(prog):
 
 # ---------------- assembler ----------------
 def assemble(src):
-    """Token stream. `.canvas W H`, `.byte N` (raw), `label:`, mnemonics, immediates
+    """Token stream with source line numbers attached for error reporting.
+    `.canvas W H`, `.byte N` (raw), `label:`, mnemonics, immediates
     (decimal or 0x hex), jump operands are labels. Macro `show` = store 255 load 255 push 0 push 1 push 1 rect."""
-    toks = []
-    for line in src.split('\n'):
-        toks += line.split(';')[0].split()
-    exp, i, names = [], 0, {}
-    while i < len(toks):
-        t = toks[i]
-        tl = t.lower()
-        if tl == '.var':          # .var NAME CELL   (named memory cell)
-            names[toks[i + 1]] = int(toks[i + 2], 0); i += 3; continue
-        if tl == 'show':
-            exp += ['store', '255', 'load', '255', 'push', '0', 'push', '1', 'push', '1', 'rect']
-        elif tl in ('next', 'nextle'):   # next VAR LIMIT LABEL : ++VAR; loop while VAR < (<=) LIMIT
-            var, lim, lab = toks[i + 1], toks[i + 2], toks[i + 3]
-            exp += ['load', var, 'push', '1', 'add', 'dup', 'store', var]
-            exp += ['load', lim] if lim in names else ['push', lim]
-            exp += ['lt' if tl == 'next' else 'le', 'jnz', lab]
-            i += 3
-        elif tl in ('ld', 'st'):
-            exp += ['load' if tl == 'ld' else 'store', toks[i + 1]]; i += 1
-        else:
-            exp.append(t)
-        i += 1
-    W = H = 64
-    items, i = [], 0
-    while i < len(exp):
-        t = exp[i]
-        if t == '.canvas':
-            W, H = int(exp[i + 1], 0), int(exp[i + 2], 0); i += 3
-        elif t == '.byte':
-            items.append(('raw', bytes([int(exp[i + 1], 0)]))); i += 2
-        elif t.endswith(':'):
-            items.append(('label', t[:-1])); i += 1
-        else:
-            name = t.lower()
-            op, kind = OPS[name]
-            if kind is None:
-                items.append(('op', op, None, None)); i += 1
+    toks, tlines = [], []
+    for lno, line in enumerate(src.split('\n'), 1):
+        for w in line.split(';')[0].split():
+            toks.append(w)
+            tlines.append(lno)
+    cur_line = [1]
+    try:
+        exp, elines, i, names = [], [], 0, {}
+        def push_e(ln, *words):
+            for w in words:
+                exp.append(w)
+                elines.append(ln)
+        while i < len(toks):
+            t = toks[i]
+            tl = t.lower()
+            ln = tlines[i]
+            cur_line[0] = ln
+            if tl == '.var':          # .var NAME CELL   (named memory cell)
+                names[toks[i + 1]] = int(toks[i + 2], 0); i += 3; continue
+            if tl == 'show':
+                push_e(ln, 'store', '255', 'load', '255', 'push', '0', 'push', '1', 'push', '1', 'rect')
+            elif tl in ('next', 'nextle'):   # next VAR LIMIT LABEL : ++VAR; loop while VAR < (<=) LIMIT
+                var, lim, lab = toks[i + 1], toks[i + 2], toks[i + 3]
+                push_e(ln, 'load', var, 'push', '1', 'add', 'dup', 'store', var)
+                push_e(ln, *(['load', lim] if lim in names else ['push', lim]))
+                push_e(ln, 'lt' if tl == 'next' else 'le', 'jnz', lab)
+                i += 3
+            elif tl in ('ld', 'st'):
+                push_e(ln, 'load' if tl == 'ld' else 'store', toks[i + 1]); i += 1
             else:
-                items.append(('op', op, kind, exp[i + 1])); i += 2
-    labels, off = {}, 0
-    for it in items:
-        if it[0] == 'label': labels[it[1]] = off
-        elif it[0] == 'raw': off += 1
-        else:
-            _, op, kind, arg = it
-            off += 1
-            if kind == 's': off += len(sleb_enc(int(arg, 0)))
-            elif kind == 'u8': off += 1
-            elif kind == 'u16': off += 2
-    code = bytearray()
-    for it in items:
-        if it[0] == 'label': continue
-        if it[0] == 'raw': code += it[1]; continue
-        _, op, kind, arg = it
-        code.append(op)
-        if kind == 's': code += sleb_enc(int(arg, 0))
-        elif kind == 'u8': code.append(int(names[arg]) if arg in names else int(arg, 0))
-        elif kind == 'u16':
-            tgt = labels[arg] if arg in labels else int(arg, 0)
-            code += struct.pack('<H', tgt)
-    return MAGIC + struct.pack('<HH', W, H) + bytes(code)
+                push_e(ln, t)
+            i += 1
+        W = H = 64
+        items, i = [], 0
+        while i < len(exp):
+            t = exp[i]
+            ln = elines[i]
+            cur_line[0] = ln
+            if t == '.canvas':
+                W, H = int(exp[i + 1], 0), int(exp[i + 2], 0); i += 3
+            elif t == '.byte':
+                items.append(('raw', bytes([int(exp[i + 1], 0)]), ln)); i += 2
+            elif t.endswith(':'):
+                items.append(('label', t[:-1], ln)); i += 1
+            else:
+                name = t.lower()
+                op, kind = OPS[name]
+                if kind is None:
+                    items.append(('op', op, None, None, ln)); i += 1
+                else:
+                    items.append(('op', op, kind, exp[i + 1], ln)); i += 2
+        labels, off = {}, 0
+        for it in items:
+            cur_line[0] = it[-1]
+            if it[0] == 'label': labels[it[1]] = off
+            elif it[0] == 'raw': off += 1
+            else:
+                _, op, kind, arg, _ = it
+                off += 1
+                if kind == 's': off += len(sleb_enc(int(arg, 0)))
+                elif kind == 'u8': off += 1
+                elif kind == 'u16': off += 2
+        code = bytearray()
+        for it in items:
+            cur_line[0] = it[-1]
+            if it[0] == 'label': continue
+            if it[0] == 'raw': code += it[1]; continue
+            _, op, kind, arg, _ = it
+            code.append(op)
+            if kind == 's': code += sleb_enc(int(arg, 0))
+            elif kind == 'u8': code.append(int(names[arg]) if arg in names else int(arg, 0))
+            elif kind == 'u16':
+                tgt = labels[arg] if arg in labels else int(arg, 0)
+                code += struct.pack('<H', tgt)
+        return MAGIC + struct.pack('<HH', W, H) + bytes(code)
+    except Exception as exc:
+        raise ValueError(f"{exc} (line {cur_line[0]})") from exc

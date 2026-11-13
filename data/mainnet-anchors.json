@@ -14,6 +14,7 @@
       "programHash": "16440384b2b00579d67e1366e8aa9c835e276fbf84a711d4920e87b134d7eaa4",
       "renderHash": "836c15aecc078e0c19ae71467ff12cdd85a904d1c965a991af095a246dcc403c",
       "artist": "25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b",
+      "engine_lang": 1,
       "engine": "reliks-engine-mainnet.js",
       "editions": [
         {

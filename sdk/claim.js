@@ -1,9 +1,81 @@
 'use strict';
-// Claim verification (PROTOCOL.md section 11). Read-only, no key. A client receives a claimed edition state from any source and checks it against an index of the chain.
+// Claim verification and self-authenticating ownership challenges (PROTOCOL.md section 11).
+// Read-only, zero external dependencies.
+const crypto = require('crypto');
+const B2 = require('../web/blake2b.js');
 const read = require('./read.js');
 const HEX64 = /^[0-9a-f]{64}$/;
+const HEX128 = /^[0-9a-f]{128}$/;
 const INTS = ['price', 'royalty_bips', 'serial', 'sales'];
 const HEXES = ['ownerIdentifier', 'artist', 'program_hash', 'factory_covid', 'lineage'];
+
+// Pure-BigInt secp256k1 BIP-340 Schnorr implementation (zero external dependencies; matches @noble/curves/secp256k1 schnorr).
+const SECP_P = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2Fn;
+const SECP_N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n;
+const SECP_GX = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798n;
+const SECP_GY = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8n;
+function mod(a, m) { const r = a % m; return r >= 0n ? r : r + m; }
+function modPow(b, e, m) { let r = 1n; b = mod(b, m); while (e > 0n) { if (e & 1n) r = (r * b) % m; e >>= 1n; b = (b * b) % m; } return r; }
+function modInv(a, m) { return modPow(a, m - 2n, m); }
+function ptAdd(P, Q) {
+  if (!P) return Q; if (!Q) return P;
+  const [x1, y1] = P, [x2, y2] = Q;
+  if (x1 === x2 && y1 !== y2) return null;
+  const lam = x1 === x2 ? mod(3n * x1 * x1 * modInv(2n * y1, SECP_P), SECP_P) : mod((y2 - y1) * modInv(x2 - x1, SECP_P), SECP_P);
+  const x3 = mod(lam * lam - x1 - x2, SECP_P);
+  return [x3, mod(lam * (x1 - x3) - y1, SECP_P)];
+}
+function ptMul(P, k) { let R = null, Q = P; while (k > 0n) { if (k & 1n) R = ptAdd(R, Q); Q = ptAdd(Q, Q); k >>= 1n; } return R; }
+function liftX(x) {
+  if (x <= 0n || x >= SECP_P) return null;
+  const c = mod(modPow(x, 3n, SECP_P) + 7n, SECP_P);
+  const y = modPow(c, (SECP_P + 1n) / 4n, SECP_P);
+  if (mod(y * y, SECP_P) !== c) return null;
+  return [x, (y & 1n) === 0n ? y : SECP_P - y];
+}
+function numTo32(n) { const b = Buffer.alloc(32); let v = n; for (let i = 31; i >= 0; i--) { b[i] = Number(v & 0xffn); v >>= 8n; } return b; }
+function bytesToNum(u) { let v = 0n; for (let i = 0; i < u.length; i++) v = (v << 8n) | BigInt(u[i]); return v; }
+function taggedSha256(tag, ...msgs) {
+  const th = crypto.createHash('sha256').update(tag, 'utf8').digest();
+  const h = crypto.createHash('sha256').update(th).update(th);
+  for (const m of msgs) h.update(m);
+  return h.digest();
+}
+function bip340Pubkey(privHex) {
+  const d0 = bytesToNum(Buffer.from(privHex, 'hex'));
+  if (d0 <= 0n || d0 >= SECP_N) throw new Error('invalid private key');
+  const P = ptMul([SECP_GX, SECP_GY], d0);
+  return numTo32(P[0]).toString('hex');
+}
+function bip340Sign(msg32, privHex) {
+  const d0 = bytesToNum(Buffer.from(privHex, 'hex'));
+  if (d0 <= 0n || d0 >= SECP_N) throw new Error('invalid private key');
+  const P = ptMul([SECP_GX, SECP_GY], d0);
+  const d = (P[1] & 1n) === 0n ? d0 : SECP_N - d0;
+  const aux = Buffer.alloc(32, 0);
+  const t = d ^ bytesToNum(taggedSha256('BIP0340/aux', aux));
+  const k0 = mod(bytesToNum(taggedSha256('BIP0340/nonce', numTo32(t), numTo32(P[0]), Buffer.from(msg32))), SECP_N);
+  if (k0 === 0n) throw new Error('nonce zero');
+  const R = ptMul([SECP_GX, SECP_GY], k0);
+  const k = (R[1] & 1n) === 0n ? k0 : SECP_N - k0;
+  const e = mod(bytesToNum(taggedSha256('BIP0340/challenge', numTo32(R[0]), numTo32(P[0]), Buffer.from(msg32))), SECP_N);
+  const s = mod(k + e * d, SECP_N);
+  return Buffer.concat([numTo32(R[0]), numTo32(s)]).toString('hex');
+}
+function bip340Verify(sigHex, msg32, pubHex) {
+  try {
+    if (!HEX128.test(String(sigHex)) || !HEX64.test(String(pubHex))) return false;
+    const sig = Buffer.from(sigHex, 'hex'), pub = Buffer.from(pubHex, 'hex');
+    const P = liftX(bytesToNum(pub));
+    if (!P) return false;
+    const r = bytesToNum(sig.subarray(0, 32)), s = bytesToNum(sig.subarray(32, 64));
+    if (r >= SECP_P || s >= SECP_N) return false;
+    const e = mod(bytesToNum(taggedSha256('BIP0340/challenge', sig.subarray(0, 32), pub, Buffer.from(msg32))), SECP_N);
+    const R = ptAdd(ptMul([SECP_GX, SECP_GY], s), ptMul([P[0], SECP_P - P[1]], e));
+    if (!R || (R[1] & 1n) !== 0n || R[0] !== r) return false;
+    return true;
+  } catch (err) { return false; }
+}
 
 function validateClaim(claim, network) {
   if (!claim || typeof claim !== 'object') return 'claim must be an object';
@@ -23,6 +95,47 @@ function validateClaim(claim, network) {
     if (BigInt(v) >= (1n << 63n)) return 'state.' + f + ' must be below 2^63';
   }
   return null;
+}
+
+// PROTOCOL.md section 11.1: Signed Ownership Challenge (ReliksOwnerChallengeV1)
+function claimDigest(chain, claim) {
+  const err = validateClaim(claim);
+  if (err) throw new Error('invalid claim: ' + err);
+  const s = claim.state;
+  const st = { ownerIdentifier: s.ownerIdentifier, identifierType: 0, price: String(BigInt(s.price)), artist: s.artist, royalty_bips: String(BigInt(s.royalty_bips)), program_hash: s.program_hash, factory_covid: s.factory_covid, serial: String(BigInt(s.serial)), lineage: s.lineage, sales: String(BigInt(s.sales)) };
+  const encState = Buffer.from(chain.encEditionState(st));
+  const pre = Buffer.concat([Buffer.from('ReliksClaimV1', 'utf8'), Buffer.from(claim.network, 'utf8'), Buffer.from([0]), Buffer.from(claim.covenantId, 'hex'), encState]);
+  return Buffer.from(B2.blake2b(new Uint8Array(pre), 32));
+}
+
+function ownershipChallengeDigest(chain, claim, challenge) {
+  if (typeof challenge !== 'string' || !challenge.length) throw new Error('challenge must be a non-empty string');
+  const cd = claimDigest(chain, claim);
+  const pre = Buffer.concat([Buffer.from('ReliksOwnerChallengeV1', 'utf8'), cd, Buffer.from(challenge, 'utf8')]);
+  return Buffer.from(B2.blake2b(new Uint8Array(pre), 32));
+}
+
+function signOwnershipChallenge(chain, claim, challenge, privHex) {
+  if (typeof privHex !== 'string' || !/^[0-9a-f]{64}$/i.test(privHex)) throw new Error('private key must be 64 hex characters');
+  const pub = bip340Pubkey(privHex.toLowerCase());
+  if (pub !== String(claim && claim.state && claim.state.ownerIdentifier).toLowerCase()) throw new Error('private key does not match claim.state.ownerIdentifier');
+  const msg = ownershipChallengeDigest(chain, claim, challenge);
+  const sig = bip340Sign(msg, privHex.toLowerCase());
+  return { scheme: 'ReliksOwnerChallengeV1', challenge, signature: sig };
+}
+
+function verifyOwnershipProof({ chain, claim, proof, expectedChallenge }) {
+  const p = proof || (claim && claim.proof);
+  if (!p || typeof p !== 'object') return { ok: false, reason: 'missing_proof' };
+  if (p.scheme !== 'ReliksOwnerChallengeV1') return { ok: false, reason: 'unsupported_scheme' };
+  if (typeof p.challenge !== 'string' || !p.challenge.length) return { ok: false, reason: 'empty_challenge' };
+  if (expectedChallenge !== undefined && p.challenge !== expectedChallenge) return { ok: false, reason: 'challenge_mismatch' };
+  if (!HEX128.test(String(p.signature))) return { ok: false, reason: 'malformed_signature' };
+  let msg;
+  try { msg = ownershipChallengeDigest(chain, claim, p.challenge); }
+  catch (e) { return { ok: false, reason: 'invalid_claim' }; }
+  const valid = bip340Verify(p.signature, msg, claim.state.ownerIdentifier);
+  return valid ? { ok: true, owner: claim.state.ownerIdentifier, challenge: p.challenge, claimHash: claimDigest(chain, claim).toString('hex') } : { ok: false, reason: 'bad_signature' };
 }
 
 function seriesMatches(st, series) {
@@ -90,6 +203,11 @@ async function verifyClaim(a) {
   if (a.provenance !== false) prov = await checkProvenance({ chain, io, covenantId: claim.covenantId, st, kj, fresh });
   add('provenance', ['listed_and_derived', 'listed', 'unchecked'].indexOf(prov.level) >= 0, prov.level + (prov.detail ? ': ' + prov.detail : ''));
   if (['unlisted', 'inconsistent', 'mismatch'].indexOf(prov.level) >= 0) return out('provenance_failed', { outpoint: lo, provenance: prov.level });
+  if (claim.proof || a.proof || a.requireProof) {
+    const pr = verifyOwnershipProof({ chain, claim, proof: a.proof || claim.proof, expectedChallenge: a.expectedChallenge });
+    add('ownership_proof', pr.ok, pr.ok ? 'signed by ' + pr.owner.slice(0, 12) + '…' : pr.reason);
+    if (!pr.ok) return out('proof_failed', { outpoint: lo, provenance: prov.level, proofError: pr.reason });
+  }
   return fresh ? out('current', { outpoint: lo, provenance: prov.level }) : stale('current', { outpoint: lo, provenance: prov.level });
 }
 
@@ -124,4 +242,4 @@ function claimFromLedger(ledger, i, opts) {
   if (!e) throw new Error('edition not in ledger');
   return { reliks_claim: 1, network: (opts && opts.network) || 'testnet-10', covenantId: e.cov, state: { ownerIdentifier: e.owner, identifierType: 0, price: String(e.price), artist: s.artist, royalty_bips: String(s.royalty_bips), program_hash: s.program_hash, factory_covid: ledger.C, serial: String(e.serial), lineage: e.lineage, sales: String(e.sales) }, outpoint: e.txId + ':' + e.index, source: 'ledger' };
 }
-module.exports = { validateClaim, verifyClaim, claimFromLedger };
+module.exports = { validateClaim, verifyClaim, claimFromLedger, claimDigest, ownershipChallengeDigest, signOwnershipChallenge, verifyOwnershipProof, bip340Pubkey, bip340Sign, bip340Verify };

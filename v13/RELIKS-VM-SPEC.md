@@ -1,10 +1,10 @@
-# Reliks-VM v1, revision 2 (draft specification)
+# Reliks-VM v1, revision 2 (specification)
 
-Status: draft, revised after porting the DAG-City engine. Two independent interpreters (Python, JavaScript) agree on every vector in `vectors.json` (105 checks). Two testnet-10 series use it (the clean DAG-City port of section 9 and a second program, marks3); no mainnet series does; items marked "proposed" are Reliks 2 design decisions. The magic version byte stays `0x01` until genesis; until then any rule here can still change.
+Status: **v1 frozen for mainnet genesis** (revised after porting the DAG-City engine and completing 3-implementation differential verification). Three independent interpreters — Python (`v13/vm/rvm.py`), JavaScript (`v13/vm/rvm.js`), and C99 (`v13/vm/rvm.c`, verified under ASan/UBSan/LSan) — agree on every vector in `v13/vm/vectors.json` (**142 checks** in Python/JS; **135 program cases** in C) plus ~12,000 differential-fuzzed programs. Two testnet-10 series use it (Series A: the clean DAG-City port of section 9, and Series B: `marks3`). The magic version byte `0x01` is frozen for v1; any future instruction or limit additions will route through magic version `0x02` (section 2.1).
 
 ## 0. What the DAG-City port changed
 
-I ported the mainnet engine (3,888 bytes of JS; the module file is 5,323 bytes) to bytecode. The faithful port (1,615 bytes) produces **element-for-element identical SVG** on 310 serials (10 named, 300 random), with worst-case 127,617 fuel, 1,709 elements, 105 KB of SVG and stack depth 7, all far below the limits.
+I ported the mainnet engine (5,323 bytes of JS) to bytecode. The faithful port (1,615 bytes) produces **element-for-element identical SVG** on 310 serials (10 named, 300 random), with worst-case 127,617 fuel, 1,709 elements, 105 KB of SVG and stack depth 7, all far below the limits.
 
 The original engine could not be ported with revision 1. The gaps, and what closed them:
 
@@ -18,16 +18,16 @@ The original engine could not be ported with revision 1. The gaps, and what clos
 
 Two findings that are not op-set gaps:
 
-1. **The original engine has an accidental RNG alias.** Its `var x,y` redeclarations reuse the xorshift state variables `x` and `y` as drawing coordinates, so the random stream depends on drawn positions. The faithful port reproduces this by implementing xorshift in bytecode (state in memory cells). That works, and proves the built-in RNG is optional for expressiveness. The **clean port** (1,567 bytes) uses the built-in RNG with separate variables, so it draws a different city for the same serial. Decision for you: keep the faithful stream (existing mainnet art keeps its look) or use the clean one for new series. Status (2026-10-03): the first testnet-10 VM series uses the clean port (program hash `cf1f1e60...`, section 9); the mainnet engine is JavaScript, not VM.
-2. **History inputs map naturally onto art.** In the clean port, `PAT` shifts one building color family and `WEAR` fades window lights. Across `PAT` 0..63 and `WEAR` 0..255 the geometry is byte-identical; only colors and opacity change (checked for several combinations).
+1. **The original engine has an accidental RNG alias.** Its `var x,y` redeclarations reuse the xorshift state variables `x` and `y` as drawing coordinates, so the random stream depends on drawn positions. The faithful port reproduces this by implementing xorshift in bytecode (state in memory cells). That works, and proves the built-in RNG is optional for expressiveness. The **clean port** (1,567 bytes) uses the built-in RNG with separate variables, so it draws a different city for the same serial. **Decision closed (2026-10-03):** Series A on testnet-10 uses the clean port (program hash `cf1f1e60...`, section 9) and Series B uses `marks3` (`ce0f4fc0...`); the v12 mainnet engine remains JavaScript.
+2. **History inputs map naturally onto art.** In the clean port, `PAT` shifts one building color family and `WEAR` fades window lights. Across `PAT` 0..63 and `WEAR` 0..255 the geometry is byte-identical; only colors and opacity change (checked across corner sweeps).
 
 ## 1. Purpose
 
 A tiny deterministic machine that turns `(program, serial, lineage, sales)` into one canonical SVG string. Goals: safe to run untrusted programs, byte-identical output in any language, programs small enough to bake into a covenant template.
 
-Non-goals: floating point, text, images, transforms, filters, linear gradients. Anything not listed here does not exist.
+Non-goals: floating point, text, images, transforms, filters, linear gradients in v1. Anything not listed here does not exist in `RVM\x01`.
 
-## 2. Program encoding
+## 2. Program encoding & covenant baking ceiling
 
 ```
 offset 0   4 bytes   magic "RVM" 0x01
@@ -41,6 +41,13 @@ offset 8   code      1..65535 bytes
 Immediates: `s` = signed LEB128 (at most 5 bytes, int32, **minimal encoding only**); `u8`; `u16` little endian.
 
 Load-time validation, in order: header (`E_HEADER`); linear decode of all code (`E_DECODE`: unknown opcode, truncated immediate, bad LEB128, `lane` index above 7); every jump/call target must be the start of a decoded instruction (`E_TARGET`; a target equal to the code length is invalid).
+
+**Covenant PUSHDATA2 baking ceiling (`25,641` bytes):** While the RVM binary format permits `code` up to `65,535` bytes, a program baked into `SeriesFactory` appears **twice** in the compiled factory redeem script (once in the template suffix and once in `engineBaked()`), alongside ~7.1 KB of covenant logic (`compiled_bytes ≈ 2 * program_bytes + 7,129`). Because the entire redeem script is pushed in the mint signature script via a single `OP_PUSHDATA2` (`65,535` bytes max), **any on-chain bakeable program must be at most `25,641` bytes** (enforced by `cli/reliks-lens-vm.js`).
+
+### 2.1 Versioning & extension policy
+- **v1 (`0x52 0x56 0x4d 0x01`) is frozen:** The opcode map, fault check orders, PRNG algorithm, resource limits, and canonical SVG formatting rules of `0x01` are closed and immutable. Any unassigned byte in `0x01` (`0x07–0x0F`, `0x19–0x1F`, `0x27–0x2F`, `0x36–0x3F`, `0x45–0x4F`, `0x54–0x5F`, `0x64–0x6F`, `0x73–0x7F`, `0x84–0x8F`, `0x93`, `0xA0–0xFF`) must fault with `E_DECODE` in every `0x01` interpreter forever.
+- **Additive v2 (`0x52 0x56 0x4d 0x02`):** Any future instruction additions (such as ellipses/arcs, stroke cap/join/dash, linear gradients, evenodd fill, or stack helpers `PICK`/`2DUP`) must use magic byte `0x02` with strictly additive semantics (every valid `0x01` program has identical behavior under `0x02` when header byte 3 is changed).
+- **On-chain `engine_lang`:** New and mainnet Reliks-VM v1 series must deploy with `engine_lang = 2` (`PROTOCOL.md` §6).
 
 ## 3. Machine
 
@@ -69,9 +76,9 @@ Load-time validation, in order: header (`E_HEADER`); linear decode of all code (
 | EQ NE LT LE GT GE | 30..35 | | Signed, push 1 or 0 |
 | JMP JZ JNZ | 40 41 42 | u16 | JZ/JNZ pop the condition |
 | CALL RET | 43 44 | u16 | Depth over 64 is `E_CALLDEPTH`; RET on empty is `E_UNDERFLOW` |
-| LOAD STORE | 50 51 | u8 | Cells 0..255 (STORE pops) |
-| **LDX** | 52 | | Pop addr, push `mem[addr]`; addr outside 0..1023 is `E_RANGE` |
-| **STX** | 53 | | Pop addr, pop value, `mem[addr] = value`; range as LDX |
+| LOAD STORE | 50 51 | u8 | Direct cells 0..255 via `u8` immediate (`STORE idx` pops `value` and sets `mem[idx] = value`) |
+| **LDX** | 52 | | Pop `addr` from stack, push `mem[addr]`; `addr` outside 0..1023 is `E_RANGE` |
+| **STX** | 53 | | **Pop `addr` first, then pop `value`**, set `mem[addr] = value` (push order: `push value`, `push addr`, `stx`); `addr` outside 0..1023 is `E_RANGE` |
 | LANE | 60 | u8 | Push base lane `k` (0..7) |
 | SERIAL | 61 | | Low 32 bits of the serial as int32 |
 | PAT | 62 | | Patina, **0..63** |
@@ -92,6 +99,8 @@ Load-time validation, in order: header (`E_HEADER`); linear decode of all code (
 | **GRADBEGIN** | 9D | | Start radial gradient (id = next free). `E_GRAD` if one is open or 8 exist |
 | **GRADSTOP** | 9E | | Pop `opacity color offset` (offset 0..100 percent, non-decreasing, else `E_RANGE`). `E_GRAD` outside a gradient or past 8 stops |
 | **GRADEND** | 9F | | Needs at least 2 stops (`E_GRAD`); emits `<defs>` element. Gradient is centered, radius 50%, object bounding box |
+
+> **Authoring note on `STORE` vs `STX`:** `STORE <cell>` takes a static `u8` immediate (`0..255`) and pops `value` from the stack. `STX` takes no immediate and pops `addr` (top of stack) followed by `value` (second on stack): to write `value` into `mem[addr]` dynamically, push `value` first, then push `addr`, then execute `stx`.
 
 Stack checks: underflow (`E_UNDERFLOW`) before overflow (`E_OVERFLOW`); operations pop all operands before any other check.
 
@@ -115,9 +124,9 @@ pat      = blake2b-256("ReliksPatinaV2" || lineage[32])[0] & 63
 wear     = min(sales, 255)
 ```
 
-Why `pat` is one 6-bit value (proposed): a buyer can pick a pubkey offline and thereby steer `lineage`. Exposing only 64 values bounds that grinding by construction. `wear` cannot be chosen offline, but it can be raised by self-sales at the cost of the royalty and the fee (PROTOCOL.md section 4). Using the full serial (v12 used 32 bits) avoids birthday collisions near 65k editions.
+**Host vs. VM width rule:** The constraint `0 <= serial < 2^63` in `host_inputs` is a **host covenant rule** (Silverscript state integers are non-negative signed 64-bit values, `PROTOCOL.md` §1 & §3). The **VM itself** only ever sees `serial32` (`int32`) and the eight `int32` `lanes`. Similarly, the legacy v12 seed derivation (`"ReliksSeedV10"` over the 32-bit serial) is a host rule used only when reproducing v12 art.
 
-Note for the faithful port: it needs the *v12* lane derivation (`"ReliksSeedV10"` and the 32-bit serial) to reproduce mainnet art. That derivation is a host rule, not a VM rule.
+Why `pat` is one 6-bit value: a buyer can pick a pubkey offline and thereby steer `lineage`. Exposing only 64 values bounds that grinding by construction. `wear` cannot be chosen offline, but it can be raised by self-sales at the cost of the royalty and the fee (`PROTOCOL.md` section 4). Using the full serial (v12 used 32 bits) avoids birthday collisions near 65k editions.
 
 ## 6. Canonical SVG
 
@@ -143,7 +152,7 @@ Gradient stops: `stop-opacity="x"` is emitted only when the stop opacity is not 
 
 Path `d`: segments concatenated with no separator: `M<x> <y>`, `L<x> <y>`, `l<dx> <dy>`, `q<cx> <cy> <dx> <dy>`, `Z`.
 
-`render_hash = blake2b-256(svg bytes)`. Anchor rule (proposed): render at serial 1, lineage all zero, sales 0.
+`render_hash = blake2b-256(svg bytes)`. Anchor rule: render at serial 1, lineage all zero, sales 0.
 
 ## 7. Faults
 
@@ -151,13 +160,13 @@ Any fault invalidates the render (no partial output): `E_HEADER E_DECODE E_TARGE
 
 ## 8. Assembler (tooling only)
 
-Free-form tokens, `;` comments, `label:`, numbers decimal or `0x`. Directives `.canvas W H`, `.byte N`, `.var NAME CELL`. Loads and stores accept variable names (`ld X`, `st X`). Macros: `show` (draw a 1x1 rect at the popped x, for tests), `next VAR LIMIT LABEL` and `nextle` (increment and loop while below / at most the limit).
+Free-form tokens, `;` comments, `label:`, numbers decimal or `0x`. Directives `.canvas W H`, `.byte N`, `.var NAME CELL`. Loads and stores accept variable names (`ld X`, `st X`). Macros: `show` (draw a 1x1 rect at the popped x, for tests), `next VAR LIMIT LABEL` and `nextle` (increment and loop while below / at most the limit). Both `v13/vm/rvm.py` and `web/rvm-asm.js` report source line numbers (`line N`) when an assembly error occurs.
 
 ## 9. DAG-City port results
 
 | | Original JS | Faithful port | Clean port |
 |---|---|---|---|
-| Source / program size | 3,888 bytes | **1,615 bytes** | **1,567 bytes** |
+| Source / program size | 5,323 bytes | **1,615 bytes** | **1,567 bytes** |
 | Output vs original | | identical elements, 310 of 310 serials | different city (RNG alias fixed) |
 | Worst fuel / elements / SVG | | 127,617 / 1,709 / 105 KB | about 84k / 1,499 / 92 KB (serial 1) |
 | History inputs | none | none | `PAT` tints one building family, `WEAR` fades window lights |
@@ -168,13 +177,36 @@ Program hashes: faithful `792fed9b8c47d5fbc4f8c60d2929eb929fa8cd34e447317252fbd5
 
 ## 10. Test vectors
 
-`vectors.json` (the harness reports 142 checks: the 105 of revision 2, whose breakdown below accounts for 103, plus 37 added 2026-10-03 (RND/RNDR order, SVG size boundary, and the `rule_*` vectors above)): 5 host-derivation vectors and 98 program cases: 62 fault cases (one per rule, including every new op), boundary passes at exactly 10,000 elements and 2,048 segments, arithmetic edges with hand-written expectations, PRNG sequences from a separate generator, indirect memory, relative paths, group and gradient rules, and DAG-City renders. `python3 gen_vectors.py` regenerates and self-checks; `node check.js` runs everything through the JS interpreter.
+`vectors.json` (the harness reports **142 checks**: 7 host-derivation/helper vectors and 135 program cases across arithmetic, PRNG, limits, path/group/gradient rules, SVG size boundaries, fuel boundaries, and full DAG-City renders). `python3 gen_vectors.py` regenerates and self-checks; `node v13/vm/check.js` runs all 142 checks through the JS interpreter; `node v13/vm/check3.js <binary>` runs all 135 program cases through any external conformance binary (such as `v13/vm/rvm.c`). Both `check.js` and `check3.js` (including ASan/UBSan builds of `rvm.c`) run in `npm test` and CI.
 
 ## 11. Remaining gaps and decisions
 
-1. **Third implementation.** Two agreeing interpreters written by the same author is weaker evidence than a Rust one written from this spec alone. Recommended before genesis. Update 2026-10-03: a third implementation in C (`v13/vm/rvm.c`, harness `v13/vm/check3.js`) was written from the spec text and agrees with the Python and JavaScript interpreters on all program cases of `vectors.json` (104 when first run, 135 now). It is not independent in the strict sense: its author had read parts of `rvm.js` (emission order, style attribute text, opacity text, the RNDR check order). A Rust or other implementation by someone who has seen neither reference remains valuable.
-2. **Faithful or clean city?** See section 0.
-3. **Limits are now measured, not guessed, for this one engine.** Worst case was 13% of fuel and 17% of elements. Other engines may need more; nothing here argues for raising them.
-4. **Assembly ergonomics.** The port used variables for everything; stack-only code would be unreadable. A small structured-language compiler is worth building before third-party artists write engines. `PICK` and `2DUP` would shorten hand-written code but were not needed.
-5. **Rasterization is not part of the spec.** Identity was checked on parsed elements, not pixels. Two renderers can still differ in anti-aliasing, which is outside what the hash covers.
-6. **Lane derivation for legacy art** (section 5) must be handled by the host if mainnet editions are to render unchanged.
+1. **Third and fourth implementations.** Three implementations in Python (`rvm.py`), JavaScript (`rvm.js`), and C99 (`rvm.c`) agree on all 135 program vectors and ~12,000 differential-fuzzed programs. Because all three were written by the same author, a fourth implementation (e.g. in Rust or Zig) written solely from this specification by an independent author — together with spec-authored golden vectors — remains a high-value post-release milestone (see section 12 for the plug-in conformance harness interface).
+2. **Faithful or clean city? (Closed 2026-10-03):** Closed. Testnet-10 Series A uses the clean port (`cf1f1e60...`) and Series B uses `marks3` (`ce0f4fc0...`, which renders wear via structural marks rather than patina roof recolor).
+3. **Limits are now measured, not guessed.** Worst case on DAG-City is ~13% of fuel and ~17% of elements; `cli/reliks-lens-vm.js` sweeps serials and `(pat, wear)` corners for any candidate program and reports exact headroom against `FUEL_MAX`, `MAX_ELEMS`, `MAX_SVG`, and the `25,641`-byte PUSHDATA2 baking ceiling.
+4. **Assembly ergonomics.** `v13/vm/rvm.py` and `web/rvm-asm.js` include source line numbers in error messages, and a structured-language compiler targeting RVM v1 bytecode can be layered purely in tooling without changing the frozen v1 machine.
+5. **Rasterization is not part of the spec.** Identity is checked on canonical SVG bytes, not pixels.
+6. **Lane derivation for legacy art** (section 5) is handled by the host (`ReliksSeedV10` for v12 JS engines; `ReliksSeedV2` for Reliks-VM).
+
+## 12. Conformance Harness Protocol (for independent implementations)
+
+Any standalone RVM v1 interpreter in any language (C, Rust, Zig, Go, etc.) can be verified against the full `v13/vm/vectors.json` suite using `node v13/vm/check3.js <path-to-executable>` by implementing the following process contract:
+
+1. **Command-line arguments (`argv[1..4]`)**:
+   ```
+   <executable> "<lane0>,<lane1>,<lane2>,<lane3>,<lane4>,<lane5>,<lane6>,<lane7>" "<serial32>" "<pat>" "<wear>"
+   ```
+   - `lane0..lane7`: eight signed 32-bit decimal integers (`-2147483648..2147483647`), comma-separated with no spaces.
+   - `serial32`: signed 32-bit decimal integer.
+   - `pat`: integer in `0..63`.
+   - `wear`: integer in `0..255`.
+2. **Standard input (`stdin`)**:
+   - Hexadecimal string encoding the program bytes (ASCII `0-9`, `a-f`, `A-F`; any whitespace/newlines must be ignored).
+3. **Standard output (`stdout`)**:
+   - On successful `HALT`: print `OK <byte_length>\n` followed immediately by the exact `<byte_length>` ASCII bytes of the canonical SVG (no trailing newline after `</svg>`).
+   - On any fault: print `FAULT <fault_code>\n` (where `<fault_code>` is one of the 17 fault identifiers in section 7, e.g. `FAULT E_RANGE\n`) and exit with status `0`.
+4. **Verification**:
+   ```bash
+   node v13/vm/check3.js /path/to/your-rvm-binary
+   ```
+   `check3.js` runs all 135 program vectors and verifies exact fault codes, exact SVG byte lengths, exact BLAKE2b-256 SVG hashes, and verbatim SVG strings where pinned.

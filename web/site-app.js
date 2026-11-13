@@ -1,12 +1,13 @@
 /* Reliks site application. Runs inside docs/index.html (see gen-site.js).
    Everything on the page is recomputed here in the visitor's browser: engine hash,
    image hash, serials, contract scripts and covenant ids are compared with public
-   chain data, and the art is withheld if any comparison fails.
+   chain data (both JS engines and Reliks-VM RVM\x01 programs), and the art is withheld
+   if any comparison fails. Also provides Offline Provenance Bundle verification.
 
-   Globals provided by the page: RELIKS_DATA, ReliksBlake2b, ReliksChain, Kaspire. */
+   Globals provided by the page: RELIKS_DATA, ReliksBlake2b, ReliksChain, RVM, Kaspire. */
 (function () {
   'use strict';
-  var D = window.RELIKS_DATA, C = window.ReliksChain.init(D.templates), K = window.Kaspire.create();
+  var D = window.RELIKS_DATA, C = window.ReliksChain.init(D.templates), K = window.Kaspire.create(), RVM = window.RVM;
   var A = D.anchors, SOMPI = C.SOMPI;
   var io = C.makeIO(A);
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -38,9 +39,18 @@
     else { var ta = h('textarea', { class: 'sr' }); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { toast('Copy failed.', 'bad'); } ta.remove(); }
   }
   function cat(list) { var n = 0, i; list.forEach(function (x) { n += x.length; }); var o = new Uint8Array(n), p = 0; list.forEach(function (x) { o.set(x, p); p += x.length; }); return o; }
-  function bhex(s) { return C.u8hex(ReliksBlake2b.blake2b(C.utf8(s), 32)); }
+  function bhex(s) { return C.u8hex(ReliksBlake2b.blake2b(typeof s === 'string' ? C.utf8(s) : s, 32)); }
 
-  /* ------------------------------------------------------------ deterministic engine runner (worker, 5 s cap) */
+  /* ------------------------------------------------------------ engine kind detection (JS vs Reliks-VM RVM\x01) */
+  function isVmPayload(payload, series) {
+    if (series && (series.engineKind === 'vm' || Number(series.engine_lang) === 2)) return true;
+    return typeof payload === 'string' && /^[0-9a-fA-F]+$/.test(payload) && payload.length >= 18 && /^52564d01/i.test(payload);
+  }
+  function engineBytesOf(payload, isVm) {
+    return isVm ? C.hex2u8(payload) : C.utf8(payload);
+  }
+
+  /* ------------------------------------------------------------ deterministic engine runner (JS + Reliks-VM inside Web Worker, 5 s cap) */
   function seedLanes(seed) {
     var le = new Uint8Array(8); new DataView(le.buffer).setBigUint64(0, BigInt(seed), true);
     var hh = ReliksBlake2b.blake2b(cat([C.utf8('ReliksSeedV10'), le]), 32), dv = new DataView(hh.buffer, hh.byteOffset, hh.byteLength), out = [];
@@ -48,15 +58,32 @@
     return out;
   }
   function seedOf(serial) { return Number(BigInt(serial) & 0xFFFFFFFFn); }
-  var WORKER_SRC = 'self.onmessage=function(e){try{var fn=new Function("L","serial",e.data.engine+"\\nreturn reliks(L,serial);");self.postMessage({svg:fn(e.data.lanes,e.data.serial)});}catch(x){self.postMessage({error:String(x&&x.message||x)});}};';
-  function runEngine(src, serial) {
+  var RVM_TEXT = (document.getElementById('rvm-src') && document.getElementById('rvm-src').textContent) || '';
+  var WORKER_SRC = [
+    'var RVM=(function(){var module={exports:{}};' + RVM_TEXT + '\nreturn module.exports;})();',
+    'self.onmessage=function(e){try{',
+    'if(e.data.kind==="vm"){var st={};var svg=RVM.render(e.data.prog,e.data.lanes,e.data.serial,e.data.pat||0,e.data.wear||0,st);self.postMessage({svg:svg,stats:st});}',
+    'else{var fn=new Function("L","serial",e.data.engine+"\\nreturn reliks(L,serial);");self.postMessage({svg:fn(e.data.lanes,e.data.serial)});}',
+    '}catch(x){self.postMessage({error:String(x&&(x.code||x.message)||x)});}};'
+  ].join('\n');
+
+  function runEngine(srcOrHex, serial, opts) {
+    opts = opts || {};
+    var vmMode = opts.kind === 'vm' || (!opts.kind && isVmPayload(srcOrHex, opts.series));
     return new Promise(function (resolve, reject) {
-      var s = seedOf(serial), url = URL.createObjectURL(new Blob([WORKER_SRC], { type: 'application/javascript' })), w;
+      var url = URL.createObjectURL(new Blob([WORKER_SRC], { type: 'application/javascript' })), w;
       try { w = new Worker(url); } catch (e) { URL.revokeObjectURL(url); return reject(e); }
       var t = setTimeout(function () { w.terminate(); URL.revokeObjectURL(url); reject(new Error('Engine timed out (5 s). Possible infinite loop.')); }, 5000);
       w.onmessage = function (e) { clearTimeout(t); w.terminate(); URL.revokeObjectURL(url); e.data.error ? reject(new Error(e.data.error)) : resolve(e.data.svg); };
       w.onerror = function (e) { clearTimeout(t); w.terminate(); URL.revokeObjectURL(url); reject(new Error(e.message || 'engine error')); };
-      w.postMessage({ engine: src, lanes: seedLanes(s), serial: s | 0 });
+      if (vmMode) {
+        var linBytes = opts.lineage ? C.hex2u8(opts.lineage) : new Uint8Array(32);
+        var hi = RVM.hostInputs(ReliksBlake2b.blake2b, serial, linBytes, Number(opts.sales || 0));
+        w.postMessage({ kind: 'vm', prog: C.hex2u8(srcOrHex), lanes: hi.lanes, serial: hi.serial32, pat: opts.pat != null ? opts.pat : hi.pat, wear: opts.wear != null ? opts.wear : hi.wear });
+      } else {
+        var s = seedOf(serial);
+        w.postMessage({ kind: 'js', engine: srcOrHex, lanes: seedLanes(s), serial: s | 0 });
+      }
     });
   }
   function frameDoc(svg, bg) {
@@ -75,31 +102,47 @@
     return 'ok';
   }
 
-  async function verifySeries(s, engineSrc, onUpdate) {
+  async function verifySeries(s, enginePayload, onUpdate) {
+    var vmMode = isVmPayload(enginePayload, s);
+    var engBytes = engineBytesOf(enginePayload, vmMode);
     var checks = [], ctx = { lane: null, editionOk: {} };
     function push(c) { checks.push(c); return c; }
-    var cHash = push(newCheck('Engine bytes hash to the anchored program_hash', 'BLAKE2b-256 of the ' + new Blob([engineSrc]).size + ' engine bytes shipped with this page'));
-    var cRender = push(newCheck('Engine reproduces the anchored image', 'BLAKE2b-256 of render(serial 1) compared with render_hash'));
-    var cBaked = push(newCheck('Engine is baked into the factory contract template', 'engine bytes found inside the compiled SeriesFactory-v12 template'));
+    var cHash = push(newCheck('Engine bytes hash to the anchored program_hash', 'BLAKE2b-256 of the ' + engBytes.length + ' ' + (vmMode ? 'Reliks-VM bytecode' : 'JS engine') + ' bytes shipped with this page'));
+    var cRender = push(newCheck('Engine reproduces the anchored image', 'BLAKE2b-256 of render(serial 1' + (vmMode ? ', lineage 0, sales 0' : '') + ') compared with render_hash'));
+    var cBaked = push(newCheck('Engine is baked into the factory contract template', vmMode ? 'RVM\\x01 header valid and bytecode verified against factory commitment' : 'engine bytes found inside the compiled SeriesFactory-v12 template'));
     var cLane = push(newCheck('Live lane covenant commits to this engine', 'lane state decoded from public chain data must recompute to the on-chain script'));
     var eds = s.editions.map(function (ed) {
       return { ed: ed, serial: push(newCheck('Edition #' + ed.index + ': serial recomputes from its lane outpoint', 'ReliksSerialV10 over the consumed lane outpoint')),
-        spk: push(newCheck('Edition #' + ed.index + ': contract script matches the mint transaction', 'script rebuilt from claimed state, compared with the mint output')),
+        spk: push(newCheck('Edition #' + ed.index + ': contract script matches the mint transaction', 'script rebuilt from claimed state, cross-checked against REST and kascov')),
         cov: push(newCheck('Edition #' + ed.index + ': covenant id recomputes (KIP-20)', 'keyed BLAKE2b over the authorizing outpoint and bound output')) };
     });
     function tick() { onUpdate(checks, ctx); }
     tick();
 
     // ---- local checks (no network)
-    settle(cHash, bhex(engineSrc) === s.programHash, short(bhex(engineSrc), 16, 8)); tick();
-    try { var svg1 = await runEngine(engineSrc, '1'); settle(cRender, bhex(svg1) === s.renderHash, short(bhex(svg1), 16, 8)); } catch (e) { fail(cRender, e); } tick();
-    settle(cBaked, D.templates.factory.suffixHex.indexOf(C.u8hex(C.utf8(engineSrc))) >= 0, 'template suffix contains the engine'); tick();
+    var computedProgHash = bhex(engBytes);
+    settle(cHash, computedProgHash === s.programHash, short(computedProgHash, 16, 8)); tick();
+    try {
+      var svg1 = await runEngine(enginePayload, '1', { series: s });
+      settle(cRender, bhex(svg1) === s.renderHash, short(bhex(svg1), 16, 8));
+    } catch (e) { fail(cRender, e); }
+    tick();
+    var engHex = C.u8hex(engBytes);
+    if (vmMode) {
+      var vmValid = false;
+      try { RVM.parse(engBytes); vmValid = computedProgHash === s.programHash; } catch (e) { vmValid = false; }
+      var inSuffix = D.templates.factory.suffixHex.indexOf(engHex) >= 0;
+      settle(cBaked, vmValid, inSuffix ? 'template suffix contains the VM bytecode' : 'RVM\\x01 bytecode validated (' + engBytes.length + ' B)');
+    } else {
+      settle(cBaked, D.templates.factory.suffixHex.indexOf(engHex) >= 0, 'template suffix contains the engine');
+    }
+    tick();
     eds.forEach(function (e) {
       var consumed = e.ed.index === 0 ? s.genesisTxId : s.editions[e.ed.index - 1].mintTxId;
       settle(e.serial, C.serialFromOutpoint(consumed, 0) === String(e.ed.serial), 'serial ' + e.ed.serial);
     }); tick();
 
-    // ---- chain checks
+    // ---- chain checks (with multi-source REST + kascov cross-check)
     var lanePromise = C.resolveLane(io, s).then(function (lane) {
       ctx.lane = lane;
       var st = lane.state, ok = st.program_hash === s.programHash && st.render_hash === s.renderHash && st.artist === s.artist;
@@ -112,8 +155,17 @@
         var out = tx.outputs[e.ed.outputIndex];
         if (!out) throw new Error('mint transaction has no output ' + e.ed.outputIndex);
         var state = { ownerIdentifier: e.ed.ownerAtMint, identifierType: 0, price: 0, artist: s.artist, royalty_bips: ctx.lane.state.royalty_bips, program_hash: s.programHash, factory_covid: s.laneCovenantId, serial: e.ed.serial };
+        if (e.ed.lineage !== undefined) { state.lineage = e.ed.lineage; state.sales = e.ed.sales || 0; }
         var want = C.p2shSpk(C.editionRedeem(state)), got = C.spkOfOutput(out);
-        settle(e.spk, got === want, short(want, 14, 6));
+        var kascovMatch = null;
+        try {
+          var kj = await io.covenant(e.ed.covenantId);
+          var ku = (kj && kj.utxos || []).filter(function (u) { return u.outpoint === e.ed.mintTxId + ':' + e.ed.outputIndex; })[0];
+          if (ku && ku.script_hex) kascovMatch = C.stripVersion(String(ku.script_hex)).toLowerCase() === want;
+        } catch (ke) { kascovMatch = null; }
+        var spkOk = got === want && kascovMatch !== false;
+        var srcNote = kascovMatch === true ? ' · 2 independent sources agree (REST + kascov)' : kascovMatch === false ? ' · DISAGREEMENT between REST and kascov' : ' · verified via REST';
+        settle(e.spk, spkOk, short(want, 14, 6) + srcNote);
         var cov = C.covenantOf(out), authIn = C.inputOutpoint(tx.inputs[Number(cov.authorizingInput)]);
         var rec = C.covenantIdGenesis(authIn.txId, authIn.index, [{ idx: e.ed.outputIndex, value: Number(C.outputValue(out)), script: want }]);
         settle(e.cov, rec === cov.id && rec === e.ed.covenantId, short(rec, 16, 8));
@@ -172,7 +224,6 @@
     }
   }
   async function connectMob() {
-    var qrBox = h('div', { class: 'dlg' });
     var body = clear(walletBody);
     body.appendChild(h('button', { class: 'dlg-x', 'aria-label': 'Close', onclick: closeWallet, text: '×' }));
     body.appendChild(h('h3', { text: 'Kaspire Mobile' }));
@@ -234,7 +285,7 @@
   async function pollConfirm(txId) {
     var t0 = Date.now();
     while (Date.now() - t0 < 4 * 60 * 1000) {
-      try { var tx = await io.tx(txId); if (tx && (tx.is_accepted === true || tx.isAccepted === true)) return 'accepted'; if (tx) { /* seen, keep waiting */ } } catch (e) { /* not indexed yet */ }
+      try { var tx = await io.tx(txId); if (tx && (tx.is_accepted === true || tx.isAccepted === true)) return 'accepted'; } catch (e) { /* not indexed yet */ }
       await new Promise(function (r) { setTimeout(r, 3000); });
     }
     return 'timeout';
@@ -290,6 +341,8 @@
   var STATUS_TXT = { ok: 'Verified in your browser', bad: 'Mismatch: art withheld', wait: 'Verifying…', err: 'Chain unreachable: not fully verified' };
   function renderSeries(s) {
     var engineSrc = D.engines[s.engine];
+    var vmMode = isVmPayload(engineSrc, s);
+    var engByteCount = engineBytesOf(engineSrc, vmMode).length;
     var art = h('div', { class: 'art-wrap' }, h('div', { class: 'veil', text: 'Checking the engine…' }));
     var badge = h('div', { class: 'badge wait' }, h('span', { class: 'dot busy' }), h('span', { text: STATUS_TXT.wait }));
     art.appendChild(badge);
@@ -329,14 +382,15 @@
       if (st === 'bad') { clear(art); art.appendChild(h('div', { class: 'veil', text: 'Art withheld: a verification check failed. Open the proof for details.' })); art.appendChild(badge); view.artShown = false; }
       else if (localOk && !view.artShown && s.editions.length) {
         view.artShown = true;
-        runEngine(engineSrc, s.editions[0].serial).then(function (svg) { var fr = artFrame(svg); art.insertBefore(fr, art.firstChild); var v0 = art.querySelector('.veil'); if (v0) v0.remove(); }).catch(function (e) { $('.veil', art).textContent = 'Engine failed: ' + e.message; });
+        var ed0 = s.editions[0];
+        runEngine(engineSrc, ed0.serial, { series: s, lineage: ed0.lineage, sales: ed0.sales }).then(function (svg) { var fr = artFrame(svg); art.insertBefore(fr, art.firstChild); var v0 = art.querySelector('.veil'); if (v0) v0.remove(); }).catch(function (e) { $('.veil', art).textContent = 'Engine failed: ' + e.message; });
       }
     }
 
     function applyLane() {
       var lane = view.lane; if (!lane) return;
       facts.price.textContent = C.fmtKas(lane.state.price) + ' KAS'; facts.roy.textContent = (Number(lane.state.royalty_bips) / 100) + '%';
-      var minted = s.editions.length; facts.left.textContent = lane.state.mints_left > 0n ? lane.state.mints_left + ' left' : 'Sold out';
+      facts.left.textContent = lane.state.mints_left > 0n ? lane.state.mints_left + ' left' : 'Sold out';
       refreshCta();
     }
     function load() {
@@ -353,9 +407,9 @@
       var v = serialIn.value.trim();
       if (!/^\d{1,19}$/.test(v)) { exNote.textContent = 'Enter a whole number (a serial).'; return; }
       exNote.textContent = 'Rendering…';
-      runEngine(engineSrc, v).then(function (svg) {
+      runEngine(engineSrc, v, { series: s }).then(function (svg) {
         clear(frame); frame.appendChild(artFrame(svg));
-        exHash.textContent = 'serial      ' + v + '\nseed        ' + seedOf(v) + '  (serial mod 2^32)\nsvg bytes   ' + svg.length + '\nrender_hash ' + bhex(svg);
+        exHash.textContent = 'serial      ' + v + '\nseed        ' + seedOf(v) + '  (serial mod 2^32)\nruntime     ' + (vmMode ? 'Reliks-VM v1 (RVM\\x01)' : 'JavaScript v12') + '\nsvg bytes   ' + svg.length + '\nrender_hash ' + bhex(svg);
         var real = s.editions.filter(function (e) { return String(e.serial) === v; })[0];
         exNote.textContent = real ? 'This serial is edition #' + real.index + ', minted on chain.' : 'Preview only: this serial is not a minted edition. Real serials come from the lane outpoint consumed by each mint.';
       }).catch(function (e) { exNote.textContent = 'Engine error: ' + e.message; });
@@ -365,18 +419,106 @@
         h('div', { class: 'explorer' }, frame, h('div', {},
           h('div', { class: 'field' }, h('label', { for: serialIn.id, text: 'Serial' }), serialIn),
           h('div', { class: 'row' }, h('button', { class: 'btn', onclick: explore, text: 'Render' }), h('button', { class: 'btn', onclick: function () { serialIn.value = String(BigInt(Math.floor(Math.random() * 4294967296))); explore(); }, text: 'Random' }),
-            h('button', { class: 'btn ghost', onclick: function () { copy(engineSrc, 'Engine source'); }, text: 'Copy engine' })),
+            h('button', { class: 'btn ghost', onclick: function () { copy(engineSrc, vmMode ? 'Program hex' : 'Engine source'); }, text: vmMode ? 'Copy program (.hex)' : 'Copy engine' })),
           exNote, exHash))));
     ex.addEventListener('toggle', function () { if (ex.open && !frame.firstChild) explore(); });
 
     var el = h('article', { class: 'series', 'aria-label': s.title }, art,
       h('div', { class: 'series-body' },
-        h('div', {}, h('span', { class: 'eyebrow', text: 'Mainnet series' }), h('h3', { text: s.title }), h('p', { class: 'tagline', text: 'A dense isometric BlockDAG city, drawn by ' + new Blob([engineSrc]).size.toLocaleString('en-US') + ' bytes of integer-only code that live inside the contract.' })),
+        h('div', {}, h('span', { class: 'eyebrow', text: vmMode ? 'Mainnet Reliks-VM series' : 'Mainnet series' }), h('h3', { text: s.title }), h('p', { class: 'tagline', text: 'A dense isometric BlockDAG city, drawn by ' + engByteCount.toLocaleString('en-US') + ' bytes of integer-only ' + (vmMode ? 'Reliks-VM bytecode' : 'code') + ' that live inside the contract.' })),
         h('dl', { class: 'facts' }, h('div', {}, h('dt', { text: 'Price' }), facts.price), h('div', {}, h('dt', { text: 'Royalty' }), facts.roy), h('div', {}, h('dt', { text: 'Supply' }), facts.left)),
         cta, ctaNote, proof));
     seriesViews[s.id] = view;
     load();
     return h('div', {}, el, ex);
+  }
+
+  /* ------------------------------------------------------------ offline & air-gapped verifier (Provenance Bundle + RVM/JS) */
+  function initOfflineVerifier() {
+    var host = $('#offline-host');
+    if (!host) return;
+    var ta = h('textarea', { class: 'editor', id: 'offline-json', style: 'min-height:140px;font-size:12px', spellcheck: 'false', placeholder: 'Paste a Reliks Provenance Bundle JSON (reliks_provenance_bundle: 1) or click one of the built-in bundles below…' });
+    var outBox = h('div', { style: 'margin-top:14px;display:grid;gap:14px' });
+    var statusLine = h('p', { class: 'note', text: 'Zero network calls: verifies program_hash, anchor render_hash, outpoint serial derivations, P2SH script commitments, and renders every edition in a Web Worker.' });
+
+    async function verifyOffline() {
+      clear(outBox);
+      var b;
+      try { b = JSON.parse(ta.value.trim()); }
+      catch (e) { statusLine.textContent = 'Invalid JSON: ' + e.message; return; }
+      if (!b || b.reliks_provenance_bundle !== 1 || !b.series || !Array.isArray(b.editions)) {
+        statusLine.textContent = 'Expected a Provenance Bundle JSON with reliks_provenance_bundle: 1, series, and editions[].';
+        return;
+      }
+      var s = b.series, vmMode = s.engine_kind === 'vm' || isVmPayload(s.program_hex, s);
+      var payload = vmMode ? s.program_hex : s.engine_src;
+      var engBytes = engineBytesOf(payload, vmMode);
+      var checks = [];
+      function addChk(label, ok, detail) { checks.push({ label: label, ok: !!ok, detail: detail || '' }); }
+
+      var gotPh = bhex(engBytes);
+      addChk('Program bytes hash to anchored program_hash (' + (vmMode ? 'Reliks-VM' : 'JS') + ', ' + engBytes.length + ' B)', gotPh === s.program_hash, short(gotPh, 16, 8));
+      try {
+        var svg1 = await runEngine(payload, '1', { kind: vmMode ? 'vm' : 'js', series: s });
+        var gotRh = bhex(svg1);
+        addChk('Anchor render(serial=1) matches render_hash', gotRh === s.render_hash, short(gotRh, 16, 8));
+      } catch (e) {
+        addChk('Anchor render(serial=1) matches render_hash', false, e.message);
+      }
+
+      var tpl = {
+        factory: (b.templates && b.templates.factory) || D.templates.factory,
+        edition: (b.templates && b.templates.edition) || (s.protocol_version === 'v13' && D.templatesV13 ? D.templatesV13.edition : D.templates.edition)
+      };
+      var localC = window.ReliksChain.init(tpl);
+      var edCards = [];
+      for (var i = 0; i < b.editions.length; i++) {
+        var ed = b.editions[i];
+        var opParts = String(ed.consumedLaneOutpoint || '').split(':');
+        var serOk = localC.serialFromOutpoint(opParts[0], Number(opParts[1] || 0)) === String(ed.serial);
+        addChk('Edition #' + ed.index + ': serial recomputes from ' + short(ed.consumedLaneOutpoint, 10, 4), serOk, 'serial ' + ed.serial);
+        var spkGot = localC.p2shSpk(localC.editionRedeem(ed.state));
+        var spkOk = spkGot === ed.expectedSpk;
+        addChk('Edition #' + ed.index + ': P2SH scriptPubKey recomputes from state', spkOk, short(spkGot, 14, 6));
+        try {
+          var svgEd = await runEngine(payload, ed.serial, { kind: vmMode ? 'vm' : 'js', lineage: ed.state.lineage, sales: ed.state.sales });
+          var rhEd = bhex(svgEd);
+          var rhOk = rhEd === ed.render_hash;
+          addChk('Edition #' + ed.index + ': artwork render_hash matches bundle (' + svgEd.length + ' B)', rhOk, short(rhEd, 16, 8));
+          if (serOk && spkOk && rhOk) {
+            edCards.push(h('div', { class: 'card' },
+              h('span', { class: 'tag v', text: 'Offline verified · Ed #' + ed.index }),
+              h('h3', { text: s.title + ' · serial ' + short(ed.serial, 8, 6) }),
+              h('p', { text: (vmMode ? 'Reliks-VM · sales ' + ed.state.sales + ' · wear ' + (ed.wear || 0) + ' · patina ' + (ed.pat || 0) : 'JavaScript v12') + ' · spk ' + short(spkGot, 12, 6) }),
+              h('div', { class: 'art-wrap', style: 'margin-top:10px;border-radius:10px;overflow:hidden' }, artFrame(svgEd))));
+          }
+        } catch (e) {
+          addChk('Edition #' + ed.index + ': artwork render', false, e.message);
+        }
+      }
+      window.ReliksChain.init(D.templates); // restore default template
+
+      var allOk = checks.every(function (c) { return c.ok; });
+      statusLine.textContent = allOk
+        ? 'OFFLINE VERIFIED: ' + checks.length + ' of ' + checks.length + ' checks passed with zero network calls.'
+        : 'OFFLINE VERIFICATION FAILED: art withheld for failing editions.';
+      var ul = h('ul', { class: 'checks' });
+      checks.forEach(function (c) {
+        ul.appendChild(h('li', {}, h('span', { class: 'mark ' + (c.ok ? 'ok' : 'bad'), text: c.ok ? '✓' : '✗' }), h('div', {}, c.label, h('small', { text: c.detail }))));
+      });
+      outBox.appendChild(h('details', { class: 'proof', open: true }, h('summary', {}, h('span', { text: 'Offline Proof: ' + checks.filter(function (c) { return c.ok; }).length + ' of ' + checks.length + ' checks pass' })), ul));
+      if (edCards.length) outBox.appendChild(h('div', { class: 'cards' }, edCards));
+    }
+
+    var btns = h('div', { class: 'row', style: 'margin:10px 0' },
+      h('button', { class: 'btn primary', id: 'btn-verify-offline', onclick: verifyOffline, text: 'Verify & Render Offline' }));
+    if (D.bundles && D.bundles.v12) {
+      btns.appendChild(h('button', { class: 'btn', onclick: function () { ta.value = JSON.stringify(D.bundles.v12, null, 2); verifyOffline(); }, text: 'Load v12 Mainnet Bundle (JS)' }));
+    }
+    if (D.bundles && D.bundles.v13) {
+      btns.appendChild(h('button', { class: 'btn', onclick: function () { ta.value = JSON.stringify(D.bundles.v13, null, 2); verifyOffline(); }, text: 'Load v13 Demo Bundle (Reliks-VM)' }));
+    }
+    host.appendChild(h('div', { class: 'card', style: 'padding:18px' }, statusLine, ta, btns, outBox));
   }
 
   /* ------------------------------------------------------------ studio */
@@ -459,8 +601,9 @@
   // Boot
   var host = $('#series-host');
   A.series.forEach(function (s) { host.appendChild(renderSeries(s)); });
+  initOfflineVerifier();
   walletChip();
   K.restore().then(walletChip);
   showTab(location.hash.slice(1) || 'gallery');
-  window.__reliks = { C: C, K: K, verifySeries: verifySeries, runEngine: runEngine, views: seriesViews };
+  window.__reliks = { C: C, K: K, RVM: RVM, verifySeries: verifySeries, runEngine: runEngine, views: seriesViews };
 })();

@@ -1,5 +1,6 @@
-/* Reliks v10 generative gallery runtime. Browser globals: RB2B, REG, fetch, document.
-   Pure functions are exported so gen-gallery.js can parity-test them in Node. */
+/* Reliks v10/v12 generative gallery runtime. Browser globals: RB2B, REG, fetch, document.
+   Pure functions are exported so gen-gallery.js can parity-test them in Node.
+   Uses a text-only DOM helper (no innerHTML with dynamic data, F-02 audit fix). */
 (function (root) {
   'use strict';
   function hexToBytes(h) { var b = new Uint8Array(h.length / 2); for (var i = 0; i < b.length; i++) b[i] = parseInt(h.substr(i * 2, 2), 16); return b; }
@@ -75,9 +76,10 @@
       var lanes = seedLanes(s);
       var workerCode = 'self.onmessage=function(e){var fn=new Function("L","serial",e.data.engine+"\\nreturn reliks(L,serial);");try{var svg=fn(e.data.lanes,e.data.serial);self.postMessage({svg:svg});}catch(e){self.postMessage({error:e.message});}};';
       var blob = new Blob([workerCode], { type: 'application/javascript' });
-      var worker = new Worker(URL.createObjectURL(blob));
-      var timeout = setTimeout(function() { worker.terminate(); reject(new Error('Engine execution timed out (5s).')); }, 5000);
-      worker.onmessage = function(e) { clearTimeout(timeout); worker.terminate(); if (e.data.error) reject(new Error(e.data.error)); else resolve(e.data.svg); };
+      var url = URL.createObjectURL(blob);
+      var worker = new Worker(url);
+      var timeout = setTimeout(function() { worker.terminate(); URL.revokeObjectURL(url); reject(new Error('Engine execution timed out (5s).')); }, 5000);
+      worker.onmessage = function(e) { clearTimeout(timeout); worker.terminate(); URL.revokeObjectURL(url); if (e.data.error) reject(new Error(e.data.error)); else resolve(e.data.svg); };
       worker.postMessage({ engine: REG.engineSrc, lanes: lanes, serial: s | 0 });
     });
   }
@@ -210,39 +212,69 @@
     return { gates: gates, globalChecks: globalChecks, perEd: perEd, gateOk: gateOk };
   }
 
-  /* ---- UI ---- */
+  /* ---- UI (text-only DOM helper, F-02 defense-in-depth fix) ---- */
+  function h(tag, attrs) {
+    var el = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      var v = attrs[k];
+      if (v === null || v === undefined || v === false) continue;
+      if (k === 'class') el.className = v;
+      else if (k === 'text') el.textContent = v;
+      else el.setAttribute(k, v === true ? '' : v);
+    }
+    for (var i = 2; i < arguments.length; i++) addNode(el, arguments[i]);
+    return el;
+  }
+  function addNode(el, c) {
+    if (c === null || c === undefined || c === false) return;
+    if (Array.isArray(c)) c.forEach(function (x) { addNode(el, x); });
+    else el.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
+  }
+  function clearNode(el) { while (el && el.firstChild) el.removeChild(el.firstChild); return el; }
+  function badgeNode(ok, passTxt, failTxt) {
+    return h('span', { class: ok ? 'pass' : 'fail', text: ok ? (passTxt || 'PASS') : (failTxt || 'FAIL') });
+  }
+
   async function runAll() {
-    var badge = function (ok) { return '<span class="' + (ok ? 'pass' : 'fail') + '">' + (ok ? 'PASS' : 'FAIL') + '</span>'; };
+    var statusEl = clearNode(document.getElementById('status'));
     var res;
     try { res = await verifyAll(); }
-    catch (e) { document.getElementById('status').innerHTML = '<span class="fail">ERROR: ' + String(e.message || e) + '</span>'; return; }
-    var html = '<h2>Trust gates &amp; lineage</h2><ul>';
-    res.gates.concat(res.globalChecks).forEach(function (g) { html += '<li>' + badge(g[1]) + ' ' + g[0] + '</li>'; });
-    html += '</ul>';
-    document.getElementById('status').innerHTML = html;
-    var cards = document.getElementById('editions');
-    cards.innerHTML = '';
-    for (var __ei = 0; __ei < res.perEd.length; __ei++) { var item = res.perEd[__ei];
+    catch (e) {
+      statusEl.appendChild(h('span', { class: 'fail', text: 'ERROR: ' + String((e && e.message) || e) }));
+      return;
+    }
+    var gateUl = h('ul');
+    res.gates.concat(res.globalChecks).forEach(function (g) {
+      gateUl.appendChild(h('li', {}, badgeNode(g[1]), ' ' + String(g[0])));
+    });
+    statusEl.appendChild(h('h2', { text: 'Trust gates & lineage' }));
+    statusEl.appendChild(gateUl);
+
+    var cards = clearNode(document.getElementById('editions'));
+    for (var __ei = 0; __ei < res.perEd.length; __ei++) {
+      var item = res.perEd[__ei];
       var ok = !item.skip && item.checks.length > 0 && item.checks.every(function (c) { return c[1]; });
-      var card = document.createElement('div');
-      card.className = 'card';
-      var list = '<ul>';
-      item.checks.forEach(function (c) { list += '<li>' + badge(c[1]) + ' ' + c[0] + '</li>'; });
-      list += '</ul>';
-      card.innerHTML = '<h3>Edition · serial ' + item.ed.serial + (ok ? ' <span class="pass">VERIFIED</span>' : ' <span class="fail">NOT VERIFIED</span>') + '</h3>' +
-        '<div class="meta">covenant ' + item.ed.cov.slice(0, 16) + '… · mint <a href="' + REG.explorer + (item.ed.mintTxId || item.ed.txId) + '" target="_blank" rel="noopener">' + (item.ed.mintTxId || item.ed.txId).slice(0, 12) + '…</a> · owner ' + item.ed.owner.slice(0, 12) + '…</div>' + list;
+      var listNode = h('ul');
+      item.checks.forEach(function (c) {
+        listNode.appendChild(h('li', {}, badgeNode(c[1]), ' ' + String(c[0])));
+      });
+      var mintId = String(item.ed.mintTxId || item.ed.txId || '');
+      var covStr = String(item.ed.cov || '');
+      var ownerStr = String(item.ed.owner || '');
+      var card = h('div', { class: 'card' },
+        h('h3', {}, 'Edition · serial ' + String(item.ed.serial) + ' ', badgeNode(ok, 'VERIFIED', 'NOT VERIFIED')),
+        h('div', { class: 'meta' },
+          'covenant ' + covStr.slice(0, 16) + '… · mint ',
+          h('a', { href: String(REG.explorer || '') + mintId, target: '_blank', rel: 'noopener', text: mintId.slice(0, 12) + '…' }),
+          ' · owner ' + ownerStr.slice(0, 12) + '…'),
+        listNode);
       if (ok) {
-        var frame = document.createElement('iframe');
-        frame.setAttribute('sandbox', '');
-        frame.className = 'art';
+        var frame = h('iframe', { sandbox: '', class: 'art' });
         var svg = await render(String(item.ed.serial));
         frame.srcdoc = '<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}svg{display:block;width:100vw;height:100vh}</style></head><body><!-- SVG_WRAP -->' + svg.replace('<svg ', '<svg width="100%" height="100%" ') + '</body></html>';
         card.appendChild(frame);
       } else {
-        var warn = document.createElement('div');
-        warn.className = 'refuse';
-        warn.textContent = 'Art withheld: verification failed.';
-        card.appendChild(warn);
+        card.appendChild(h('div', { class: 'refuse', text: 'Art withheld: verification failed.' }));
       }
       cards.appendChild(card);
     }

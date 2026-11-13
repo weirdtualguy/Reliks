@@ -30,7 +30,7 @@ const k = parseInt(kArg || '0', 10);
         { amount: wIn.amount - fee, scriptPublicKey: wIn.spk }
       ];
       const rawSig = secp.schnorr.signSync(sighash(inputs, outputs, 0), V.PRIV);
-    const sigW1 = '41' + hex(secp.schnorr.signSync(sighash(inputs, outputs, 1), V.PRIV)) + '01';
+      const sigW1 = '41' + hex(secp.schnorr.signSync(sighash(inputs, outputs, 1), V.PRIV)) + '01';
       const ss = B.concat([pushMinInt(newPrice), pushMin(B.concat([rawSig, B.from([0x01])])), pushMin(TAG('list')), pushMin(curRedeem)]);
       return rpc(inputs, outputs, hex(ss), sigW1);
     }
@@ -39,8 +39,8 @@ const k = parseInt(kArg || '0', 10);
     ed.price = Number(newPrice); ed.txId = txId; ed.index = 0;
     ed.spk = hex(V.p2sh(redeemOf(stateOf(ed.owner, ed.price))));
     fs.writeFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v12.json'), JSON.stringify(LD, null, 2));
-    console.log('RELIKS LIST:', txId, '| edition', ed.cov.slice(0, 16), '| newPrice', newPrice.toString());
-    } else if (cmd === 'buy') {
+    console.log('RELIKS V12 LIST:', txId, '| edition', ed.cov.slice(0, 16), '| newPrice', newPrice.toString());
+  } else if (cmd === 'buy') {
     const price = BigInt(ed.price);
     if (price < 100000000n) throw new Error('not listed or below MIN_PRICE (1 KAS)');
     const roy = price * BigInt(LD.series.royalty_bips) / 10000n;
@@ -65,7 +65,7 @@ const k = parseInt(kArg || '0', 10);
     ed.owner = V.USER; ed.price = 0; ed.txId = txId; ed.index = 0;
     ed.spk = hex(V.p2sh(redeemOf(stateOf(ed.owner, ed.price))));
     fs.writeFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v12.json'), JSON.stringify(LD, null, 2));
-    console.log('RELIKS V11 BUY:', txId, '| ownerNet', ownerNet.toString(), '| royalty', roy.toString(), '| platformFee 0 (Model B)');
+    console.log('RELIKS V12 BUY:', txId, '| ownerNet', ownerNet.toString(), '| royalty', roy.toString());
   } else if (cmd === 'sell') {
     const askPrice = BigInt(priceArg);
     if (askPrice !== 0n && askPrice < 100000000n) throw new Error('askPrice below MIN_PRICE (1 KAS)');
@@ -94,6 +94,6 @@ const k = parseInt(kArg || '0', 10);
     ed.owner = buyer; ed.price = 0; ed.txId = txId; ed.index = 0;
     ed.spk = hex(V.p2sh(redeemOf(stateOf(ed.owner, ed.price))));
     fs.writeFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v12.json'), JSON.stringify(LD, null, 2));
-    console.log('RELIKS V11 SELL:', txId, '| ownerNet', ownerNet.toString(), '| royalty', roy.toString());
-} else { console.error('usage: node secondary-v4.js <list|buy|sell> <edIdx> [priceSompi]'); process.exit(1); }
+    console.log('RELIKS V12 SELL:', txId, '| ownerNet', ownerNet.toString(), '| royalty', roy.toString());
+  } else { console.error('usage: node cli/secondary-v12.js <list|buy|sell> <edIdx> [priceSompi]'); process.exit(1); }
 })().catch(e => { console.error(e); process.exit(1); });

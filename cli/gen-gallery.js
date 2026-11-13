@@ -72,10 +72,11 @@ const regJson = JSON.stringify(REG).replace(/</g, '\\u003c');
 const html = [
   '<!doctype html>', '<html lang="en"><head>', '<meta charset="utf-8">',
   '<meta name="viewport" content="width=device-width, initial-scale=1">',
+  '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\' \'unsafe-eval\' blob:; style-src \'unsafe-inline\'; worker-src blob:; frame-src \'self\' data: blob:; connect-src https://api.kaspa.org https://api-tn10.kaspa.org https://kascov.io">',
   '<title>Reliks — Generative Gallery</title>',
   '<style>' + css + '</style></head><body>',
   '<h1>RELIKS <span>// generative gallery</span></h1>',
-  '<div class="sub">Trustless render chain. The inlined registry is an untrusted hint: every field is re-anchored against live chain commitments by reconstructing each P2SH scriptPubKey from claimed state + template and comparing it to what the chain recorded. The 901-byte engine is bundled in this page and anchored to the on-chain program_hash. Art is withheld on any mismatch. No IPFS. No reveal sigscripts.</div>',
+  '<div class="sub">Trustless render chain. The inlined registry is an untrusted hint: every field is re-anchored against live chain commitments by reconstructing each P2SH scriptPubKey from claimed state + template and comparing it to what the chain recorded. The engine is bundled in this page and anchored to the on-chain program_hash. Art is withheld on any mismatch. No IPFS. No reveal sigscripts.</div>',
   '<div id="status">verifying against ' + N.rest + ' …</div>',
   '<h2>Editions</h2>', '<div id="editions"></div>',
   '<div class="note">Prune-proof model: artwork = render(engine, serial mod 2^32), integer-only deterministic math. Engine anchored by blake2b(engine) == state[0] program_hash; renderer proven canonical by blake2b(render(1)) == render_hash; serials recomputed from lane outpoints via the ReliksSerialV10 LE63 polynomial; lineage authenticated output-by-output against the chain. Live (unspent) outputs anchor against the never-pruned UTXO set via bech32 P2SH addresses; spent outputs fall back to archival sources with explicit labeling.</div>',
