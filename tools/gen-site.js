@@ -1,7 +1,8 @@
 // Builds docs/index.html: one self-contained page (GitHub Pages serves docs/).
 // No external scripts, styles or fonts. Everything the page verifies is recomputed in the browser.
 // Supports both v13 Reliks-VM (RVM\x01, engine_lang = 2) programs and legacy v12 JavaScript engines,
-// plus offline provenance bundle & claim verification.
+// 1-click Series Publishing in Studio with Kaspire, in-browser Secondary Market trading
+// (List, Buy, Cancel Listing, Transfer), and offline provenance bundle verification.
 // The only optional third-party code is the pinned WalletConnect SDK, fetched at runtime
 // when a visitor explicitly picks "Kaspire Mobile" (see web/kaspire.js).
 'use strict';
@@ -10,6 +11,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const read = (...p) => fs.readFileSync(path.join(ROOT, ...p), 'utf8');
 const scriptSafe = (s) => s.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--');
+const compactJs = (s) => scriptSafe(s.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('//')).join('\n'));
 const json = (o) => scriptSafe(JSON.stringify(o)).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 
 const { blake2b } = require(path.join(ROOT, 'web', 'blake2b.js'));
@@ -86,17 +88,26 @@ try {
   const b13Path = path.join(ROOT, 'v13', 'provenance-v13-demo.json');
   if (fs.existsSync(b12Path)) {
     const b12 = JSON.parse(fs.readFileSync(b12Path, 'utf8'));
-    delete b12.templates; // page already embeds D.templates
+    delete b12.templates;
+    if (b12.series && b12.series.engine_src === engines['reliks-engine-mainnet.js']) delete b12.series.engine_src;
     bundles.v12 = b12;
   }
   if (fs.existsSync(b13Path)) {
     const b13 = JSON.parse(fs.readFileSync(b13Path, 'utf8'));
-    delete b13.templates; // page already embeds D.templatesV13
+    delete b13.templates;
     bundles.v13 = b13;
   }
 } catch (e) {}
 
-const DATA = { anchors, templates, templatesV13: { edition: templatesV13.edition }, engines, bundles, studio: { prelude: PRELUDE, templates: studioTemplates, cap: CAP } };
+const E12 = require(path.join(ROOT, 'lib', 'reliks-engine-mainnet.js'));
+const eng12Hex = Buffer.from(E12.ENGINE_SRC, 'utf8').toString('hex');
+const ed12SufHex = templates.edition.suffixHex;
+const packedFactory = Object.assign({}, templates.factory, {
+  suffixHex: templates.factory.suffixHex.split(eng12Hex).join('__ENG12__').split(ed12SufHex).join('__ED12__')
+});
+if (studioTemplates.dagcity === E12.ENGINE_SRC.trim()) delete studioTemplates.dagcity;
+
+const DATA = { anchors, templates: { factory: packedFactory, edition: templates.edition }, templatesV13: { edition: templatesV13.edition }, engines, bundles, studio: { prelude: PRELUDE, templates: studioTemplates, cap: CAP } };
 const favicon = 'data:image/svg+xml,' + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='#06080b'/><path d='M32 10l20 11v22L32 54 12 43V21z' fill='none' stroke='#49c5b1' stroke-width='4'/><path d='M32 10v44M12 21l40 22M52 21L12 43' stroke='#49c5b1' stroke-width='2' opacity='.5'/></svg>");
 
 const view = (id, inner) => `<section class="view" id="view-${id}" ${id === 'gallery' ? '' : 'hidden'}>${inner}</section>`;
@@ -107,8 +118,9 @@ const gallery = `
   <h1>The artwork is a <em>program</em>. Its hash lives in the contract.</h1>
   <p>Reliks anchors a small deterministic engine (Reliks-VM bytecode or JavaScript) inside a Kaspa covenant. Anyone can re-render every edition from public chain data or an offline provenance bundle. This page does exactly that in your browser, and withholds the art if any check fails.</p>
 </div>
-<div class="section-h"><h2>Series</h2><span>every number below is read from the chain, not from this page</span></div>
+<div class="section-h"><h2>Series &amp; Secondary Market</h2><span>every number below is read from the chain, not from this page</span></div>
 <div id="series-host"></div>
+<div id="custom-series-host" style="margin-top:18px"></div>
 <div class="section-h"><h2>Offline &amp; Air-Gapped Verifier</h2><span>verify and render any provenance bundle or claim with zero network access</span></div>
 <div id="offline-host"></div>
 <div class="section-h"><h2>How to read the proof</h2></div>
@@ -120,8 +132,8 @@ const gallery = `
 </div>`;
 
 const studio = `
-<div class="hero" style="padding-bottom:8px"><span class="eyebrow">Studio · Reliks-VM (v13) &amp; JS</span><h1>Design a program. <em>Gate</em> it. Export it.</h1>
-<p>Write a Reliks-VM assembly program (or legacy v12 JS engine) in the browser, preview patina and optional sales wear across lineages and sales, and run the determinism gates. Standalone offline VM studio: <a href="studio.html">studio.html</a>.</p></div>
+<div class="hero" style="padding-bottom:8px"><span class="eyebrow">Studio · Reliks-VM (v13) &amp; JS</span><h1>Design a program. <em>Gate</em> it. Publish it.</h1>
+<p>Write a Reliks-VM assembly program (or legacy v12 JS engine) in the browser, preview patina and optional sales wear across lineages and sales, run the determinism gates, and publish your SeriesFactory covenant on chain in one click with Kaspire. Standalone offline VM studio: <a href="studio.html">studio.html</a>.</p></div>
 <div class="row" style="margin:20px 0 14px">
   <input id="name" value="my-program" aria-label="Series name" style="max-width:220px" />
   <select id="tpl" aria-label="Template" style="max-width:240px">
@@ -154,19 +166,22 @@ const studio = `
     <div class="status-line" id="studio-status" aria-live="polite"></div>
   </div>
 </div>
-<div class="section-h"><h2>Export</h2></div>
+<div class="section-h"><h2>Publish &amp; Export</h2></div>
 <div class="cards">
-  <div class="card"><h3>Program / Engine file</h3><p style="margin-bottom:14px">Exports Reliks-VM bytecode (<code>.hex</code>) and assembly source (<code>.rvm.txt</code>) for <code>cli/reliks-lens-vm.js</code>, or a legacy <code>.js</code> module. Export requires green gates.</p><div class="row"><button class="btn primary" id="exe">Export bytecode (.hex)</button><button class="btn" id="exsrc">Export source (.rvm.txt)</button></div></div>
-  <div class="card"><h3>Series file</h3>
-    <div class="field"><label for="artist">Artist key (x-only, 64 hex)</label><input id="artist" placeholder="filled from Kaspire when connected" /></div>
+  <div class="card"><h3>1. Publish Series on Chain (Kaspire)</h3>
+    <p style="margin-bottom:10px">Deploys a new <code>SeriesFactory-v13</code> covenant with your program baked in. Requires green gates and a connected Kaspire wallet (1 KAS carrier + network fee).</p>
+    <div class="field"><label for="artist">Artist key (64 hex or kaspa: address)</label><input id="artist" placeholder="filled from Kaspire when connected" /></div>
     <div class="row"><div class="field"><label for="price">Price (KAS)</label><input id="price" value="1" inputmode="decimal" /></div><div class="field"><label for="roy">Royalty %</label><input id="roy" value="5" inputmode="decimal" /></div><div class="field"><label for="eds">Editions</label><input id="eds" value="8" inputmode="numeric" /></div></div>
-    <button class="btn" id="exs">Export series (.json)</button></div>
-  <div class="card"><h3>Then, on your computer</h3><ol class="steps" style="margin-top:6px"><li><span><code>node cli/reliks-lens-vm.js my-program.hex</code></span></li><li><span><code>node v13/gen-vm-factory-args.js --program my-program.hex --artist &lt;hex&gt; --price 100000000 --royalty 500 --supply 8</code></span></li><li><span>compile with <code>silverc</code>, then deploy</span></li></ol></div>
+    <div class="row" style="margin-top:8px"><button class="btn primary" id="pub-kaspire">Publish on Chain (Kaspire)</button><button class="btn" id="exs">Export series (.json)</button></div>
+    <div id="pub-out" style="margin-top:10px"></div>
+  </div>
+  <div class="card"><h3>2. Export Program / Bytecode</h3><p style="margin-bottom:14px">Exports Reliks-VM bytecode (<code>.hex</code>) and assembly source (<code>.rvm.txt</code>) for <code>cli/reliks-lens-vm.js</code>, or a legacy <code>.js</code> module. Export requires green gates.</p><div class="row"><button class="btn" id="exe">Export bytecode (.hex)</button><button class="btn" id="exsrc">Export source (.rvm.txt)</button></div></div>
+  <div class="card"><h3>CLI Alternative</h3><ol class="steps" style="margin-top:6px"><li><span><code>node cli/reliks-lens-vm.js my-program.hex</code></span></li><li><span><code>node v13/gen-vm-factory-args.js --program my-program.hex --artist &lt;hex&gt; --price 100000000 --royalty 500 --supply 8</code></span></li><li><span>compile with <code>silverc</code>, then deploy</span></li></ol></div>
 </div>`;
 
 const protocol = `
 <div class="hero" style="padding-bottom:8px"><span class="eyebrow">Protocol</span><h1>What Reliks is, and what it is <em>not</em>.</h1>
-<p>Reliks is three Silverscript covenants, the Reliks-VM deterministic bytecode runtime, and a set of verification tools. It is not a marketplace, an indexer or an audited product. This page keeps the claims small enough to check.</p></div>
+<p>Reliks is three Silverscript covenants, the Reliks-VM deterministic bytecode runtime, and a set of verification tools. It is not a custodial marketplace, an indexer or an audited product. This page keeps the claims small enough to check.</p></div>
 <div class="section-h"><h2>Claims</h2></div>
 <table class="claims"><thead><tr><th style="width:34%">Claim</th><th style="width:16%">Status</th><th>Basis</th></tr></thead><tbody>
 <tr><td>The image is a function of (engine, serial[, lineage, sales])</td><td><span class="tag v">Checked in page</span></td><td>Engine hash, image hash and serial are recomputed on load (both Reliks-VM and JS).</td></tr>
@@ -176,7 +191,7 @@ const protocol = `
 <tr><td>Royalties on resale</td><td><span class="tag d">Contract, partly</span></td><td>Enforced on covenant-priced sales (list/buy, escrow accept). <code>transfer</code> and zero-price <code>sell</code> are royalty-free by design.</td></tr>
 <tr><td>The art survives pruning</td><td><span class="tag n">Not claimed</span></td><td>The hash is anchored on chain and the engine bytes ship in the contract script, but pruned nodes may drop old transactions. Keep a copy of the engine or provenance bundle (this repository has both).</td></tr>
 <tr><td>Audited</td><td><span class="tag n">No</span></td><td>Automated review passes only. See <code>docs/AUDIT-SUMMARY.md</code>.</td></tr>
-<tr><td>Buy, sell and offer in the browser</td><td><span class="tag n">Not yet</span></td><td>This page mints and verifies. Listing, buying and offers run through the command-line tools today.</td></tr>
+<tr><td>Publish, mint, list, buy and transfer in the browser</td><td><span class="tag v">In browser + CLI</span></td><td>1-click series publishing, primary minting, and secondary trading (list, buy, cancel listing, transfer) run directly in the browser with Kaspire and verify every covenant script before broadcast.</td></tr>
 </tbody></table>
 <div class="section-h"><h2>Wallet</h2></div>
 <div class="cards">
@@ -223,17 +238,18 @@ ${view('protocol', protocol)}
 </main>
 <footer><span>Reliks v13 · MIT · not financial advice, not audited</span><span><a href="https://github.com/weirdtualguy/Reliks" target="_blank" rel="noopener">Source</a> · <a href="https://kaspire.kaslab.space" target="_blank" rel="noopener">Kaspire wallet</a></span></footer>
 <dialog id="wallet-dlg" aria-label="Connect wallet"><div class="dlg" id="wallet-body"></div></dialog>
-<dialog id="mint-dlg" aria-label="Mint"><div class="dlg" id="mint-body"></div></dialog>
+<dialog id="mint-dlg" aria-label="Transaction"><div class="dlg" id="mint-body"></div></dialog>
 <div class="toasts" id="toasts" aria-live="polite"></div>
-<script type="text/plain" id="qr-src">${scriptSafe(read('web', 'vendor', 'qrcode-generator.js'))}</script>
+<script type="text/plain" id="qr-src">${compactJs(read('web', 'vendor', 'qrcode-generator.js'))}</script>
 <script>window.RELIKS_DATA=${json(DATA)};
+(function(D){var e=D.engines['reliks-engine-mainnet.js']||'',eh='';for(var i=0;i<e.length;i++){var c=e.charCodeAt(i);eh+=(c<16?'0':'')+c.toString(16);}D.templates.factory.suffixHex=D.templates.factory.suffixHex.split('__ENG12__').join(eh).split('__ED12__').join(D.templates.edition.suffixHex);if(D.bundles&&D.bundles.v12&&D.bundles.v12.series&&!D.bundles.v12.series.engine_src)D.bundles.v12.series.engine_src=e;if(D.studio&&D.studio.templates&&!D.studio.templates.dagcity)D.studio.templates.dagcity=e.trim();})(window.RELIKS_DATA);
 window.__qr=function(){if(!window.qrcode){(0,eval)(document.getElementById('qr-src').textContent);}return window.qrcode;};</script>
-<script id="rvm-src">var RVM=(function(){var module={exports:{}};\n${scriptSafe(read('v13', 'vm', 'rvm.js'))}\nreturn module.exports;})();window.RVM=RVM;</script>
-<script>var RvmAsm=(function(){var module={exports:{}};\n${scriptSafe(read('web', 'rvm-asm.js'))}\nreturn module.exports;})();window.RvmAsm=RvmAsm;</script>
-<script>${scriptSafe(read('web', 'blake2b.js'))}</script>
-<script>${scriptSafe(read('web', 'reliks-chain.js'))}</script>
-<script>${scriptSafe(read('web', 'kaspire.js'))}</script>
-<script>${scriptSafe(read('web', 'site-app.js'))}</script>
+<script id="rvm-src">var RVM=(function(){var module={exports:{}};\n${compactJs(read('v13', 'vm', 'rvm.js'))}\nreturn module.exports;})();window.RVM=RVM;</script>
+<script>var RvmAsm=(function(){var module={exports:{}};\n${compactJs(read('web', 'rvm-asm.js'))}\nreturn module.exports;})();window.RvmAsm=RvmAsm;</script>
+<script>${compactJs(read('web', 'blake2b.js'))}</script>
+<script>${compactJs(read('web', 'reliks-chain.js'))}</script>
+<script>${compactJs(read('web', 'kaspire.js'))}</script>
+<script>${compactJs(read('web', 'site-app.js'))}</script>
 </body>
 </html>
 `;

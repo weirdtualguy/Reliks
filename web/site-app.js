@@ -2,7 +2,9 @@
    Everything on the page is recomputed here in the visitor's browser: engine hash,
    image hash, serials, contract scripts and covenant ids are compared with public
    chain data (both JS engines and Reliks-VM RVM\x01 programs), and the art is withheld
-   if any comparison fails. Also provides Offline Provenance Bundle verification.
+   if any comparison fails. Supports 1-click Series Publishing in Studio with Kaspire,
+   in-browser Secondary Market trading (List, Buy, Cancel Listing, Transfer), and
+   Offline Provenance Bundle verification.
 
    Globals provided by the page: RELIKS_DATA, ReliksBlake2b, ReliksChain, RVM, RvmAsm, Kaspire. */
 (function () {
@@ -38,16 +40,49 @@
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { toast('Copy failed: select the text manually.', 'bad'); });
     else { var ta = h('textarea', { class: 'sr' }); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { toast('Copy failed.', 'bad'); } ta.remove(); }
   }
-  function cat(list) { var n = 0, i; list.forEach(function (x) { n += x.length; }); var o = new Uint8Array(n), p = 0; list.forEach(function (x) { o.set(x, p); p += x.length; }); return o; }
+  function cat(list) { var n = 0; list.forEach(function (x) { n += x.length; }); var o = new Uint8Array(n), p = 0; list.forEach(function (x) { o.set(x, p); p += x.length; }); return o; }
   function bhex(s) { return C.u8hex(ReliksBlake2b.blake2b(typeof s === 'string' ? C.utf8(s) : s, 32)); }
 
-  /* ------------------------------------------------------------ engine kind detection (JS vs Reliks-VM RVM\x01) */
+  /* ------------------------------------------------------------ engine kind detection & series template binding */
   function isVmPayload(payload, series) {
     if (series && (series.engineKind === 'vm' || Number(series.engine_lang) === 2)) return true;
     return typeof payload === 'string' && /^[0-9a-fA-F]+$/.test(payload) && payload.length >= 18 && /^52564d01/i.test(payload);
   }
   function engineBytesOf(payload, isVm) {
     return isVm ? C.hex2u8(payload) : C.utf8(payload);
+  }
+  function bindSeriesTemplates(s, enginePayload) {
+    var vmMode = isVmPayload(enginePayload, s);
+    var isV13 = vmMode || s.protocol_version === 'v13' || (s.editions && s.editions[0] && s.editions[0].lineage !== undefined);
+    s._editionTemplate = isV13 && D.templatesV13 ? D.templatesV13.edition : D.templates.edition;
+    var engBytes = engineBytesOf(enginePayload, vmMode);
+    var isDefaultV12 = !isV13 && D.templates.factory.suffixHex.indexOf(C.u8hex(engBytes)) >= 0;
+    s._progBytes = isDefaultV12 ? null : engBytes;
+    return { vmMode: vmMode, isV13: isV13, engBytes: engBytes };
+  }
+
+  /* ------------------------------------------------------------ localStorage helpers for newly minted editions & published series */
+  function loadLocalEditions(seriesId) {
+    try { return JSON.parse(localStorage.getItem('reliks.editions.' + seriesId) || '[]'); } catch (e) { return []; }
+  }
+  function saveLocalEdition(seriesId, edObj) {
+    try {
+      var list = loadLocalEditions(seriesId);
+      if (!list.some(function (x) { return x.covenantId === edObj.covenantId; })) {
+        list.push(edObj);
+        localStorage.setItem('reliks.editions.' + seriesId, JSON.stringify(list));
+      }
+    } catch (e) { /* ignore */ }
+  }
+  function loadCustomSeries() {
+    try { return JSON.parse(localStorage.getItem('reliks.custom.series') || '[]'); } catch (e) { return []; }
+  }
+  function saveCustomSeries(sObj) {
+    try {
+      var list = loadCustomSeries().filter(function (x) { return x.laneCovenantId !== sObj.laneCovenantId; });
+      list.unshift(sObj);
+      localStorage.setItem('reliks.custom.series', JSON.stringify(list.slice(0, 20)));
+    } catch (e) { /* ignore */ }
   }
 
   /* ------------------------------------------------------------ deterministic engine runner (JS + Reliks-VM inside Web Worker, 5 s cap) */
@@ -104,15 +139,15 @@
   }
 
   async function verifySeries(s, enginePayload, onUpdate) {
-    var vmMode = isVmPayload(enginePayload, s);
-    var engBytes = engineBytesOf(enginePayload, vmMode);
-    var checks = [], ctx = { lane: null, editionOk: {} };
+    var bnd = bindSeriesTemplates(s, enginePayload);
+    var vmMode = bnd.vmMode, engBytes = bnd.engBytes, edTpl = s._editionTemplate;
+    var checks = [], ctx = { lane: null, editionOk: {}, liveEditions: {} };
     function push(c) { checks.push(c); return c; }
     var cHash = push(newCheck('Engine bytes hash to the anchored program_hash', 'BLAKE2b-256 of the ' + engBytes.length + ' ' + (vmMode ? 'Reliks-VM bytecode' : 'JS engine') + ' bytes shipped with this page'));
     var cRender = push(newCheck('Engine reproduces the anchored image', 'BLAKE2b-256 of render(serial 1' + (vmMode ? ', lineage 0, sales 0' : '') + ') compared with render_hash'));
     var cBaked = push(newCheck('Engine is baked into the factory contract template', vmMode ? 'RVM\\x01 header valid and bytecode verified against factory commitment' : 'engine bytes found inside the compiled SeriesFactory-v12 template'));
     var cLane = push(newCheck('Live lane covenant commits to this engine', 'lane state decoded from public chain data must recompute to the on-chain script'));
-    var eds = s.editions.map(function (ed) {
+    var eds = (s.editions || []).map(function (ed) {
       return { ed: ed, serial: push(newCheck('Edition #' + ed.index + ': serial recomputes from its lane outpoint', 'ReliksSerialV10 over the consumed lane outpoint')),
         spk: push(newCheck('Edition #' + ed.index + ': contract script matches the mint transaction', 'script rebuilt from claimed state, cross-checked against REST and kascov')),
         cov: push(newCheck('Edition #' + ed.index + ': covenant id recomputes (KIP-20)', 'keyed BLAKE2b over the authorizing outpoint and bound output')) };
@@ -135,11 +170,12 @@
       var inSuffix = D.templates.factory.suffixHex.indexOf(engHex) >= 0;
       settle(cBaked, vmValid, inSuffix ? 'template suffix contains the VM bytecode' : 'RVM\\x01 bytecode validated (' + engBytes.length + ' B)');
     } else {
-      settle(cBaked, D.templates.factory.suffixHex.indexOf(engHex) >= 0, 'template suffix contains the engine');
+      var facSuf = s._progBytes ? C.u8hex(C.buildFactorySuffix(s._progBytes, edTpl)) : D.templates.factory.suffixHex;
+      settle(cBaked, facSuf.indexOf(engHex) >= 0, 'template suffix contains the engine');
     }
     tick();
     eds.forEach(function (e) {
-      var consumed = e.ed.index === 0 ? s.genesisTxId : s.editions[e.ed.index - 1].mintTxId;
+      var consumed = e.ed.consumedTxId || (e.ed.index === 0 ? s.genesisTxId : s.editions[e.ed.index - 1].mintTxId);
       settle(e.serial, C.serialFromOutpoint(consumed, 0) === String(e.ed.serial), 'serial ' + e.ed.serial);
     }); tick();
 
@@ -152,12 +188,13 @@
     var edPromises = eds.map(function (e) {
       return io.tx(e.ed.mintTxId).then(async function (tx) {
         await lanePromise;
-        if (!ctx.lane) throw new Error('lane state unavailable, cannot rebuild the edition script');
+        var royBips = ctx.lane ? ctx.lane.state.royalty_bips : BigInt(s.royalty_bips || (s.genesisState && s.genesisState.royalty_bips) || 500);
         var out = tx.outputs[e.ed.outputIndex];
         if (!out) throw new Error('mint transaction has no output ' + e.ed.outputIndex);
-        var state = { ownerIdentifier: e.ed.ownerAtMint, identifierType: 0, price: 0, artist: s.artist, royalty_bips: ctx.lane.state.royalty_bips, program_hash: s.programHash, factory_covid: s.laneCovenantId, serial: e.ed.serial };
-        if (e.ed.lineage !== undefined) { state.lineage = e.ed.lineage; state.sales = e.ed.sales || 0; }
-        var want = C.p2shSpk(C.editionRedeem(state)), got = C.spkOfOutput(out);
+        var consumed = e.ed.consumedTxId || (e.ed.index === 0 ? s.genesisTxId : s.editions[e.ed.index - 1].mintTxId);
+        var state = { ownerIdentifier: e.ed.ownerAtMint, identifierType: 0, price: 0, artist: s.artist, royalty_bips: royBips, program_hash: s.programHash, factory_covid: s.laneCovenantId, serial: e.ed.serial };
+        if (C.editionHasLineage(edTpl)) { state.lineage = e.ed.lineage || C.genesisLineage(consumed, 0); state.sales = e.ed.sales || 0; }
+        var want = C.p2shSpk(C.editionRedeem(state, edTpl)), got = C.spkOfOutput(out);
         var kascovMatch = null;
         try {
           var kj = await io.covenant(e.ed.covenantId);
@@ -171,6 +208,11 @@
         var rec = C.covenantIdGenesis(authIn.txId, authIn.index, [{ idx: e.ed.outputIndex, value: Number(C.outputValue(out)), script: want }]);
         settle(e.cov, rec === cov.id && rec === e.ed.covenantId, short(rec, 16, 8));
         ctx.editionOk[e.ed.index] = e.spk.status === 'ok' && e.cov.status === 'ok';
+        try {
+          ctx.liveEditions[e.ed.index] = await C.resolveEdition(io, s, e.ed, edTpl);
+        } catch (re) {
+          ctx.liveEditions[e.ed.index] = { index: e.ed.index, serial: String(e.ed.serial), covenantId: e.ed.covenantId, outpoint: { txId: e.ed.mintTxId, index: e.ed.outputIndex }, value: C.CARRIER, state: state, spk: want, source: 'mint', editionTemplate: edTpl };
+        }
       }).catch(function (err) { fail(e.spk, err); fail(e.cov, err); }).then(tick);
     });
     await Promise.all([lanePromise].concat(edPromises));
@@ -198,11 +240,13 @@
       body.appendChild(h('div', { class: 'review' },
         h('div', {}, h('span', { text: 'Wallet' }), h('b', { text: 'Kaspire ' + (st.transport === 'extension' ? 'Extension' : 'Mobile') })),
         h('div', {}, h('span', { text: 'Network' }), h('b', { text: st.network })),
-        h('div', {}, h('span', { text: 'Address' }), h('b', { text: short(st.address, 14, 8), title: st.address }))));
+        h('div', {}, h('span', { text: 'Address' }), h('b', { text: short(st.address, 14, 8), title: st.address })),
+        h('div', {}, h('span', { text: 'Public key (x-only)' }), h('b', { text: short(st.pubkey, 14, 8), title: st.pubkey }))));
       if (st.status === 'wrongnet') body.appendChild(h('p', { class: 'note warn', text: st.message }));
       body.appendChild(h('p', { class: 'note', text: 'Kaspire signs inside the wallet after showing its own review. This site never receives a key.' }));
       body.appendChild(h('div', { class: 'cta' },
         h('button', { class: 'btn', onclick: function () { copy(st.address, 'Address'); }, text: 'Copy address' }),
+        h('button', { class: 'btn', onclick: function () { copy(st.pubkey, 'Public key'); }, text: 'Copy pubkey' }),
         h('button', { class: 'btn ghost', onclick: function () { K.disconnect().then(closeWallet); }, text: 'Disconnect' })));
       return;
     }
@@ -245,11 +289,15 @@
       closeWallet(); toast('Kaspire connected.', 'ok');
     } catch (e) { renderWalletDialog(e.userCancelled ? null : h('p', { class: 'note bad', text: e.message + ' The extension does not need WalletConnect.' })); }
   }
-  K.on(function () { walletChip(); if (walletDlg.open && (K.state().status === 'connected' || K.state().status === 'wrongnet')) renderWalletDialog(); Object.keys(seriesViews).forEach(function (id) { seriesViews[id].refreshCta(); }); });
+  K.on(function () {
+    walletChip();
+    if (walletDlg.open && (K.state().status === 'connected' || K.state().status === 'wrongnet')) renderWalletDialog();
+    Object.keys(seriesViews).forEach(function (id) { seriesViews[id].refreshCta(); if (seriesViews[id].refreshEditions) seriesViews[id].refreshEditions(); });
+  });
   $('#wallet-btn').addEventListener('click', openWallet);
   walletDlg.addEventListener('click', function (e) { if (e.target === walletDlg) closeWallet(); });
 
-  /* ------------------------------------------------------------ mint flow */
+  /* ------------------------------------------------------------ transaction dialog + mint / deploy / secondary market flows */
   var mintDlg = $('#mint-dlg'), mintBody = $('#mint-body'), minting = false;
   var RAIL = ['Read chain', 'Build', 'Review', 'Sign', 'Verify', 'Broadcast', 'Confirm'];
   function rail(step) { return h('div', { class: 'rail' }, RAIL.map(function (n, i) { return h('span', { class: i < step ? 'done' : i === step ? 'now' : '', text: n }); })); }
@@ -260,29 +308,29 @@
   }
   function savedWrpc() { try { return localStorage.getItem('reliks.wrpc') || ''; } catch (e) { return ''; } }
   function saveWrpc(v) { try { if (v) localStorage.setItem('reliks.wrpc', v); else localStorage.removeItem('reliks.wrpc'); } catch (e) { /* ignore */ } }
-  function ask(draft, s, lane) {
+
+  function askReview(stepTitle, rows, noteText, draft, extraFields) {
     return new Promise(function (resolve) {
-      var m = draft.summary, total = m.price + C.CARRIER + m.fee;
       var wr = h('input', { id: 'wrpc', placeholder: 'ws://localhost:17110 (optional)', value: savedWrpc(), autocomplete: 'off', spellcheck: 'false' });
       var raw = h('pre', { class: 'code', text: JSON.stringify(JSON.parse(C.toSafeJSON(draft)), null, 2) });
-      mintScreen(2, 'Review your mint', [
-        h('div', { class: 'review' },
-          h('div', {}, h('span', { text: 'Series' }), h('b', { text: s.title })),
-          h('div', {}, h('span', { text: 'Edition serial' }), h('b', { text: short(m.serial, 8, 6), title: m.serial })),
-          h('div', {}, h('span', { text: 'Paid to the artist (100%)' }), h('b', { text: C.fmtKas(m.price) + ' KAS' })),
-          h('div', {}, h('span', { text: 'Locked in your edition (carrier)' }), h('b', { text: C.fmtKas(m.carrier) + ' KAS' })),
-          h('div', {}, h('span', { text: 'Network fee (estimate)' }), h('b', { text: '≈ ' + C.fmtKas(m.fee) + ' KAS' })),
-          h('div', {}, h('span', { text: 'Resale royalty to artist' }), h('b', { text: (Number(m.royaltyBips) / 100) + '%' })),
-          h('div', { class: 'tot' }, h('span', { text: 'Leaves your wallet' }), h('b', { text: '≈ ' + C.fmtKas(total) + ' KAS' }))),
-        h('p', { class: 'note', text: 'The carrier stays inside the edition contract and belongs to whoever owns the edition. Kaspire will show its own review of this exact transaction before you approve.' }),
+      var rev = h('div', { class: 'review' });
+      rows.forEach(function (r) {
+        rev.appendChild(h('div', { class: r.total ? 'tot' : '' }, h('span', { text: r.label }), h('b', { text: r.value, title: r.title || '' })));
+      });
+      var kids = [rev];
+      if (extraFields) kids.push(extraFields);
+      kids.push(
+        h('p', { class: 'note', text: noteText }),
         h('details', {}, h('summary', { class: 'note', text: 'Transaction details' }), raw,
           h('div', { class: 'field', style: 'margin-top:10px' }, h('label', { for: 'wrpc', text: 'Broadcast via your own node (wRPC), optional' }), wr)),
         h('div', { class: 'cta' },
           h('button', { class: 'btn primary', onclick: function () { saveWrpc(wr.value.trim()); resolve({ go: true, wrpc: wr.value.trim() }); }, text: 'Sign in Kaspire' }),
           h('button', { class: 'btn ghost', onclick: function () { resolve({ go: false }); }, text: 'Cancel' }))
-      ]);
+      );
+      mintScreen(2, stepTitle, kids);
     });
   }
+
   async function pollConfirm(txId) {
     var t0 = Date.now();
     while (Date.now() - t0 < 4 * 60 * 1000) {
@@ -291,6 +339,7 @@
     }
     return 'timeout';
   }
+
   async function startMint(s, view) {
     if (minting) return;
     var st = K.state();
@@ -307,7 +356,16 @@
       var pick = C.pickFunding(list, price + C.CARRIER + fee + 2000000n);
       if (pick.error) throw new Error(pick.error);
       var draft = C.buildMint({ lane: lane, buyer: { pubkey: st.pubkey, address: st.address }, funding: pick, fee: fee, hrp: A.hrp });
-      var choice = await ask(draft, s, lane);
+      var m = draft.summary, total = m.price + C.CARRIER + m.fee;
+      var choice = await askReview('Review your mint', [
+        { label: 'Series', value: s.title },
+        { label: 'Edition serial', value: short(m.serial, 8, 6), title: m.serial },
+        { label: 'Paid to the artist (100%)', value: C.fmtKas(m.price) + ' KAS' },
+        { label: 'Locked in your edition (carrier)', value: C.fmtKas(m.carrier) + ' KAS' },
+        { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(m.fee) + ' KAS' },
+        { label: 'Resale royalty to artist', value: (Number(m.royaltyBips) / 100) + '%' },
+        { label: 'Leaves your wallet', value: '≈ ' + C.fmtKas(total) + ' KAS', total: true }
+      ], 'The carrier stays inside the edition contract and belongs to whoever owns the edition. Kaspire will show its own review of this exact transaction before you approve.', draft);
       if (!choice.go) { mintDlg.close(); return; }
       mintScreen(3, 'Approve in Kaspire', h('p', { class: 'note', text: 'Kaspire opens its own window (or your phone) with the full transaction. Check the outputs, then approve.' }));
       var signed = await K.signPskt(C.toSafeJSON(draft), [1]);
@@ -322,6 +380,16 @@
           h('div', { class: 'cta' }, h('button', { class: 'btn', onclick: function () { copy(typeof signed === 'string' ? signed : JSON.stringify(signed), 'Signed transaction'); }, text: 'Copy signed transaction' }), h('button', { class: 'btn ghost', onclick: function () { mintDlg.close(); }, text: 'Close' }))]);
         return;
       }
+      var newEd = {
+        index: (s.editions || []).length, serial: String(m.serial), covenantId: m.editionCovenantId,
+        mintTxId: res.txId, outputIndex: 1, consumedTxId: lane.outpoint.txId, ownerAtMint: st.pubkey
+      };
+      if (C.editionHasLineage(s._editionTemplate)) {
+        newEd.lineage = C.genesisLineage(lane.outpoint.txId, lane.outpoint.index);
+        newEd.sales = 0;
+      }
+      s.editions = (s.editions || []).concat([newEd]);
+      saveLocalEdition(s.id, newEd);
       var link = A.explorer + res.txId;
       mintScreen(6, 'Submitted', [h('p', { class: 'note' }, 'Transaction ', h('a', { href: link, target: '_blank', rel: 'noopener', text: short(res.txId, 10, 8) }), '. Waiting for a block…')]);
       var outcome = await pollConfirm(res.txId);
@@ -337,13 +405,170 @@
     } finally { minting = false; }
   }
 
+  /* ------------------------------------------------------------ secondary market flows (buy, list, unlist, transfer) */
+  function promptTradeInputs(action, s, edInfo) {
+    return new Promise(function (resolve) {
+      var st = edInfo.state;
+      var priceIn = h('input', { id: 'trade-price', inputmode: 'decimal', value: st.price > 0n ? C.fmtKas(st.price) : '5', placeholder: 'e.g. 5' });
+      var toIn = h('input', { id: 'trade-to', placeholder: 'kaspa:qp... or 64-hex public key', autocomplete: 'off', spellcheck: 'false' });
+      var errEl = h('p', { class: 'note bad', hidden: true });
+      var title = action === 'list' ? 'List Edition #' + edInfo.index + ' for Sale' : 'Transfer Edition #' + edInfo.index;
+      var desc = action === 'list'
+        ? 'Set a fixed price in KAS (minimum 1 KAS). Anyone can buy the edition on chain, paying ' + (100 - Number(st.royalty_bips) / 100) + '% to you and ' + (Number(st.royalty_bips) / 100) + '% royalty to the artist.'
+        : 'Transfer this edition to another Kaspa wallet (royalty-free). In v13, transferring advances provenance lineage (patina) without incrementing sales wear.';
+      var fieldBox = action === 'list'
+        ? h('div', { class: 'field', style: 'margin:12px 0' }, h('label', { for: 'trade-price', text: 'Listing price (KAS, min 1)' }), priceIn)
+        : h('div', { class: 'field', style: 'margin:12px 0' }, h('label', { for: 'trade-to', text: 'Recipient address (kaspa:qp...) or 64-hex pubkey' }), toIn);
+      clear(mintBody);
+      add(mintBody, [
+        h('button', { class: 'dlg-x', 'aria-label': 'Close', onclick: function () { mintDlg.close(); resolve(null); }, text: '×' }),
+        h('h3', { text: title }),
+        h('p', { class: 'note', text: desc }),
+        fieldBox, errEl,
+        h('div', { class: 'cta' },
+          h('button', { class: 'btn primary', onclick: function () {
+            errEl.hidden = true;
+            if (action === 'list') {
+              var num = Number(priceIn.value.trim());
+              if (!(num >= 1)) { errEl.textContent = 'Listing price must be at least 1 KAS.'; errEl.hidden = false; return; }
+              resolve({ newPrice: BigInt(Math.round(num * 1e8)) });
+            } else {
+              try {
+                var parsed = C.parseOwnerInput(A.hrp, toIn.value.trim());
+                resolve({ newOwner: parsed.address, newOwnerPubkey: parsed.pubkey });
+              } catch (pe) {
+                errEl.textContent = pe.message; errEl.hidden = false;
+              }
+            }
+          }, text: 'Continue to Review' }),
+          h('button', { class: 'btn ghost', onclick: function () { mintDlg.close(); resolve(null); }, text: 'Cancel' }))
+      ]);
+      if (!mintDlg.open) mintDlg.showModal();
+    });
+  }
+
+  async function startTrade(s, view, ed, action) {
+    if (minting) return;
+    var w = K.state();
+    if (w.status !== 'connected') { openWallet(); return; }
+    minting = true;
+    try {
+      mintScreen(0, 'Reading edition state…', h('p', { class: 'note', text: 'Resolving the live edition UTXO and verifying its covenant script.' }));
+      var liveEd = await C.resolveEdition(io, s, ed, s._editionTemplate);
+      var params = {};
+      if (action === 'list' || action === 'transfer') {
+        minting = false;
+        var inp = await promptTradeInputs(action, s, liveEd);
+        if (!inp) return;
+        params = inp;
+        minting = true;
+      }
+      mintScreen(1, 'Building the transaction…', h('p', { class: 'note', text: 'Selecting a confirmed UTXO in your wallet to fund the transaction.' }));
+      var list = await io.utxos(w.address);
+      var dummyFund = { txId: '00'.repeat(32), index: 0, amount: 10n ** 13n };
+      var probe, draft, rows, noteText, signIndices;
+      if (action === 'buy') {
+        probe = C.buildBuyEdition({ edition: liveEd, buyer: { pubkey: w.pubkey, address: w.address }, funding: dummyFund, fee: 1n, hrp: A.hrp, editionTemplate: s._editionTemplate });
+        var feeBuy = C.estimateFee(probe), priceBuy = BigInt(liveEd.state.price);
+        var pickBuy = C.pickFunding(list, priceBuy + feeBuy + 2000000n);
+        if (pickBuy.error) throw new Error(pickBuy.error);
+        draft = C.buildBuyEdition({ edition: liveEd, buyer: { pubkey: w.pubkey, address: w.address }, funding: pickBuy, fee: feeBuy, hrp: A.hrp, editionTemplate: s._editionTemplate });
+        var sb = draft.summary;
+        rows = [
+          { label: 'Series / Edition', value: s.title + ' #' + ed.index },
+          { label: 'Edition serial', value: short(sb.serial, 8, 6), title: sb.serial },
+          { label: 'Paid to seller', value: C.fmtKas(sb.ownerNet) + ' KAS' },
+          { label: 'Paid to artist (royalty)', value: C.fmtKas(sb.royalty) + ' KAS' },
+          { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(sb.fee) + ' KAS' },
+          { label: 'Leaves your wallet', value: '≈ ' + C.fmtKas(sb.price + sb.fee) + ' KAS', total: true }
+        ];
+        noteText = 'Buying transfers the 1 KAS edition carrier UTXO to your wallet address and advances the v13 provenance lineage and sales wear.';
+        signIndices = [1];
+      } else if (action === 'list') {
+        probe = C.buildListEdition({ edition: liveEd, owner: { pubkey: w.pubkey, address: w.address }, newPrice: params.newPrice, funding: dummyFund, fee: 1n, hrp: A.hrp, editionTemplate: s._editionTemplate });
+        var feeList = C.estimateFee(probe);
+        var pickList = C.pickFunding(list, feeList + 2000000n);
+        if (pickList.error) throw new Error(pickList.error);
+        draft = C.buildListEdition({ edition: liveEd, owner: { pubkey: w.pubkey, address: w.address }, newPrice: params.newPrice, funding: pickList, fee: feeList, hrp: A.hrp, editionTemplate: s._editionTemplate });
+        rows = [
+          { label: 'Series / Edition', value: s.title + ' #' + ed.index },
+          { label: 'Action', value: 'List for sale on chain' },
+          { label: 'New listing price', value: C.fmtKas(params.newPrice) + ' KAS' },
+          { label: 'Artist royalty on sale', value: (Number(liveEd.state.royalty_bips) / 100) + '%' },
+          { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(draft.fee) + ' KAS', total: true }
+        ];
+        noteText = 'Your edition stays in its covenant UTXO under your ownership until someone buys it or you cancel the listing.';
+        signIndices = [0, 1];
+      } else if (action === 'unlist') {
+        probe = C.buildUnlistEdition({ edition: liveEd, owner: { pubkey: w.pubkey, address: w.address }, funding: dummyFund, fee: 1n, hrp: A.hrp, editionTemplate: s._editionTemplate });
+        var feeUn = C.estimateFee(probe);
+        var pickUn = C.pickFunding(list, feeUn + 2000000n);
+        if (pickUn.error) throw new Error(pickUn.error);
+        draft = C.buildUnlistEdition({ edition: liveEd, owner: { pubkey: w.pubkey, address: w.address }, funding: pickUn, fee: feeUn, hrp: A.hrp, editionTemplate: s._editionTemplate });
+        rows = [
+          { label: 'Series / Edition', value: s.title + ' #' + ed.index },
+          { label: 'Action', value: 'Cancel listing (price -> 0)' },
+          { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(draft.fee) + ' KAS', total: true }
+        ];
+        noteText = 'Cancelling sets the edition price back to 0 so it cannot be bought.';
+        signIndices = [0, 1];
+      } else if (action === 'transfer') {
+        probe = C.buildTransferEdition({ edition: liveEd, owner: { pubkey: w.pubkey, address: w.address }, newOwner: params.newOwner, funding: dummyFund, fee: 1n, hrp: A.hrp, editionTemplate: s._editionTemplate });
+        var feeXf = C.estimateFee(probe);
+        var pickXf = C.pickFunding(list, feeXf + 2000000n);
+        if (pickXf.error) throw new Error(pickXf.error);
+        draft = C.buildTransferEdition({ edition: liveEd, owner: { pubkey: w.pubkey, address: w.address }, newOwner: params.newOwner, funding: pickXf, fee: feeXf, hrp: A.hrp, editionTemplate: s._editionTemplate });
+        rows = [
+          { label: 'Series / Edition', value: s.title + ' #' + ed.index },
+          { label: 'Action', value: 'Transfer ownership' },
+          { label: 'Recipient', value: short(params.newOwner, 14, 8), title: params.newOwner },
+          { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(draft.fee) + ' KAS', total: true }
+        ];
+        noteText = 'Transfers the edition covenant and its 1 KAS carrier to the recipient address.';
+        signIndices = [0, 1];
+      }
+      var choice = await askReview('Review ' + action, rows, noteText, draft);
+      if (!choice.go) { mintDlg.close(); return; }
+      mintScreen(3, 'Approve in Kaspire', h('p', { class: 'note', text: 'Approve the transaction in Kaspire.' }));
+      var signed = await K.signPskt(C.toSafeJSON(draft), signIndices);
+      mintScreen(4, 'Verifying signed covenant…', h('p', { class: 'note', text: 'Verifying signatures and covenant bindings before broadcast.' }));
+      var verified = signIndices.length === 2 ? C.finalizeOwnerCovenantTx(draft, signed) : C.verifySigned(draft, signed);
+      var finalSignedJson = verified.signedJson || signed;
+      mintScreen(5, 'Broadcasting…', h('p', { class: 'note', text: 'Submitting transaction to the network.' }));
+      var res = await K.broadcast(finalSignedJson, verified.rpcTx, { wrpc: choice.wrpc ? [choice.wrpc] : A.wrpc || [] });
+      if (!res.txId) {
+        mintScreen(5, 'Signed, not broadcast', [
+          h('p', { class: 'note warn', text: 'Transaction signed, but could not be broadcast: ' + (res.message || 'no broadcast path') + '. Nothing was spent.' }),
+          h('div', { class: 'cta' }, h('button', { class: 'btn', onclick: function () { copy(typeof finalSignedJson === 'string' ? finalSignedJson : JSON.stringify(finalSignedJson), 'Signed transaction'); }, text: 'Copy signed transaction' }), h('button', { class: 'btn ghost', onclick: function () { mintDlg.close(); }, text: 'Close' }))]);
+        return;
+      }
+      var link = A.explorer + res.txId;
+      mintScreen(6, 'Submitted', [h('p', { class: 'note' }, 'Transaction ', h('a', { href: link, target: '_blank', rel: 'noopener', text: short(res.txId, 10, 8) }), '. Waiting for confirmation…')]);
+      var outcome = await pollConfirm(res.txId);
+      mintScreen(7, outcome === 'accepted' ? 'Confirmed' : 'Still pending', [
+        h('p', { class: outcome === 'accepted' ? 'note' : 'note warn' }, outcome === 'accepted' ? 'Edition state updated on chain. ' : 'Pending confirmation; check ', h('a', { href: link, target: '_blank', rel: 'noopener', text: 'the explorer' }), '.'),
+        h('div', { class: 'cta' }, h('button', { class: 'btn primary', onclick: function () { mintDlg.close(); }, text: 'Done' }))]);
+      if (outcome === 'accepted') toast('Edition ' + action + ' confirmed!', 'ok');
+      if (view && view.reload) view.reload();
+    } catch (e) {
+      var fe = K.friendly(e);
+      if (fe.userCancelled) { mintDlg.close(); toast('Cancelled. Nothing was spent.'); }
+      else mintScreen(0, 'Transaction failed', [h('p', { class: 'note bad', text: fe.message }), h('div', { class: 'cta' }, h('button', { class: 'btn', onclick: function () { mintDlg.close(); }, text: 'Close' }))]);
+    } finally { minting = false; }
+  }
+
   /* ------------------------------------------------------------ gallery */
   var seriesViews = {};
   var STATUS_TXT = { ok: 'Verified in your browser', bad: 'Mismatch: art withheld', wait: 'Verifying…', err: 'Chain unreachable: not fully verified' };
   function renderSeries(s) {
-    var engineSrc = D.engines[s.engine];
-    var vmMode = isVmPayload(engineSrc, s);
-    var engByteCount = engineBytesOf(engineSrc, vmMode).length;
+    var localEds = loadLocalEditions(s.id);
+    localEds.forEach(function (le) {
+      if (!(s.editions || []).some(function (x) { return x.covenantId === le.covenantId; })) s.editions.push(le);
+    });
+    var engineSrc = D.engines[s.engine] || s.programHex || s.engineSrc || '';
+    if (engineSrc && !D.engines[s.engine]) D.engines[s.engine || s.id] = engineSrc;
+    var bnd = bindSeriesTemplates(s, engineSrc);
+    var vmMode = bnd.vmMode, engByteCount = bnd.engBytes.length;
     var art = h('div', { class: 'art-wrap' }, h('div', { class: 'veil', text: 'Checking the engine…' }));
     var badge = h('div', { class: 'badge wait' }, h('span', { class: 'dot busy' }), h('span', { text: STATUS_TXT.wait }));
     art.appendChild(badge);
@@ -352,14 +577,76 @@
     var proof = h('details', { class: 'proof' }, h('summary', {}, meter, sum), list);
     var facts = { price: h('dd', { text: '…' }), roy: h('dd', { text: '…' }), left: h('dd', { text: '…' }) };
     var cta = h('div', { class: 'cta' }), ctaNote = h('p', { class: 'note' });
+    var edHost = h('div', { style: 'margin-top:14px;display:grid;gap:10px' });
     var view = { lane: null, result: null, artShown: false };
+
+    function previewEdition(edState, indexLabel) {
+      runEngine(engineSrc, edState.serial, { series: s, lineage: edState.lineage, sales: edState.sales }).then(function (svg) {
+        var oldFr = art.querySelector('iframe');
+        if (oldFr) oldFr.remove();
+        var v0 = art.querySelector('.veil');
+        if (v0) v0.remove();
+        art.insertBefore(artFrame(svg), art.firstChild);
+        toast('Previewing Edition #' + indexLabel + (edState.sales ? ' (sales: ' + edState.sales + ')' : ''), 'ok');
+      }).catch(function (e) { toast('Render failed: ' + e.message, 'bad'); });
+    }
+
+    function refreshEditions() {
+      clear(edHost);
+      var eds = s.editions || [];
+      if (!eds.length) {
+        edHost.appendChild(h('p', { class: 'note', text: 'No editions minted yet. Mint the first edition above!' }));
+        return;
+      }
+      var w = K.state(), myPk = w.status === 'connected' ? String(w.pubkey).toLowerCase() : '';
+      var liveMap = (view.result && view.result.ctx && view.result.ctx.liveEditions) || {};
+      eds.forEach(function (ed) {
+        var live = liveMap[ed.index];
+        var st = (live && live.state) || {
+          ownerIdentifier: ed.ownerAtMint, price: 0n,
+          artist: s.artist, royalty_bips: BigInt(s.royalty_bips || 500),
+          serial: ed.serial, lineage: ed.lineage, sales: ed.sales || 0
+        };
+        var ownerPk = String(st.ownerIdentifier || ed.ownerAtMint || '').toLowerCase();
+        var ownerAddr = /^[0-9a-f]{64}$/.test(ownerPk) ? C.p2pkAddress(A.hrp, ownerPk) : ownerPk;
+        var isMine = myPk && ownerPk === myPk;
+        var price = BigInt(st.price || 0);
+        var listed = price >= SOMPI;
+        var tags = [
+          h('span', { class: 'tag ' + (listed ? 'v' : 'd'), text: listed ? 'Listed · ' + C.fmtKas(price) + ' KAS' : 'Unlisted' })
+        ];
+        if (isMine) tags.push(h('span', { class: 'tag v', style: 'margin-left:6px', text: 'Owned by you' }));
+        var metaText = 'Serial ' + short(ed.serial, 8, 6) + ' · Owner ' + short(ownerAddr, 12, 6);
+        if (st.lineage !== undefined) {
+          var hi = RVM.hostInputs(ReliksBlake2b.blake2b, String(ed.serial), C.hex2u8(st.lineage), Number(st.sales || 0));
+          metaText += ' · Sales ' + st.sales + ' · Patina ' + hi.pat + '/63 · Wear ' + hi.wear + '/255';
+        }
+        var btns = h('div', { class: 'row', style: 'margin-top:8px;flex-wrap:wrap;gap:8px' },
+          h('button', { class: 'btn', onclick: function () { previewEdition(st, ed.index); }, text: 'Preview art' }));
+        if (listed && !isMine) {
+          btns.appendChild(h('button', { class: 'btn primary', onclick: function () { startTrade(s, view, ed, 'buy'); }, text: 'Buy for ' + C.fmtKas(price) + ' KAS' }));
+        }
+        if (isMine || w.status !== 'connected') {
+          btns.appendChild(h('button', { class: 'btn', onclick: function () { startTrade(s, view, ed, 'list'); }, text: listed ? 'Update price' : 'List for sale' }));
+          if (listed) btns.appendChild(h('button', { class: 'btn', onclick: function () { startTrade(s, view, ed, 'unlist'); }, text: 'Cancel listing' }));
+          btns.appendChild(h('button', { class: 'btn ghost', onclick: function () { startTrade(s, view, ed, 'transfer'); }, text: 'Transfer' }));
+        }
+        edHost.appendChild(h('div', { class: 'card', style: 'padding:14px' },
+          h('div', { style: 'display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap' },
+            h('b', { text: 'Edition #' + ed.index }),
+            h('div', {}, tags)),
+          h('p', { class: 'note', style: 'margin:6px 0 0', text: metaText }),
+          btns));
+      });
+    }
+    view.refreshEditions = refreshEditions;
 
     function refreshCta() {
       clear(cta); ctaNote.className = 'note'; ctaNote.textContent = '';
       var lane = view.lane, w = K.state();
       if (!lane) { cta.appendChild(h('button', { class: 'btn', disabled: true, text: 'Mint' })); ctaNote.textContent = view.laneError ? 'Could not read the lane from the chain: ' + view.laneError : 'Reading the lane…'; if (view.laneError) ctaNote.classList.add('warn'); return; }
       var left = lane.state.mints_left, price = lane.state.price;
-      if (left <= 0n) { cta.appendChild(h('button', { class: 'btn', disabled: true, text: 'Sold out' })); ctaNote.textContent = 'Every edition of this series has been minted. Secondary trading uses the command-line tools today (see Protocol).'; return; }
+      if (left <= 0n) { cta.appendChild(h('button', { class: 'btn', disabled: true, text: 'Primary sold out' })); ctaNote.textContent = 'All primary editions have been minted. You can buy, list, cancel listings, or transfer editions below with Kaspire.'; return; }
       if (view.result && overall(view.result.checks) === 'bad') { cta.appendChild(h('button', { class: 'btn', disabled: true, text: 'Minting disabled' })); ctaNote.textContent = 'Verification failed, so this page will not build a mint for this series.'; ctaNote.classList.add('bad'); return; }
       if (w.status === 'connected') cta.appendChild(h('button', { class: 'btn primary', onclick: function () { startMint(s, view); }, text: 'Mint for ' + C.fmtKas(price) + ' KAS' }));
       else cta.appendChild(h('button', { class: 'btn primary', onclick: openWallet, text: w.status === 'wrongnet' ? 'Switch Kaspire to mainnet' : 'Connect Kaspire to mint' }));
@@ -377,13 +664,12 @@
       badge.className = 'badge ' + (st === 'ok' ? 'ok' : st === 'bad' ? 'bad' : 'wait');
       clear(badge); badge.appendChild(h('span', { class: 'dot ' + (st === 'ok' ? 'ok' : st === 'bad' ? '' : st === 'wait' ? 'busy' : 'warn') })); badge.appendChild(h('span', { text: STATUS_TXT[st] }));
       if (st === 'bad') { badge.firstChild.style.background = 'var(--red)'; proof.open = true; }
-      // Art: shown once the engine and the edition serial are verified locally; withheld on any mismatch.
       var local = checks.slice(0, 3).concat(checks.filter(function (c) { return /serial recomputes/.test(c.label); }));
       var localOk = local.every(function (c) { return c.status === 'ok'; });
       if (st === 'bad') { clear(art); art.appendChild(h('div', { class: 'veil', text: 'Art withheld: a verification check failed. Open the proof for details.' })); art.appendChild(badge); view.artShown = false; }
-      else if (localOk && !view.artShown && s.editions.length) {
+      else if (localOk && !view.artShown) {
         view.artShown = true;
-        var ed0 = s.editions[0];
+        var ed0 = (s.editions && s.editions[0]) || { serial: '1', lineage: '00'.repeat(32), sales: 0 };
         runEngine(engineSrc, ed0.serial, { series: s, lineage: ed0.lineage, sales: ed0.sales }).then(function (svg) { var fr = artFrame(svg); art.insertBefore(fr, art.firstChild); var v0 = art.querySelector('.veil'); if (v0) v0.remove(); }).catch(function (e) { $('.veil', art).textContent = 'Engine failed: ' + e.message; });
       }
     }
@@ -395,9 +681,9 @@
       refreshCta();
     }
     function load() {
-      view.lane = null; view.laneError = null; view.artShown = false; refreshCta();
-      verifySeries(s, engineSrc, function (checks, ctx) { view.result = { checks: checks, ctx: ctx }; if (ctx.lane) { view.lane = ctx.lane; applyLane(); } paint(checks); refreshCta(); })
-        .then(function (r) { if (!r.ctx.lane) { view.laneError = (r.checks.filter(function (c) { return /Live lane/.test(c.label); })[0] || {}).detail; refreshCta(); } });
+      view.lane = null; view.laneError = null; view.artShown = false; refreshCta(); refreshEditions();
+      verifySeries(s, engineSrc, function (checks, ctx) { view.result = { checks: checks, ctx: ctx }; if (ctx.lane) { view.lane = ctx.lane; applyLane(); } paint(checks); refreshCta(); refreshEditions(); })
+        .then(function (r) { if (!r.ctx.lane) { view.laneError = (r.checks.filter(function (c) { return /Live lane/.test(c.label); })[0] || {}).detail; refreshCta(); } refreshEditions(); });
     }
     view.reload = load;
 
@@ -411,7 +697,7 @@
       runEngine(engineSrc, v, { series: s }).then(function (svg) {
         clear(frame); frame.appendChild(artFrame(svg));
         exHash.textContent = 'serial      ' + v + '\nseed        ' + seedOf(v) + '  (serial mod 2^32)\nruntime     ' + (vmMode ? 'Reliks-VM v1 (RVM\\x01)' : 'JavaScript v12') + '\nsvg bytes   ' + svg.length + '\nrender_hash ' + bhex(svg);
-        var real = s.editions.filter(function (e) { return String(e.serial) === v; })[0];
+        var real = (s.editions || []).filter(function (e) { return String(e.serial) === v; })[0];
         exNote.textContent = real ? 'This serial is edition #' + real.index + ', minted on chain.' : 'Preview only: this serial is not a minted edition. Real serials come from the lane outpoint consumed by each mint.';
       }).catch(function (e) { exNote.textContent = 'Engine error: ' + e.message; });
     }
@@ -424,14 +710,48 @@
           exNote, exHash))));
     ex.addEventListener('toggle', function () { if (ex.open && !frame.firstChild) explore(); });
 
+    var marketBox = h('details', { class: 'proof', open: true, style: 'margin-top:14px' },
+      h('summary', {}, h('span', { text: 'Editions & Secondary Market (' + (s.editions || []).length + ' minted) · List, Buy, Cancel, Transfer with Kaspire' })),
+      h('div', { style: 'padding:4px 18px 18px' }, edHost));
+
     var el = h('article', { class: 'series', 'aria-label': s.title }, art,
       h('div', { class: 'series-body' },
-        h('div', {}, h('span', { class: 'eyebrow', text: vmMode ? 'Mainnet Reliks-VM series' : 'Mainnet series' }), h('h3', { text: s.title }), h('p', { class: 'tagline', text: 'A dense isometric BlockDAG city, drawn by ' + engByteCount.toLocaleString('en-US') + ' bytes of integer-only ' + (vmMode ? 'Reliks-VM bytecode' : 'code') + ' that live inside the contract.' })),
+        h('div', {}, h('span', { class: 'eyebrow', text: vmMode ? 'Mainnet Reliks-VM series (v13)' : 'Mainnet series' }), h('h3', { text: s.title }), h('p', { class: 'tagline', text: 'Deterministic artwork drawn by ' + engByteCount.toLocaleString('en-US') + ' bytes of integer-only ' + (vmMode ? 'Reliks-VM bytecode' : 'code') + ' committed inside the covenant.' })),
         h('dl', { class: 'facts' }, h('div', {}, h('dt', { text: 'Price' }), facts.price), h('div', {}, h('dt', { text: 'Royalty' }), facts.roy), h('div', {}, h('dt', { text: 'Supply' }), facts.left)),
         cta, ctaNote, proof));
     seriesViews[s.id] = view;
     load();
-    return h('div', {}, el, ex);
+    return h('div', { id: 'series-card-' + s.id, style: 'margin-bottom:28px' }, el, marketBox, ex);
+  }
+
+  /* ------------------------------------------------------------ custom / newly published series loader */
+  function initCustomSeriesLoader() {
+    var host = $('#custom-series-host');
+    if (!host) return;
+    var ta = h('textarea', { class: 'editor', style: 'min-height:90px;font-size:12px', spellcheck: 'false', placeholder: 'Paste a Series Anchor JSON (from Studio "Publish on Chain" or another artist) to view, verify, mint, and trade immediately…' });
+    var btnLoad = h('button', { class: 'btn', onclick: function () {
+      try {
+        var sObj = JSON.parse(ta.value.trim());
+        if (!sObj || !sObj.laneCovenantId || !sObj.programHash) throw new Error('JSON must include laneCovenantId, genesisTxId, programHash, renderHash, and programHex/engineSrc.');
+        saveCustomSeries(sObj);
+        mountCustomSeries(sObj, true);
+        ta.value = '';
+        toast('Loaded series: ' + (sObj.title || sObj.id), 'ok');
+      } catch (e) { toast('Invalid Series JSON: ' + e.message, 'bad'); }
+    }, text: 'Load Series into Gallery' });
+    host.appendChild(h('details', { class: 'proof' },
+      h('summary', {}, h('span', { text: 'Load a Newly Published Series Anchor JSON (before it is added to mainnet-anchors.json)' })),
+      h('div', { style: 'padding:8px 18px 18px;display:grid;gap:10px' }, ta, h('div', { class: 'row' }, btnLoad))));
+    loadCustomSeries().forEach(function (cs) { mountCustomSeries(cs, false); });
+  }
+  function mountCustomSeries(sObj, scrollToIt) {
+    var mainHost = $('#series-host');
+    if (!mainHost) return;
+    var existing = document.getElementById('series-card-' + sObj.id);
+    if (existing) existing.remove();
+    var card = renderSeries(sObj);
+    mainHost.insertBefore(card, mainHost.firstChild);
+    if (scrollToIt) card.scrollIntoView({ behavior: 'smooth' });
   }
 
   /* ------------------------------------------------------------ offline & air-gapped verifier (Provenance Bundle + RVM/JS) */
@@ -467,18 +787,14 @@
         addChk('Anchor render(serial=1) matches render_hash', false, e.message);
       }
 
-      var tpl = {
-        factory: (b.templates && b.templates.factory) || D.templates.factory,
-        edition: (b.templates && b.templates.edition) || (s.protocol_version === 'v13' && D.templatesV13 ? D.templatesV13.edition : D.templates.edition)
-      };
-      var localC = window.ReliksChain.init(tpl);
+      var edTpl = (b.templates && b.templates.edition) || (s.protocol_version === 'v13' && D.templatesV13 ? D.templatesV13.edition : D.templates.edition);
       var edCards = [];
       for (var i = 0; i < b.editions.length; i++) {
         var ed = b.editions[i];
         var opParts = String(ed.consumedLaneOutpoint || '').split(':');
-        var serOk = localC.serialFromOutpoint(opParts[0], Number(opParts[1] || 0)) === String(ed.serial);
+        var serOk = C.serialFromOutpoint(opParts[0], Number(opParts[1] || 0)) === String(ed.serial);
         addChk('Edition #' + ed.index + ': serial recomputes from ' + short(ed.consumedLaneOutpoint, 10, 4), serOk, 'serial ' + ed.serial);
-        var spkGot = localC.p2shSpk(localC.editionRedeem(ed.state));
+        var spkGot = C.p2shSpk(C.editionRedeem(ed.state, edTpl));
         var spkOk = spkGot === ed.expectedSpk;
         addChk('Edition #' + ed.index + ': P2SH scriptPubKey recomputes from state', spkOk, short(spkGot, 14, 6));
         try {
@@ -497,7 +813,6 @@
           addChk('Edition #' + ed.index + ': artwork render', false, e.message);
         }
       }
-      window.ReliksChain.init(D.templates); // restore default template
 
       var allOk = checks.every(function (c) { return c.ok; });
       statusLine.textContent = allOk
@@ -522,17 +837,15 @@
     host.appendChild(h('div', { class: 'card', style: 'padding:18px' }, statusLine, ta, btns, outBox));
   }
 
-  /* ------------------------------------------------------------ studio (Reliks-VM v13 default + legacy v12 JS fallback) */
+  /* ------------------------------------------------------------ studio (Reliks-VM v13 default + 1-click Publish on Chain) */
   function initStudio() {
     var ed = $('#ed'), ser = $('#ser'), lin = $('#lin'), wr = $('#wr'), wv = $('#wv'), wearOn = $('#wear-on'), gatesEl = $('#gates-out'), stat = $('#studio-status'), hashes = $('#hashes'), prevBox = $('#prev-box'), tpl = $('#tpl');
-    var vmCtrl = $('#vm-controls'), vmWear = $('#vm-wear-row'), exeBtn = $('#exe'), exsrcBtn = $('#exsrc');
+    var vmCtrl = $('#vm-controls'), vmWear = $('#vm-wear-row'), exeBtn = $('#exe'), exsrcBtn = $('#exsrc'), pubBtn = $('#pub-kaspire'), pubOut = $('#pub-out');
     var CAP = D.studio.cap, PRELUDE = D.studio.prelude, B = ReliksBlake2b.blake2b;
     var BANNED = [[/\bMath\s*\.\s*(random|sin|cos|tan|asin|acos|atan2?|pow|sqrt|hypot|exp|log2?|log10)\b/, 'Math transcendental/random'], [/\bDate\b/, 'Date'], [/\bperformance\b/, 'performance'], [/\bfetch\s*\(/, 'fetch'], [/\bXMLHttpRequest\b/, 'XHR'], [/\bWebSocket\b/, 'WebSocket'], [/\brequire\s*\(/, 'require'], [/\bimport\s*[\(\{]/, 'import'], [/\beval\s*\(/, 'eval'], [/new\s+Function/, 'new Function'], [/\bwindow\b/, 'window'], [/\bdocument\b/, 'document'], [/\blocalStorage\b/, 'localStorage'], [/\bsetTimeout\b|\bsetInterval\b/, 'timer'], [/\bprocess\b/, 'process'], [/\bglobalThis\b/, 'globalThis']];
     var lastProg = null, timer = 0;
 
-    function isJsSource(raw) {
-      return /\bfunction\s+reliks\s*\(/.test(raw);
-    }
+    function isJsSource(raw) { return /\bfunction\s+reliks\s*\(/.test(raw); }
     function applyWearToggle(src, enabled) {
       if (/wear\s+push\s+[01]\s+mul\s+st\s+WR/.test(src)) {
         return src.replace(/wear\s+push\s+[01]\s+mul\s+st\s+WR/, 'wear push ' + (enabled ? '1' : '0') + ' mul st WR');
@@ -610,7 +923,7 @@
         chkVm('V4 corner sweep (30 renders across serials x pat/wear)', faults === 0, faults ? firstFault : '0 faults');
         chkVm('V5 worst-case headroom', faults === 0, 'fuel ' + maxFuel + '/' + RVM.limits.FUEL_MAX + ' | elems ' + maxElems + '/' + RVM.limits.MAX_ELEMS + ' | svg ' + maxSvg + '/' + RVM.limits.MAX_SVG + ' B | stack ' + maxSt + '/' + RVM.limits.STACK_MAX);
         clear(gatesEl); out.forEach(function (o) { gatesEl.appendChild(h('div', {}, h('span', { class: o.pass ? 'p' : 'f', text: o.pass ? 'PASS ' : 'FAIL ' }), o.text)); });
-        stat.textContent = ok ? 'All Reliks-VM gates green: cleared to export .hex bytecode.' : 'VM gates failed: see report above.';
+        stat.textContent = ok ? 'All Reliks-VM gates green: ready to publish on chain or export .hex bytecode.' : 'VM gates failed: see report above.';
         return ok;
       }
 
@@ -628,7 +941,7 @@
       var conv = false; try { conv = (await runEngine(s, '7')) === (await runEngine(s, '4294967303')); } catch (e) { conv = false; }
       chk('L5 seed = serial mod 2^32', conv);
       clear(gatesEl); outJs.forEach(function (o) { gatesEl.appendChild(h('div', {}, h('span', { class: o.pass ? 'p' : 'f', text: o.pass ? 'PASS ' : 'FAIL ' }), o.text)); });
-      stat.textContent = okJs ? 'Gates green: cleared to export. Run reliks-lens.js for the full L0 to L10 suite.' : 'Gates failed: fix these before export.';
+      stat.textContent = okJs ? 'Gates green: ready to publish or export.' : 'Gates failed: fix these before publishing.';
       return okJs;
     }
 
@@ -651,7 +964,7 @@
           var svgVm = RVM.render(prog, hi.lanes, hi.serial32, hi.pat, hi.wear, stats);
           clear(prevBox); prevBox.appendChild(artImg(svgVm));
           hashes.textContent = 'program       ' + prog.length + ' / ' + CAP + ' B (PUSHDATA2 bake cap)\nprogram_hash  ' + bhex(prog) + '\nrender_hash   ' + bhex(svgVm) + '\nsvg           ' + svgVm.length + ' / ' + RVM.limits.MAX_SVG + ' B\nfuel          ' + stats.fuel + ' / ' + RVM.limits.FUEL_MAX + '\nelements      ' + stats.elems + ' / ' + RVM.limits.MAX_ELEMS + '\nmax_stack     ' + stats.max_stack + ' / ' + RVM.limits.STACK_MAX + '\nwear          ' + hi.wear + ' / 255' + (wEnabled ? '' : ' (disabled in bytecode)') + '\npatina        ' + hi.pat + ' / 63';
-          stat.textContent = 'Rendered Reliks-VM program (' + prog.length + ' B). Click "Run gates" to run the 30-corner verification sweep.';
+          stat.textContent = 'Rendered Reliks-VM program (' + prog.length + ' B). Click "Publish on Chain (Kaspire)" to deploy.';
         } catch (e) {
           stat.textContent = 'Render fault: ' + (e.code || e.message);
         }
@@ -667,6 +980,127 @@
 
     function download(fn, text) { var a = h('a', { href: URL.createObjectURL(new Blob([text], { type: 'text/plain' })), download: fn }); document.body.appendChild(a); a.click(); a.remove(); }
     function slug() { return ($('#name').value || 'my-program').replace(/[^a-z0-9-]/gi, '').slice(0, 40) || 'my-program'; }
+
+    function readSeriesForm(requireConnectedWallet) {
+      var w = K.state();
+      if (requireConnectedWallet && w.status !== 'connected') { openWallet(); return null; }
+      var rawArtist = $('#artist').value.trim();
+      var artistPk = '';
+      if (rawArtist) {
+        try { artistPk = C.parseOwnerInput(A.hrp, rawArtist).pubkey; } catch (e) { toast(e.message, 'bad'); stat.textContent = e.message; return null; }
+      } else if (w.status === 'connected') {
+        artistPk = w.pubkey;
+      }
+      var priceStr = $('#price').value.trim(), roy = Number($('#roy').value), n = Number($('#eds').value), err = '';
+      var priceSompi; try { priceSompi = priceStr === '' ? -1n : BigInt(Math.round(Number(priceStr) * 1e8)); } catch (e) { priceSompi = -1n; }
+      if (!/^[0-9a-f]{64}$/.test(artistPk)) err = 'Artist key must be 64 hex characters or a kaspa: address (connect Kaspire to fill it automatically).';
+      else if (requireConnectedWallet && artistPk !== w.pubkey) err = 'To publish with Kaspire, the artist key must match the connected Kaspire wallet (or leave Artist blank).';
+      else if (priceSompi !== 0n && !(priceSompi >= SOMPI)) err = 'Price must be 0 or at least 1 KAS.';
+      else if (!(roy >= 0.01 && roy <= 20)) err = 'Royalty must be between 0.01% and 20%.';
+      else if (!(Number.isInteger(n) && n >= 1)) err = 'Editions must be a whole number of at least 1.';
+      if (err) { stat.textContent = err; toast(err, 'bad'); return null; }
+      return { artist: artistPk, priceSompi: priceSompi, royaltyBips: Math.round(roy * 100), supply: n };
+    }
+
+    async function publishWithKaspire() {
+      if (minting) return;
+      if (!(await gates())) { toast('Fix the failing gates before publishing.', 'bad'); return; }
+      var form = readSeriesForm(true);
+      if (!form) return;
+      var w = K.state();
+      var vmMode = !isJsSource(ed.value);
+      var progBytes = vmMode ? lastProg : C.utf8(src());
+      var progHash = bhex(progBytes);
+      var svg1 = await runEngine(vmMode ? C.u8hex(progBytes) : src(), '1', { kind: vmMode ? 'vm' : 'js' });
+      var renHash = bhex(svg1);
+      var edTpl = vmMode && D.templatesV13 ? D.templatesV13.edition : D.templates.edition;
+      var depState = {
+        program_hash: progHash, artist: w.pubkey, price: form.priceSompi,
+        royalty_bips: BigInt(form.royaltyBips), mints_left: BigInt(form.supply),
+        engine_lang: vmMode ? 2n : 1n, render_hash: renHash
+      };
+      minting = true;
+      try {
+        mintScreen(1, 'Building SeriesFactory genesis…', h('p', { class: 'note', text: 'Synthesizing the SeriesFactory-' + (vmMode ? 'v13' : 'v12') + ' covenant script and selecting a wallet UTXO.' }));
+        var list = await io.utxos(w.address);
+        var probe = C.buildDeploySeries({ state: depState, progBytes: progBytes, editionTemplate: edTpl, artist: { pubkey: w.pubkey, address: w.address }, funding: { txId: '00'.repeat(32), index: 0, amount: 10n ** 13n }, fee: 1n, hrp: A.hrp });
+        var fee = C.estimateFee(probe);
+        var pick = C.pickFunding(list, C.CARRIER + fee + 2000000n);
+        if (pick.error) throw new Error(pick.error);
+        var draft = C.buildDeploySeries({ state: depState, progBytes: progBytes, editionTemplate: edTpl, artist: { pubkey: w.pubkey, address: w.address }, funding: pick, fee: fee, hrp: A.hrp });
+        var ds = draft.summary;
+        var choice = await askReview('Review Series Deployment', [
+          { label: 'Series title', value: $('#name').value.trim() || slug() },
+          { label: 'Protocol / Runtime', value: vmMode ? 'Reliks v13 (Reliks-VM)' : 'Reliks v12 (JS)' },
+          { label: 'Program size / hash', value: progBytes.length + ' B · ' + short(progHash, 10, 6), title: progHash },
+          { label: 'Anchor render_hash (serial 1)', value: short(renHash, 10, 6), title: renHash },
+          { label: 'Supply / Mint price / Royalty', value: form.supply + ' eds · ' + C.fmtKas(form.priceSompi) + ' KAS · ' + (form.royaltyBips / 100) + '%' },
+          { label: 'Lane covenant ID (KIP-20)', value: short(ds.laneCovenantId, 12, 8), title: ds.laneCovenantId },
+          { label: 'Locked in lane carrier', value: C.fmtKas(ds.carrier) + ' KAS' },
+          { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(ds.fee) + ' KAS' },
+          { label: 'Leaves your wallet', value: '≈ ' + C.fmtKas(ds.carrier + ds.fee) + ' KAS', total: true }
+        ], 'This deploys your immutable SeriesFactory covenant on Kaspa. Once confirmed, anyone can mint editions directly from it.', draft);
+        if (!choice.go) { mintDlg.close(); return; }
+        mintScreen(3, 'Approve in Kaspire', h('p', { class: 'note', text: 'Approve the genesis transaction in Kaspire.' }));
+        var signed = await K.signPskt(C.toSafeJSON(draft), [0]);
+        mintScreen(4, 'Verifying signed genesis…', h('p', { class: 'note', text: 'Checking signature and KIP-20 lane covenant binding.' }));
+        var v = C.verifySigned(draft, signed);
+        mintScreen(5, 'Broadcasting…', h('p', { class: 'note', text: 'Submitting SeriesFactory genesis transaction.' }));
+        var res = await K.broadcast(signed, v.rpcTx, { wrpc: choice.wrpc ? [choice.wrpc] : A.wrpc || [] });
+        if (!res.txId) {
+          mintScreen(5, 'Signed, not broadcast', [
+            h('p', { class: 'note warn', text: 'Kaspire signed the genesis transaction, but it could not be broadcast: ' + (res.message || 'no broadcast path') + '. Nothing was spent.' }),
+            h('div', { class: 'cta' }, h('button', { class: 'btn', onclick: function () { copy(typeof signed === 'string' ? signed : JSON.stringify(signed), 'Signed genesis transaction'); }, text: 'Copy signed transaction' }), h('button', { class: 'btn ghost', onclick: function () { mintDlg.close(); }, text: 'Close' }))]);
+          return;
+        }
+        var seriesAnchor = {
+          id: slug() + '-' + res.txId.slice(0, 6),
+          title: $('#name').value.trim() || slug(),
+          protocol_version: vmMode ? 'v13' : 'v12',
+          laneCovenantId: ds.laneCovenantId,
+          genesisTxId: res.txId,
+          programHash: progHash,
+          renderHash: renHash,
+          artist: w.pubkey,
+          engine_lang: vmMode ? 2 : 1,
+          engineKind: vmMode ? 'vm' : 'js',
+          programHex: vmMode ? C.u8hex(progBytes) : undefined,
+          engineSrc: vmMode ? undefined : src(),
+          royalty_bips: form.royaltyBips,
+          genesisState: {
+            program_hash: progHash, artist: w.pubkey, price: form.priceSompi.toString(),
+            royalty_bips: String(form.royaltyBips), mints_left: String(form.supply),
+            engine_lang: vmMode ? '2' : '1', render_hash: renHash
+          },
+          editions: []
+        };
+        saveCustomSeries(seriesAnchor);
+        mountCustomSeries(seriesAnchor, false);
+        if (pubOut) {
+          clear(pubOut);
+          pubOut.appendChild(h('div', { class: 'review', style: 'margin-top:8px' },
+            h('div', {}, h('span', { text: 'Genesis TxID' }), h('b', { text: short(res.txId, 12, 8), title: res.txId })),
+            h('div', {}, h('span', { text: 'Lane Covenant ID' }), h('b', { text: short(ds.laneCovenantId, 12, 8), title: ds.laneCovenantId })),
+            h('div', { class: 'row', style: 'margin-top:8px' },
+              h('button', { class: 'btn primary', onclick: function () { showTab('gallery'); var el = document.getElementById('series-card-' + seriesAnchor.id); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, text: 'Open in Gallery & Mint' }),
+              h('button', { class: 'btn', onclick: function () { copy(JSON.stringify(seriesAnchor, null, 2), 'Series Anchor JSON'); }, text: 'Copy Anchor JSON' }),
+              h('button', { class: 'btn ghost', onclick: function () { download('anchor-' + seriesAnchor.id + '.json', JSON.stringify(seriesAnchor, null, 2) + '\n'); }, text: 'Download Anchor (.json)' }))));
+        }
+        var link = A.explorer + res.txId;
+        mintScreen(6, 'Published!', [
+          h('p', { class: 'note' }, 'SeriesFactory deployed in transaction ', h('a', { href: link, target: '_blank', rel: 'noopener', text: short(res.txId, 10, 8) }), '. Your series has been added to the Gallery tab.'),
+          h('div', { class: 'cta' },
+            h('button', { class: 'btn primary', onclick: function () { mintDlg.close(); showTab('gallery'); }, text: 'View in Gallery' }),
+            h('button', { class: 'btn', onclick: function () { copy(JSON.stringify(seriesAnchor, null, 2), 'Series Anchor JSON'); }, text: 'Copy Anchor JSON' }))]);
+        toast('Series published on chain!', 'ok');
+      } catch (e) {
+        var fe = K.friendly(e);
+        if (fe.userCancelled) { mintDlg.close(); toast('Cancelled. Nothing was spent.'); }
+        else mintScreen(0, 'Could not publish series', [h('p', { class: 'note bad', text: fe.message }), h('div', { class: 'cta' }, h('button', { class: 'btn', onclick: function () { mintDlg.close(); }, text: 'Close' }))]);
+      } finally { minting = false; }
+    }
+
+    if (pubBtn) pubBtn.addEventListener('click', publishWithKaspire);
     $('#exe').addEventListener('click', async function () {
       if (!(await gates())) { toast('Fix the failing gates before exporting.', 'bad'); return; }
       var name = slug();
@@ -688,15 +1122,9 @@
       });
     }
     $('#exs').addEventListener('click', function () {
-      var w = K.state(), artist = ($('#artist').value.trim() || (w.status === 'connected' ? w.pubkey : '')).toLowerCase();
-      var price = $('#price').value.trim(), roy = Number($('#roy').value), n = Number($('#eds').value), err = '';
-      var priceSompi; try { priceSompi = price === '' ? -1n : BigInt(Math.round(Number(price) * 1e8)); } catch (e) { priceSompi = -1n; }
-      if (!/^[0-9a-f]{64}$/.test(artist)) err = 'Artist key must be 64 hex characters (connect Kaspire to fill it in).';
-      else if (priceSompi !== 0n && !(priceSompi >= SOMPI)) err = 'Price must be 0 or at least 1 KAS.';
-      else if (!(roy >= 0.01 && roy <= 20)) err = 'Royalty must be between 0.01% and 20%.';
-      else if (!(Number.isInteger(n) && n >= 1)) err = 'Editions must be a whole number of at least 1.';
-      if (err) { stat.textContent = err; toast(err, 'bad'); return; }
-      var seriesObj = { artist: artist, price: Number(priceSompi), royalty_bips: Math.round(roy * 100), mints_left: n, engine_lang: isJsSource(ed.value) ? 1 : 2 };
+      var form = readSeriesForm(false);
+      if (!form) return;
+      var seriesObj = { artist: form.artist, price: Number(form.priceSompi), royalty_bips: form.royaltyBips, mints_left: form.supply, engine_lang: isJsSource(ed.value) ? 1 : 2 };
       download('series-' + slug() + '.json', JSON.stringify(seriesObj, null, 2) + '\n');
       stat.textContent = 'Exported series-' + slug() + '.json';
     });
@@ -730,6 +1158,7 @@
   // Boot
   var host = $('#series-host');
   A.series.forEach(function (s) { host.appendChild(renderSeries(s)); });
+  initCustomSeriesLoader();
   initOfflineVerifier();
   walletChip();
   K.restore().then(walletChip);

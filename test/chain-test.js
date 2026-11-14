@@ -6,12 +6,15 @@ const C = require(path.join(root, 'web', 'reliks-chain.js'));
 const B32 = require(path.join(root, 'lib', 'bech32-kaspa.js'));
 const E = require(path.join(root, 'lib', 'reliks-engine-mainnet.js'));
 const anchors = require(path.join(root, 'data', 'mainnet-anchors.json'));
+const makeTemplates = require(path.join(root, 'lib', 'reliks-templates.js'));
 const S = anchors.series[0];
 let pass = 0, fail = 0;
 const t = async (name, fn) => { try { await fn(); pass++; console.log('PASS ' + name); } catch (e) { fail++; console.log('FAIL ' + name + ' | ' + e.message); } };
 const eq = (a, b, m) => { if (String(a) !== String(b)) throw new Error((m || 'mismatch') + ': ' + a + ' != ' + b); };
 const throws = (fn, re, m) => { try { fn(); } catch (e) { if (re && !re.test(e.message)) throw new Error((m || 'wrong error') + ': ' + e.message); return; } throw new Error(m || 'expected a throw'); };
-C.init(require(path.join(root, 'lib', 'reliks-templates.js'))());
+const t12 = makeTemplates();
+const t13 = makeTemplates({ editionAbi: 'edition-abi-v13.json' });
+C.init(t12);
 const H = (s) => Buffer.from(s, 'hex');
 const PK = 'aa'.repeat(32), PK2 = 'bb'.repeat(32);
 
@@ -19,25 +22,31 @@ const PK = 'aa'.repeat(32), PK2 = 'bb'.repeat(32);
   await t('engine bytes hash to the mainnet program_hash anchor', () => eq(E.engineHashHex, S.programHash));
   await t('render(1) hashes to the mainnet render_hash anchor', () => eq(E.renderHashHex, S.renderHash));
   await t('serial oracle: edition #0 serial recomputes from the genesis lane outpoint', () => eq(C.serialFromOutpoint(S.genesisTxId, 0), S.editions[0].serial));
-  await t('state spans are frozen: factory 135, edition 161', () => {
+  await t('state spans are frozen: factory 135, edition v12 161, edition v13 203', () => {
     const f = { program_hash: S.programHash, artist: S.artist, price: 100000000n, royalty_bips: 500n, mints_left: 8n, engine_lang: 0n, render_hash: S.renderHash };
     eq(C.encFactoryState(f).length, 135);
     const e = { ownerIdentifier: PK, identifierType: 0, price: 0, artist: S.artist, royalty_bips: 500, program_hash: S.programHash, factory_covid: S.laneCovenantId, serial: S.editions[0].serial };
     eq(C.encEditionState(e).length, 161);
+    const e13 = { ...e, lineage: '11'.repeat(32), sales: 2n };
+    eq(C.encEditionState(e13, t13.edition).length, 203);
   });
   await t('template spans match the ABI-derived layout', () => {
-    const tp = require(path.join(root, 'lib', 'reliks-templates.js'))();
-    eq(tp.factory.span.len, 135); eq(tp.edition.span.len, 161);
-    eq(tp.factory.entries.mint, 'b781beeb');
+    eq(t12.factory.span.len, 135); eq(t12.edition.span.len, 161);
+    eq(t12.factory.entries.mint, 'b781beeb');
   });
   await t('the mainnet engine is baked into the factory template', () => {
-    const tp = require(path.join(root, 'lib', 'reliks-templates.js'))();
-    if (!tp.factory.suffixHex.includes(Buffer.from(E.ENGINE_SRC, 'utf8').toString('hex'))) throw new Error('engine bytes not found in factory suffix');
+    if (!t12.factory.suffixHex.includes(Buffer.from(E.ENGINE_SRC, 'utf8').toString('hex'))) throw new Error('engine bytes not found in factory suffix');
   });
-  await t('addresses: P2PK and P2SH encoders match bech32-kaspa.js', () => {
-    eq(C.p2pkAddress('kaspa', PK), B32.encodeP2PK('kaspa', PK));
+  await t('addresses: P2PK and P2SH encoders and decodeAddress match bech32-kaspa.js', () => {
+    const a1 = C.p2pkAddress('kaspa', PK);
+    eq(a1, B32.encodeP2PK('kaspa', PK));
+    const dec = C.decodeAddress(a1);
+    eq(dec.hrp, 'kaspa'); eq(dec.version, 0); eq(dec.payloadHex, PK);
     const spk = 'aa20' + '11'.repeat(32) + '87';
     eq(C.p2shAddress('kaspa', spk), B32.encodeP2SH('kaspa', '11'.repeat(32)));
+    eq(C.parseOwnerInput('kaspa', a1).pubkey, PK);
+    eq(C.parseOwnerInput('kaspa', PK).address, a1);
+    throws(() => C.decodeAddress(a1.slice(0, -1) + 'q'), /checksum/);
   });
   await t('state decode round-trips through a full redeem script', () => {
     const st = { program_hash: S.programHash, artist: S.artist, price: 100000000n, royalty_bips: 500n, mints_left: 7n, engine_lang: 0n, render_hash: S.renderHash };
@@ -45,12 +54,20 @@ const PK = 'aa'.repeat(32), PK2 = 'bb'.repeat(32);
     const d = C.decodeFactoryState(red);
     eq(d.mints_left, 7n); eq(d.price, 100000000n); eq(d.artist, S.artist); eq(d.render_hash, S.renderHash);
   });
+  await t('buildFactorySuffix: reproduces v12 factory suffixHex byte-for-byte and synthesizes v13 factory suffix', () => {
+    const got12 = Buffer.from(C.buildFactorySuffix(Buffer.from(E.ENGINE_SRC, 'utf8'), t12.edition)).toString('hex');
+    eq(got12, t12.factory.suffixHex);
+    const dummyVm = new Uint8Array(500); dummyVm.fill(0x42);
+    const got13 = C.buildFactorySuffix(dummyVm, t13.edition);
+    if (!Buffer.from(got13).toString('hex').includes(t13.edition.templateHashHex)) throw new Error('missing v13 templateHashHex');
+  });
 
   // ---- synthetic lane with 3 mints left
   const st = { program_hash: S.programHash, artist: S.artist, price: 100000000n, royalty_bips: 500n, mints_left: 3n, engine_lang: 0n, render_hash: S.renderHash };
   const laneSpk = C.p2shSpk(C.factoryRedeem(st));
   const lane = { state: st, spk: laneSpk, outpoint: { txId: '01'.repeat(32), index: 0 }, value: 100000000n, covenantId: S.laneCovenantId, daa: 5n };
   const buyer = { pubkey: PK, address: C.p2pkAddress('kaspa', PK) };
+  const seller = { pubkey: PK2, address: C.p2pkAddress('kaspa', PK2) };
   const funding = { txId: '02'.repeat(32), index: 3, amount: 550000000n, daa: 9n };
   const fee = 4200000n;
   let d;
@@ -66,7 +83,6 @@ const PK = 'aa'.repeat(32), PK2 = 'bb'.repeat(32);
   });
   await t('buildMint: sigscript ends with the redeem of the CURRENT lane state (regression: old builder pushed the successor)', () => {
     const ss = H(d.inputs[0].sigScript);
-    // last push = PUSHDATA2 of the redeem script
     const red = Buffer.from(C.factoryRedeem(st));
     const tail = ss.subarray(ss.length - red.length);
     if (!tail.equals(red)) throw new Error('sigscript tail is not the current redeem');
@@ -74,10 +90,10 @@ const PK = 'aa'.repeat(32), PK2 = 'bb'.repeat(32);
   });
   await t('buildMint: dispatch tag and buyer are in the argument order the ABI declares', () => {
     const ss = H(d.inputs[0].sigScript);
-    eq(ss.subarray(0, 33).toString('hex'), '20' + PK);      // buyer
-    eq(ss.subarray(33, 35).toString('hex'), '0100');         // scheme 0 as a 1-byte push (minimal push of 0x00 is not OP_0)
-    eq(ss[35], 0x51); eq(ss[36], 0x52);                      // OP_1 (edition idx), OP_2 (artist idx)
-    eq(ss.subarray(37, 42).toString('hex'), '04b781beeb');   // dispatch tag push
+    eq(ss.subarray(0, 33).toString('hex'), '20' + PK);
+    eq(ss.subarray(33, 35).toString('hex'), '0100');
+    eq(ss[35], 0x51); eq(ss[36], 0x52);
+    eq(ss.subarray(37, 42).toString('hex'), '04b781beeb');
   });
   await t('buildMint: successor lane has mints_left - 1 and the same covenant id', () => {
     const next = { ...st, mints_left: 2n };
@@ -120,6 +136,66 @@ const PK = 'aa'.repeat(32), PK2 = 'bb'.repeat(32);
   await t('verifySigned: rejects an altered factory script', () => { const j = signed(); j.inputs[0].signatureScript = '00'; throws(() => C.verifySigned(d, j), /factory input/); });
   await t('verifySigned: rejects an unsigned wallet input', () => { const j = JSON.parse(C.toSafeJSON(d)); throws(() => C.verifySigned(d, j), /Schnorr/); });
   await t('verifySigned: rejects an added output', () => { const j = signed(); j.outputs.push({ value: '1', scriptPublicKey: '0000' + '20' + 'ee'.repeat(32) + 'ac' }); throws(() => C.verifySigned(d, j), /output count/); });
+
+  // ---- 1-click Series Deploy (buildDeploySeries)
+  await t('buildDeploySeries: builds a valid genesis SeriesFactory-v13 transaction', () => {
+    const prog = new Uint8Array([0x52, 0x56, 0x4d, 0x01, 0x90, 0x01]);
+    const ph = C.hashHex(prog);
+    const depState = { program_hash: ph, artist: buyer.pubkey, price: 200000000n, royalty_bips: 500n, mints_left: 8n, engine_lang: 2n, render_hash: '33'.repeat(32) };
+    const dep = C.buildDeploySeries({ state: depState, progBytes: prog, editionTemplate: t13.edition, artist: buyer, funding, fee: 50000n, hrp: 'kaspa' });
+    eq(dep.inputs.length, 1); eq(dep.outputs.length, 2);
+    eq(dep.outputs[0].value, 100000000n);
+    eq(dep.outputs[0].covenant.authorizingInput, 0);
+    const expectedCov = C.covenantIdGenesis(funding.txId, funding.index, [{ idx: 0, value: 100000000, script: dep.outputs[0].spk }]);
+    eq(dep.outputs[0].covenant.covenantId, expectedCov);
+  });
+
+  // ---- Secondary Market Builders (list, unlist, buy, transfer)
+  const edState13 = {
+    ownerIdentifier: seller.pubkey, identifierType: 0, price: 0n,
+    artist: S.artist, royalty_bips: 500n, program_hash: S.programHash,
+    factory_covid: S.laneCovenantId, serial: '12345',
+    lineage: '44'.repeat(32), sales: 1n
+  };
+  const edSpk0 = C.p2shSpk(C.editionRedeem(edState13, t13.edition));
+  const edObj = {
+    index: 0, serial: '12345', covenantId: '55'.repeat(32),
+    outpoint: { txId: '66'.repeat(32), index: 1 }, value: 100000000n,
+    state: edState13, spk: edSpk0, editionTemplate: t13.edition
+  };
+
+  await t('buildListEdition + finalizeOwnerCovenantTx: lists edition for 10 KAS and verifies wrapped ownerSig', () => {
+    const listDraft = C.buildListEdition({ edition: edObj, owner: seller, newPrice: 1000000000n, funding, fee: 500000n, hrp: 'kaspa', editionTemplate: t13.edition });
+    const sj = JSON.parse(C.toSafeJSON(listDraft));
+    sj.inputs[0].signatureScript = sig;
+    sj.inputs[1].signatureScript = sig;
+    const fin = C.finalizeOwnerCovenantTx(listDraft, sj);
+    eq(fin.rpcTx.outputs[0].value, 100000000);
+    const decodedNext = C.applyEditionTransition ? null : C.decodeEditionState(Buffer.from(C.editionRedeem(listDraft.summary.nextState, t13.edition)).toString('hex'), t13.edition);
+    eq(decodedNext.price, 1000000000n);
+  });
+
+  await t('buildBuyEdition: splits 95% seller / 5% artist royalty and advances v13 lineage + sales', () => {
+    const listedState = { ...edState13, price: 1000000000n }; // 10 KAS
+    const listedEd = { ...edObj, state: listedState, spk: C.p2shSpk(C.editionRedeem(listedState, t13.edition)) };
+    const buyFunding = { txId: '09'.repeat(32), index: 0, amount: 2000000000n, daa: 10n };
+    const buyDraft = C.buildBuyEdition({ edition: listedEd, buyer, funding: buyFunding, fee: 500000n, hrp: 'kaspa', editionTemplate: t13.edition });
+    eq(buyDraft.outputs[0].value, 100000000n); // carrier preserved
+    eq(buyDraft.outputs[1].value, 950000000n); // 9.5 KAS to seller
+    eq(buyDraft.outputs[2].value, 50000000n);  // 0.5 KAS royalty to artist
+    eq(buyDraft.summary.nextState.ownerIdentifier, buyer.pubkey);
+    eq(buyDraft.summary.nextState.price, 0n);
+    eq(buyDraft.summary.nextState.sales, 2n);
+    eq(buyDraft.summary.nextState.lineage, C.advanceLineage(edState13.lineage, buyer.pubkey));
+  });
+
+  await t('buildTransferEdition: accepts a kaspa: address, advances lineage, keeps sales unchanged', () => {
+    const xferDraft = C.buildTransferEdition({ edition: edObj, owner: seller, newOwner: buyer.address, funding, fee: 500000n, hrp: 'kaspa', editionTemplate: t13.edition });
+    eq(xferDraft.summary.nextState.ownerIdentifier, buyer.pubkey);
+    eq(xferDraft.summary.nextState.sales, 1n);
+    eq(xferDraft.summary.nextState.lineage, C.advanceLineage(edState13.lineage, buyer.pubkey));
+  });
+
   await t('pickFunding: picks the largest confirmed output and refuses when it is too small', () => {
     const list = [{ outpoint: { transactionId: 'aa'.repeat(32), index: 0 }, utxoEntry: { amount: '300000000', blockDaaScore: '5' } }, { outpoint: { transactionId: 'bb'.repeat(32), index: 1 }, utxoEntry: { amount: '900000000', blockDaaScore: '6' } }, { outpoint: { transactionId: 'cc'.repeat(32), index: 1 }, utxoEntry: { amount: '9000000000', isCoinbase: true, blockDaaScore: '6' } }];
     const p = C.pickFunding(list, 500000000n); eq(p.txId, 'bb'.repeat(32));
