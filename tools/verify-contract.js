@@ -7,6 +7,7 @@ if (probe.error) { console.log('SKIP silverc not available'); process.exit(0); }
 const load = (f) => { const a = JSON.parse(fs.readFileSync(f, 'utf8')); return a.contracts ? a.contracts[Object.keys(a.contracts)[0]] : a; };
 const key = (c) => JSON.stringify([c.compiled.bytecode, c.compiled.template_hash, c.compiled.state_span]);
 
+// Reconstruct exact constructor args for data/factory-abi-v12.json from its embedded initial state + mainnet engine + v12 edition ABI.
 const v12FactoryArgsPath = path.join(os.tmpdir(), 'reliks-v12-factory-args-' + process.pid + '.json');
 try {
   const fc = load('data/factory-abi-v12.json').compiled;
@@ -28,10 +29,10 @@ const PAIRS = [
   { name: 'v12 edition', src: 'sil/ReliksEdition-v12.sil', args: 'data/edition-args.json', abis: ['data/edition-abi-v12.json'], gate: true },
   { name: 'v12 escrow', src: 'sil/OfferEscrow-v5.sil', args: 'data/escrow-args.json', abis: ['data/escrow-abi-v5.json'], gate: true },
   { name: 'v12 factory', src: 'sil/SeriesFactory-v12.sil', args: v12FactoryArgsPath, abis: ['data/factory-abi-v12.json'], gate: true },
-  { name: 'edition', src: 'v13/ReliksEdition-v13-draft.sil', args: 'v13/edition-args-v13.json', abis: ['data/edition-abi-v13.json', 'v13/out/v13.json'], gate: true },
-  { name: 'factory vm', src: 'v13/SeriesFactory-v13-draft.sil', args: 'v13/factory-args-vm-v13.json', abis: ['v13/out/factory-vm-v13.json'], gate: true },
-  { name: 'factory marks3', src: 'v13/SeriesFactory-v13-draft.sil', args: 'v13/factory-args-marks3-v13.json', abis: ['v13/out/factory-marks3-v13.json'], gate: true },
-  { name: 'escrow', src: 'v13/OfferEscrow-v6-draft.sil', args: 'v13/escrow-args-v6.json', abis: ['v13/out/escrow-v6.json'], gate: true },
+  { name: 'edition', src: 'v13/ReliksEdition-v13.sil', args: 'v13/edition-args-v13.json', abis: ['data/edition-abi-v13.json', 'v13/out/v13.json'], gate: true },
+  { name: 'factory vm', src: 'v13/SeriesFactory-v13.sil', args: 'v13/factory-args-vm-v13.json', abis: ['v13/out/factory-vm-v13.json'], gate: true },
+  { name: 'factory marks3', src: 'v13/SeriesFactory-v13.sil', args: 'v13/factory-args-marks3-v13.json', abis: ['v13/out/factory-marks3-v13.json'], gate: true },
+  { name: 'escrow', src: 'v13/OfferEscrow-v6.sil', args: 'v13/escrow-args-v6.json', abis: ['v13/out/escrow-v6.json'], gate: true },
 ];
 
 let bad = 0;

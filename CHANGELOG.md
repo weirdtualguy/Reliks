@@ -1,6 +1,6 @@
 # Changelog
 
-## 13.0.0: final v13 Reliks-VM release & public-release audit fixes (2026-11-13; v12 deprecated)
+## 12.1.1: public-release audit fixes & v13 Reliks-VM genesis readiness (2026-11-13)
 - **Public-Release Audit Fixes (F-01 through F-13):**
   - **F-01:** Fixed `README.md` reference to superseded contract versions (`v13-lineage` branch and annotated freeze tags instead of removed `sil/legacy/` and `data/legacy/` directories).
   - **F-02:** Replaced all string-concatenated `innerHTML` assignments in `web/reliks-gallery-runtime.js` with a text-only DOM helper (`h()`), guarded by `test/vm-conformance-test.js`, and added `Content-Security-Policy` `<meta>` headers to generated pages (`tools/gen-site.js`, `cli/gen-gallery.js`, `tools/gen-studio.js`, `cli/reliks-lens.js`).
@@ -9,7 +9,7 @@
   - **F-05:** Marked the public-endpoint `Origin` / `User-Agent` headers in `lib/reliks-lib.js` as a fallback, surfaced a clear error when all wRPC endpoints fail, and documented the `PC_MAINNET_WRPC` / `PC_TESTNET_WRPC` operator recommendation in `docs/ENGINEERING-NOTES.md`.
   - **F-06, F-07, F-09:** Cleaned stale `V11` / `Model B` / `secondary-v4.js` labels in `cli/secondary-v12.js`, removed dead `origPickUtxo` and duplicate `buildFn(fee)` calls in `lib/reliks-lib.js`, and updated the default `25641`-byte PUSHDATA2 cap comment in `cli/reliks-lens.js`.
   - **F-08:** Switched `.github/workflows/test.yml` to `npm ci`, added `npm audit --omit=dev --audit-level=high`, and wired the RVM JS/C99/ASan/UBSan conformance suites into CI and `npm test`.
-  - **F-10, F-11, F-12, F-13:** Reconciled `docs/STATE.md` and `STATUS.md` branch/tag notes (adding annotated tag `v13-freeze-2026-10-06`), froze the `engine_lang` mapping (`2` required for all new/mainnet Reliks-VM series) in `PROTOCOL.md` §6, documented the `engineBaked()` compiler constant-folding guard in `sil/SeriesFactory-v12.sil` and `v13/SeriesFactory-v13-draft.sil`, and added concrete vulnerability reporting channels and RVM scope to `SECURITY.md`.
+  - **F-10, F-11, F-12, F-13:** Reconciled `docs/STATE.md` and `STATUS.md` branch/tag notes (adding annotated tag `v13-freeze-2026-10-06`), froze the `engine_lang` mapping (`2` required for all new/mainnet Reliks-VM series) in `PROTOCOL.md` §6, documented the `engineBaked()` compiler constant-folding guard in `sil/SeriesFactory-v12.sil` and `v13/SeriesFactory-v13.sil`, and added concrete vulnerability reporting channels and RVM scope to `SECURITY.md`.
 - **Reliks-VM & Decentralization Readiness (`v13/`):**
   - **CI & C99 Sanitizer Cleanliness:** Fixed a LeakSanitizer path-buffer leak on `longjmp` faults and added OOM guards in `v13/vm/rvm.c`; all 135 C program vectors now pass under `-fsanitize=address,undefined` (`test/vm-conformance-test.js` and `tools/check.sh`).
   - **Verification Site RVM & Offline Mode (`docs/index.html`, `tools/gen-site.js`, `web/site-app.js`):** Embedded `v13/vm/rvm.js` into `docs/index.html` and the Web Worker so the main site verifies and renders both v12 JS series and v13 Reliks-VM (`engine_lang = 2`, `RVM\x01`) series; added multi-source agreement reporting (REST + kascov) and an **Offline & Air-Gapped Verifier** that verifies and renders provenance bundles with zero network calls.

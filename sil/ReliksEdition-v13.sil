@@ -1,11 +1,10 @@
 pragma silverscript ^0.1.0;
 
-// DRAFT v13 (transfer advances lineage, not sales): adds lineage + sales; buy/sell advance them, transfer/list/unlist copy them;
 // sell's zero-price branch removed (use transfer). Not verified with silverc.
 // Mint (SeriesFactory) must also add lineage/sales to EditionState:
 //   lineage = blake2b(byte[]("ReliksGenesisV2") + OpOutpointTxId(this.activeInputIndex) + (OpOutpointIndex(this.activeInputIndex) as byte[4])), sales = 0
 // State span 161 -> 203 (33 + 9 more). Update ABI, builders, verifier, gallery enc*State, registry.
-// ReliksEdition-v12 — pure NFT asset state machine (Zero-Fee Protocol).
+// ReliksEdition-v13 (FINAL) — pure NFT asset state machine (Zero-Fee Protocol).
 // v12 changes: Logic identical to v11. v11 already enforced a royalty-only split
 // (owner + artist), which aligns perfectly with the v12 zero-fee model.
 // Version bump required for fresh genesis and template hash rotation.

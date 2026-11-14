@@ -1,4 +1,4 @@
-// Generates v13 escrow: OfferEscrow-v6-draft.sil, escrow-args-v6.json, offer-v13.js, accept-v13.js. Run from repo root.
+// Generates v13 escrow: OfferEscrow-v6.sil, escrow-args-v6.json, offer-v13.js, accept-v13.js. Run from repo root.
 const fs = require('fs');
 const die = m => { console.error('PATCH FAIL: ' + m); process.exit(1); };
 const rep = (s, a, b, tag) => { if (s.split(a).length !== 2) die(tag + ': need exactly one match for: ' + a.slice(0, 70)); return s.replace(a, () => b); };
@@ -8,7 +8,7 @@ let c = fs.readFileSync('sil/OfferEscrow-v5.sil', 'utf8');
 c = rep(c, "        byte[32] factory_covid;\n        int serial;\n    }", "        byte[32] factory_covid;\n        int serial;\n        byte[32] lineage;\n        int sales;\n    }", 'struct');
 c = rep(c, "            serial: prevEd.serial\n        };", "            serial: prevEd.serial,\n            lineage: blake2b(domain + prevEd.lineage + offerer),\n            sales: prevEd.sales + 1\n        };", 'nextEd');
 c = rep(c, "        EditionState nextEd = EditionState {", "        byte[] domain = byte[](\"ReliksLineageV2\");\n        EditionState nextEd = EditionState {", 'domain');
-fs.writeFileSync('v13/OfferEscrow-v6-draft.sil', '// DRAFT v6 (testnet): mirrors ReliksEdition-v13 state; accept advances lineage/sales like Edition.soldState.\n' + c);
+fs.writeFileSync('v13/OfferEscrow-v6.sil', '// DRAFT v6 (testnet): mirrors ReliksEdition-v13 state; accept advances lineage/sales like Edition.soldState.\n' + c);
 
 // 2) constructor args (edition template constants come from the v13 edition build)
 const ed = require(process.cwd() + '/v13/out/v13.json').contracts.ReliksEdition.compiled;
@@ -36,4 +36,4 @@ patch('cli/accept-v5.js', 'v13/accept-v13.js', [
    "const nextLin = B.from(V.blake2b(B.concat([B.from('ReliksLineageV2', 'utf8'), B.from(ed.lineage, 'hex'), B.from(st.offerer, 'hex')]), { dkLen: 32 })).toString('hex');\nconst nextEdState = { ...curEdState, ownerIdentifier: st.offerer, price: 0, lineage: nextLin, sales: ed.sales + 1 };"],
   ['ed.owner = st.offerer; ed.price = 0;', 'ed.lineage = nextLin; ed.sales = ed.sales + 1; ed.owner = st.offerer; ed.price = 0;'],
 ]);
-console.log('generated v13/OfferEscrow-v6-draft.sil escrow-args-v6.json offer-v13.js accept-v13.js');
+console.log('generated v13/OfferEscrow-v6.sil escrow-args-v6.json offer-v13.js accept-v13.js');

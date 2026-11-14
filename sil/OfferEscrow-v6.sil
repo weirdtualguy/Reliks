@@ -1,7 +1,6 @@
-// DRAFT v6 (testnet): mirrors ReliksEdition-v13 state; accept advances lineage/sales like Edition.soldState.
 pragma silverscript ^0.1.0;
 
-// OfferEscrow-v5 — Zero-Fee Protocol escrow (trustless atomic swap).
+// OfferEscrow-v6 (FINAL) — Zero-Fee Protocol escrow (trustless atomic swap).
 // The offerer locks (askPrice + FEE_BUFFER) at offer time; the buffer pays
 // the miner fee on the 2-input accept. The owner accepts by co-spending the
 // listed edition and signing. The split is TWO-WAY and exact-equality:

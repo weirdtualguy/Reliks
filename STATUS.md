@@ -1,4 +1,4 @@
-# Reliks: project status (updated 2026-11-13 — v13.0.0 final, v12 deprecated)
+# Reliks: project status (updated 2026-11-13 — v12.1.1 & v13 genesis ready)
 
 Everything below is committed and verified by `npm test` and `sh tools/check.sh`.
 

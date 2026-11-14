@@ -1,4 +1,4 @@
-> **Status:** v13.0.0 final release — Reliks-VM genesis ready (2026-11-13; v12 deprecated). See [STATUS.md](STATUS.md) for what exists, what is verified, and how to deploy a v13 Reliks-VM series.
+> **Status:** v12.1.1 release-ready & v13 Reliks-VM genesis ready (2026-11-13). See [STATUS.md](STATUS.md) for what exists, what is verified, and how to deploy a v13 Reliks-VM series.
 
 # Reliks
 
@@ -51,7 +51,7 @@ cp secrets.env.example ~/reliks-private/secrets.env   # keep keys outside the re
 set -a; . ~/reliks-private/secrets.env; set +a
 node cli/reliks-lens.js my-engine.js                  # JS engine gate suite (or cli/reliks-lens-vm.js my-prog.rvm for Reliks-VM)
 node cli/gen-factory-args.js series-my-engine.json    # or v13/gen-vm-factory-args.js for Reliks-VM (engine_lang = 2)
-# compile sil/SeriesFactory-v12.sil (or v13/SeriesFactory-v13-draft.sil) with those args
+# compile sil/SeriesFactory-v12.sil (or v13/SeriesFactory-v13.sil) with those args
 npm run deploy && npm run mint && npm run verify && npm run gallery
 ```
 

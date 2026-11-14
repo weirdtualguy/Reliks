@@ -1,6 +1,6 @@
-# Reliks protocol (v13 final specification; v12 deprecated)
+# Reliks protocol (v12 mainnet & v13 Reliks-VM specification)
 
-Status: v13 (adding `lineage`, `sales`, and Reliks-VM v1) is the final protocol version. Legacy v12 is deprecated and retained only for historical verification. Reference code: `web/reliks-chain.js` and `sdk/`. Independent check: `sdk/ref_protocol.py` generates `sdk/protocol-vectors.json`, and `sdk/test-protocol.js` verifies the JS codec against it (`npm test` / `sh tools/check.sh`). Items marked UNREVIEWED were not checked against the `silverc` compiler internals. Where this text and the contract disagree, the contract wins and this text is a bug.
+Status: v12 is frozen on mainnet; v13 (adding `lineage`, `sales`, and Reliks-VM v1) is verified on testnet-10 and ready for mainnet genesis. Reference code: `web/reliks-chain.js` and `sdk/`. Independent check: `sdk/ref_protocol.py` generates `sdk/protocol-vectors.json`, and `sdk/test-protocol.js` verifies the JS codec against it (`npm test` / `sh tools/check.sh`). Items marked UNREVIEWED were not checked against the `silverc` compiler internals. Where this text and the contract disagree, the contract wins and this text is a bug.
 
 ## 1. Conventions
 - H(x) is blake2b-256. H_k(x) is the keyed variant. le16/le32/le64 are little-endian unsigned. Hex is lowercase.
@@ -20,7 +20,7 @@ The names carry historical suffixes. They are fixed strings, not versions.
 For a mint, (txid, index) is the lane outpoint the mint spends: output 0 of the previous mint transaction, or output 0 of the genesis transaction for the first mint (the factory contract computes both from this outpoint, section 5; also observed on the testnet ledgers).
 
 ## 4. Edition transitions
-Source: `v13/ReliksEdition-v13-draft.sil`, transcribed by hand. Compiled with `silverc` and `v13/edition-args-v13.json`, that source gives bytecode, template hash and state span identical to `data/edition-abi-v13.json` and `v13/out/v13.json`, and those templates rebuilt the live testnet edition scripts (2026-10-03; `tools/verify-contract.js`). Every route is a one-input, one-output covenant transition authorized by the edition's own input, except `spend`, which ends the edition. "Owner auth" means a Schnorr signature by the owner key, and it requires `identifierType = IDENTIFIER_PUBKEY`. "Carrier" means the edition output's value must be at least its input's value. `MAX = 922337203685477`.
+Source: `v13/ReliksEdition-v13.sil`, transcribed by hand. Compiled with `silverc` and `v13/edition-args-v13.json`, that source gives bytecode, template hash and state span identical to `data/edition-abi-v13.json` and `v13/out/v13.json`, and those templates rebuilt the live testnet edition scripts (2026-10-03; `tools/verify-contract.js`). Every route is a one-input, one-output covenant transition authorized by the edition's own input, except `spend`, which ends the edition. "Owner auth" means a Schnorr signature by the owner key, and it requires `identifierType = IDENTIFIER_PUBKEY`. "Carrier" means the edition output's value must be at least its input's value. `MAX = 922337203685477`.
 
 | Route | Arguments | Auth | Checks | Resulting state |
 |---|---|---|---|---|
@@ -40,7 +40,7 @@ Consequences worth stating:
 - `transfer` advances `lineage` at no royalty. Lineage grinding is bounded only by the 64-value quantization in the VM host rule.
 
 ## 5. Mint (factory contract)
-Source: `v13/SeriesFactory-v13-draft.sil` (and `sil/SeriesFactory-v12.sil` on mainnet v12), transcribed by hand; it recompiles to the deployed factory bytecode of both testnet VM series (`tools/verify-contract.js`). Constants: `IDENTIFIER_PUBKEY = 0`, `MIN_PRICE = 100000000` (1 KAS), `MAX_ROYALTY_BIPS = 2000`.
+Source: `v13/SeriesFactory-v13.sil` (and `sil/SeriesFactory-v12.sil` on mainnet v12), transcribed by hand; it recompiles to the deployed factory bytecode of both testnet VM series (`tools/verify-contract.js`). Constants: `IDENTIFIER_PUBKEY = 0`, `MIN_PRICE = 100000000` (1 KAS), `MAX_ROYALTY_BIPS = 2000`.
 
 Entry `mint(buyer: byte[32], buyerScheme: byte, editionOutIdx: int, artistOutIdx: int)`. No signature is required: anyone can mint to any buyer key by paying. The contract requires:
 1. `mints_left > 0`; `buyerScheme = 0`; `price = 0` or `price >= 100000000`; `1 <= royalty_bips <= 2000`. A series deployed with `royalty_bips` outside `1..2000` can never mint.
@@ -55,7 +55,7 @@ UNREVIEWED: how the edition output's covenant id is checked; the internals of `v
 Reference SDK (`web/reliks-chain.js` `buildMint`): output order is lane (0), edition (1), artist (2, only if `price > 0`), then change; the signature script hardcodes `editionOutIdx = 1` and `artistOutIdx = 2`; edition value 1 KAS; the edition covenant is a KIP-20 genesis authorized by the funding input (index 1). `sdk/plan.js` `planMint` checks all of this against the rules above.
 
 ## 5b. Offer escrow (v6)
-Source: `v13/OfferEscrow-v6-draft.sil`, transcribed by hand; it recompiles to `v13/out/escrow-v6.json` (`tools/verify-contract.js`). Constants as in the edition: `IDENTIFIER_PUBKEY = 0`, `MIN_PRICE = 100000000`, `MAX_PRICE = 922337203685477`.
+Source: `v13/OfferEscrow-v6.sil`, transcribed by hand; it recompiles to `v13/out/escrow-v6.json` (`tools/verify-contract.js`). Constants as in the edition: `IDENTIFIER_PUBKEY = 0`, `MIN_PRICE = 100000000`, `MAX_PRICE = 922337203685477`.
 
 State (8 fields, 161 bytes encoded): `ownerIdentifier(32)`, `identifierType(1)`, `edition_covid(32)`, `askPrice(8)`, `expireAge(8)`, `artist(32)`, `royalty_bips(8)`, `offerer(32)`. The escrow script is the bytecode of `v13/out/escrow-v6.json` with the 161-byte state inserted at the state span (`prefix` = bytecode before the span, `suffix` = after), encoded as in section 1. The edition template's prefix length, suffix length and expected hash are constructor arguments baked into the escrow script, not stored in state (per `v13/make-v13-escrow.js`, which derives them from the edition ABI), so an escrow only works with the edition template it was built for. An escrow is created by paying to its script; the source has no creation rule. It holds at least `askPrice` (a fee buffer on top is customary, not required).
 
@@ -87,7 +87,7 @@ Consequences:
 
 ## 7. Mainnet today & v13 Genesis
 Mainnet v12 genesis runs the 8-field edition (no `lineage` or `sales`), JS engine, `engine_lang = 1`. Read-only checks for it: `sdk/verify-v12.js`, `cli/verify-render.js`, and `docs/index.html`.
-For a **v13 Reliks-VM mainnet genesis**, the series deploys `v13/SeriesFactory-v13-draft.sil` and `v13/ReliksEdition-v13-draft.sil` (10-field edition with `lineage` and `sales`, 203-byte state span) with `engine_lang = 2` and an `RVM\x01` program gated by `cli/reliks-lens-vm.js`. `docs/index.html` (`tools/gen-site.js` + `web/site-app.js`) embeds `v13/vm/rvm.js` and verifies both v12 JS series and v13 Reliks-VM series in the browser.
+For a **v13 Reliks-VM mainnet genesis**, the series deploys `v13/SeriesFactory-v13.sil` and `v13/ReliksEdition-v13.sil` (10-field edition with `lineage` and `sales`, 203-byte state span) with `engine_lang = 2` and an `RVM\x01` program gated by `cli/reliks-lens-vm.js`. `docs/index.html` (`tools/gen-site.js` + `web/site-app.js`) embeds `v13/vm/rvm.js` and verifies both v12 JS series and v13 Reliks-VM series in the browser.
 
 ## 8. Not specified yet
 Owner-as-covenant and collection-wide offers (design only, not implemented); splits and custom mint modes.

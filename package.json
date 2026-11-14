@@ -1,6 +1,6 @@
 {
   "name": "reliks",
-  "version": "12.1.1",
+  "version": "13.0.0",
   "description": "Reliks: UTXO-native generative art NFTs on Kaspa. The art is a program whose hash lives in the contract.",
   "license": "MIT",
   "private": false,

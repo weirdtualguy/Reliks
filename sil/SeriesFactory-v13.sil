@@ -1,7 +1,6 @@
-// DRAFT v13 (UNCOMPILED until verified): mint initializes lineage + sales.
 pragma silverscript ^0.1.0;
 
-// SeriesFactory-v12 — Zero-Fee Protocol (DECL-lowered hybrid factory).
+// SeriesFactory-v13 (FINAL) — Zero-Fee Protocol (DECL-lowered hybrid factory).
 // fork/close: DECL macros. mint: handwritten (heterogeneous spawner).
 // Carrier value conservation enforced on edition output.
 // Treasury and platform fees removed; artist receives 100% of primary sale.

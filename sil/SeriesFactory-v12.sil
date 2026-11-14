@@ -1,3 +1,4 @@
+// DEPRECATED (v12 legacy — retained only for historical v12 mainnet genesis verification; use v13).
 pragma silverscript ^0.1.0;
 
 // SeriesFactory-v12 — Zero-Fee Protocol (DECL-lowered hybrid factory).

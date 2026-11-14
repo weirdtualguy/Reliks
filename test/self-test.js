@@ -51,10 +51,10 @@ for (const f of ['lib/reliks-engine-mainnet.js']) {
 }
 
 // --- Repo integrity ---
-t('canonical contracts present', () => { for (const f of ['SeriesFactory-v12.sil', 'ReliksEdition-v12.sil', 'OfferEscrow-v5.sil']) fs.accessSync(path.join(root, 'sil', f)); });
+t('canonical contracts present', () => { for (const f of ['SeriesFactory-v13.sil', 'ReliksEdition-v13.sil', 'OfferEscrow-v6.sil', 'SeriesFactory-v12.sil', 'ReliksEdition-v12.sil', 'OfferEscrow-v5.sil']) fs.accessSync(path.join(root, 'sil', f)); });
 t('canonical ABIs parse; state spans frozen (135/161/161)', () => {
   const span = f => { const a = JSON.parse(fs.readFileSync(path.join(root, 'data', f), 'utf8')); return a.contracts[Object.keys(a.contracts)[0]].compiled.state_span.len; };
-  eq(span('factory-abi-v12.json'), 135); eq(span('edition-abi-v12.json'), 161); eq(span('escrow-abi-v5.json'), 161);
+  eq(span('factory-abi-v12.json'), 135); eq(span('edition-abi-v12.json'), 161); eq(span('edition-abi-v13.json'), 203); eq(span('escrow-abi-v5.json'), 161);
 });
 t('no default path points at superseded versions', () => {
   const bad = /factory-(ledger|args|abi)-v1[01]\.json|edition-abi-v6\.json|escrow-abi-v4|reliks-engine-v10\.js['"]\s*\)/;
