@@ -121,7 +121,7 @@ const gallery = `
 
 const studio = `
 <div class="hero" style="padding-bottom:8px"><span class="eyebrow">Studio · Reliks-VM (v13) &amp; JS</span><h1>Design a program. <em>Gate</em> it. Export it.</h1>
-<p>Write a Reliks-VM assembly program (or legacy v12 JS engine) in the browser, preview patina and wear across lineages and sales, and run the determinism gates. Standalone offline VM studio: <a href="studio.html">studio.html</a>.</p></div>
+<p>Write a Reliks-VM assembly program (or legacy v12 JS engine) in the browser, preview patina and optional sales wear across lineages and sales, and run the determinism gates. Standalone offline VM studio: <a href="studio.html">studio.html</a>.</p></div>
 <div class="row" style="margin:20px 0 14px">
   <input id="name" value="my-program" aria-label="Series name" style="max-width:220px" />
   <select id="tpl" aria-label="Template" style="max-width:240px">
@@ -147,6 +147,7 @@ const studio = `
     <div class="row" id="vm-wear-row" style="align-items:center">
       <label for="wr" style="font:12px var(--mono);color:var(--dim);flex:0 0 auto">Sales / Wear: <span id="wv">0</span></label>
       <input id="wr" type="range" min="0" max="255" value="0" style="padding:0" />
+      <label style="font:12px var(--mono);color:var(--dim);flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input id="wear-on" type="checkbox" checked style="width:auto;margin:0" />Enable wear</label>
     </div>
     <div class="gate-list" id="gates-out" aria-live="polite"></div>
     <pre class="code" id="hashes"></pre>

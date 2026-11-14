@@ -524,7 +524,7 @@
 
   /* ------------------------------------------------------------ studio (Reliks-VM v13 default + legacy v12 JS fallback) */
   function initStudio() {
-    var ed = $('#ed'), ser = $('#ser'), lin = $('#lin'), wr = $('#wr'), wv = $('#wv'), gatesEl = $('#gates-out'), stat = $('#studio-status'), hashes = $('#hashes'), prevBox = $('#prev-box'), tpl = $('#tpl');
+    var ed = $('#ed'), ser = $('#ser'), lin = $('#lin'), wr = $('#wr'), wv = $('#wv'), wearOn = $('#wear-on'), gatesEl = $('#gates-out'), stat = $('#studio-status'), hashes = $('#hashes'), prevBox = $('#prev-box'), tpl = $('#tpl');
     var vmCtrl = $('#vm-controls'), vmWear = $('#vm-wear-row'), exeBtn = $('#exe'), exsrcBtn = $('#exsrc');
     var CAP = D.studio.cap, PRELUDE = D.studio.prelude, B = ReliksBlake2b.blake2b;
     var BANNED = [[/\bMath\s*\.\s*(random|sin|cos|tan|asin|acos|atan2?|pow|sqrt|hypot|exp|log2?|log10)\b/, 'Math transcendental/random'], [/\bDate\b/, 'Date'], [/\bperformance\b/, 'performance'], [/\bfetch\s*\(/, 'fetch'], [/\bXMLHttpRequest\b/, 'XHR'], [/\bWebSocket\b/, 'WebSocket'], [/\brequire\s*\(/, 'require'], [/\bimport\s*[\(\{]/, 'import'], [/\beval\s*\(/, 'eval'], [/new\s+Function/, 'new Function'], [/\bwindow\b/, 'window'], [/\bdocument\b/, 'document'], [/\blocalStorage\b/, 'localStorage'], [/\bsetTimeout\b|\bsetInterval\b/, 'timer'], [/\bprocess\b/, 'process'], [/\bglobalThis\b/, 'globalThis']];
@@ -533,12 +533,19 @@
     function isJsSource(raw) {
       return /\bfunction\s+reliks\s*\(/.test(raw);
     }
+    function applyWearToggle(src, enabled) {
+      if (/wear\s+push\s+[01]\s+mul\s+st\s+WR/.test(src)) {
+        return src.replace(/wear\s+push\s+[01]\s+mul\s+st\s+WR/, 'wear push ' + (enabled ? '1' : '0') + ' mul st WR');
+      }
+      return src;
+    }
     function parseVmSourceOrHex(raw) {
       var trimmed = String(raw || '').trim(), compact = trimmed.replace(/\s+/g, '');
       if (compact.length >= 18 && compact.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(compact) && /^52564d01/i.test(compact)) {
         return C.hex2u8(compact.toLowerCase());
       }
-      return RvmAsm.assemble(raw);
+      var src = (wearOn && !wearOn.checked) ? applyWearToggle(raw, false).replace(/\bwear\b(?!\s+push\s+0\s+mul)/g, 'push 0') : raw;
+      return RvmAsm.assemble(src);
     }
     function src() { return PRELUDE + '\n' + ed.value; }
     function blen(x) { return C.utf8(x).length; }
@@ -627,7 +634,9 @@
 
     async function show() {
       var v = ser.value.trim() || '1';
-      if (wv && wr) wv.textContent = wr.value;
+      var wEnabled = !wearOn || wearOn.checked;
+      if (wv && wr) wv.textContent = wEnabled ? wr.value : '0 (off)';
+      if (wr) wr.disabled = !wEnabled;
       if (!/^\d{1,19}$/.test(v) || BigInt(v) >= BigInt('9223372036854775808')) { stat.textContent = 'Serial must be a whole number below 2^63.'; return; }
       var raw = ed.value;
       if (!isJsSource(raw)) {
@@ -638,10 +647,10 @@
         try { prog = parseVmSourceOrHex(raw); lastProg = prog; }
         catch (e) { lastProg = null; stat.textContent = 'Assemble error: ' + e.message; return; }
         try {
-          var hi = RVM.hostInputs(B, v, C.hex2u8(l), Number((wr && wr.value) || 0)), stats = {};
+          var hi = RVM.hostInputs(B, v, C.hex2u8(l), wEnabled ? Number((wr && wr.value) || 0) : 0), stats = {};
           var svgVm = RVM.render(prog, hi.lanes, hi.serial32, hi.pat, hi.wear, stats);
           clear(prevBox); prevBox.appendChild(artImg(svgVm));
-          hashes.textContent = 'program       ' + prog.length + ' / ' + CAP + ' B (PUSHDATA2 bake cap)\nprogram_hash  ' + bhex(prog) + '\nrender_hash   ' + bhex(svgVm) + '\nsvg           ' + svgVm.length + ' / ' + RVM.limits.MAX_SVG + ' B\nfuel          ' + stats.fuel + ' / ' + RVM.limits.FUEL_MAX + '\nelements      ' + stats.elems + ' / ' + RVM.limits.MAX_ELEMS + '\nmax_stack     ' + stats.max_stack + ' / ' + RVM.limits.STACK_MAX + '\nwear          ' + hi.wear + ' / 255\npatina        ' + hi.pat + ' / 63';
+          hashes.textContent = 'program       ' + prog.length + ' / ' + CAP + ' B (PUSHDATA2 bake cap)\nprogram_hash  ' + bhex(prog) + '\nrender_hash   ' + bhex(svgVm) + '\nsvg           ' + svgVm.length + ' / ' + RVM.limits.MAX_SVG + ' B\nfuel          ' + stats.fuel + ' / ' + RVM.limits.FUEL_MAX + '\nelements      ' + stats.elems + ' / ' + RVM.limits.MAX_ELEMS + '\nmax_stack     ' + stats.max_stack + ' / ' + RVM.limits.STACK_MAX + '\nwear          ' + hi.wear + ' / 255' + (wEnabled ? '' : ' (disabled in bytecode)') + '\npatina        ' + hi.pat + ' / 63';
           stat.textContent = 'Rendered Reliks-VM program (' + prog.length + ' B). Click "Run gates" to run the 30-corner verification sweep.';
         } catch (e) {
           stat.textContent = 'Render fault: ' + (e.code || e.message);
@@ -691,12 +700,13 @@
       download('series-' + slug() + '.json', JSON.stringify(seriesObj, null, 2) + '\n');
       stat.textContent = 'Exported series-' + slug() + '.json';
     });
-    $('#load').addEventListener('click', function () { ed.value = D.studio.templates[tpl.value] || D.studio.templates.iso; clear(gatesEl); show(); });
+    $('#load').addEventListener('click', function () { ed.value = D.studio.templates[tpl.value] || D.studio.templates.iso; if (wearOn) ed.value = applyWearToggle(ed.value, wearOn.checked); clear(gatesEl); show(); });
     $('#go').addEventListener('click', show);
     $('#rnd').addEventListener('click', function () { ser.value = String(Math.floor(Math.random() * 4294967296)); show(); });
     if ($('#rnd-lin')) $('#rnd-lin').addEventListener('click', function () { var o = new Uint8Array(32); crypto.getRandomValues(o); lin.value = C.u8hex(o); show(); });
     if (lin) lin.addEventListener('change', show);
     if (wr) wr.addEventListener('input', show);
+    if (wearOn) wearOn.addEventListener('change', function () { ed.value = applyWearToggle(ed.value, wearOn.checked); show(); });
     ed.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(show, 600); });
     $('#run-gates').addEventListener('click', gates);
     K.on(function (st) { var a = $('#artist'); if (st.status === 'connected' && !a.value) a.placeholder = 'from Kaspire: ' + short(st.pubkey, 10, 6); });

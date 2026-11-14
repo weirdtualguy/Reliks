@@ -3,29 +3,38 @@
   'use strict';
   var B = ReliksBlake2b.blake2b, enc = new TextEncoder(), D = window.STUDIO;
   var $ = function (id) { return document.getElementById(id); };
-  var ed = $('ed'), ser = $('ser'), lin = $('lin'), wr = $('wr'), wv = $('wv'), tpl = $('tpl'), st = $('st'), img = $('img'), info = $('info'), nm = $('name'), gatesOut = $('gates-out');
+  var ed = $('ed'), ser = $('ser'), lin = $('lin'), wr = $('wr'), wv = $('wv'), wearOn = $('wear-on'), tpl = $('tpl'), st = $('st'), img = $('img'), info = $('info'), nm = $('name'), gatesOut = $('gates-out');
   var prog = null, timer = 0, BAKE_CAP = (RVM.limits && RVM.limits.BAKE_CAP) || 25641;
   function hex(u) { var s = ''; for (var i = 0; i < u.length; i++) s += ('0' + u[i].toString(16)).slice(-2); return s; }
   function unhex(h) { var o = new Uint8Array(h.length / 2); for (var i = 0; i < o.length; i++) o[i] = parseInt(h.substr(i * 2, 2), 16); return o; }
   function say(msg, bad) { st.textContent = msg; st.className = bad ? 'bad' : 'ok'; }
+  function applyWearToggle(src, enabled) {
+    if (/wear\s+push\s+[01]\s+mul\s+st\s+WR/.test(src)) {
+      return src.replace(/wear\s+push\s+[01]\s+mul\s+st\s+WR/, 'wear push ' + (enabled ? '1' : '0') + ' mul st WR');
+    }
+    return src;
+  }
   function parseSourceOrHex(raw) {
     var trimmed = String(raw || '').trim(), compact = trimmed.replace(/\s+/g, '');
     if (compact.length >= 18 && compact.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(compact) && /^52564d01/i.test(compact)) {
       return unhex(compact.toLowerCase());
     }
-    return RvmAsm.assemble(raw);
+    var src = (wearOn && !wearOn.checked) ? applyWearToggle(raw, false).replace(/\bwear\b(?!\s+push\s+0\s+mul)/g, 'push 0') : raw;
+    return RvmAsm.assemble(src);
   }
   function run() {
     var s = ser.value.trim() || '1', l = lin.value.trim().toLowerCase();
-    wv.textContent = wr.value;
+    var wEnabled = !wearOn || wearOn.checked;
+    wv.textContent = wEnabled ? wr.value : '0 (off)';
+    if (wr) wr.disabled = !wEnabled;
     if (!/^\d{1,19}$/.test(s) || BigInt(s) >= BigInt('9223372036854775808')) { say('Serial must be a whole number below 2^63.', true); return; }
     if (!/^[0-9a-f]{64}$/.test(l)) { say('Lineage must be 64 hex characters.', true); return; }
     try { prog = parseSourceOrHex(ed.value); } catch (e) { prog = null; say('Assemble error: ' + e.message, true); return; }
     try {
-      var hi = RVM.hostInputs(B, s, unhex(l), Number(wr.value)), stats = {};
+      var hi = RVM.hostInputs(B, s, unhex(l), wEnabled ? Number(wr.value) : 0), stats = {};
       var svg = RVM.render(prog, hi.lanes, hi.serial32, hi.pat, hi.wear, stats);
       img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-      info.textContent = 'program       ' + prog.length + ' / ' + BAKE_CAP + ' B (PUSHDATA2 bake cap)\nprogram_hash  ' + hex(B(prog, 32)) + '\nrender_hash   ' + hex(B(enc.encode(svg), 32)) + '\nsvg           ' + svg.length + ' / ' + RVM.limits.MAX_SVG + ' B\nfuel          ' + stats.fuel + ' / ' + RVM.limits.FUEL_MAX + '\nelements      ' + stats.elems + ' / ' + RVM.limits.MAX_ELEMS + '\nmax_stack     ' + stats.max_stack + ' / ' + RVM.limits.STACK_MAX + '\nwear          ' + hi.wear + ' / 255\npatina        ' + hi.pat + ' / 63';
+      info.textContent = 'program       ' + prog.length + ' / ' + BAKE_CAP + ' B (PUSHDATA2 bake cap)\nprogram_hash  ' + hex(B(prog, 32)) + '\nrender_hash   ' + hex(B(enc.encode(svg), 32)) + '\nsvg           ' + svg.length + ' / ' + RVM.limits.MAX_SVG + ' B\nfuel          ' + stats.fuel + ' / ' + RVM.limits.FUEL_MAX + '\nelements      ' + stats.elems + ' / ' + RVM.limits.MAX_ELEMS + '\nmax_stack     ' + stats.max_stack + ' / ' + RVM.limits.STACK_MAX + '\nwear          ' + hi.wear + ' / 255' + (wEnabled ? '' : ' (disabled in bytecode)') + '\npatina        ' + hi.pat + ' / 63';
       say('Rendered.');
     } catch (e) { say('Render fault: ' + (e.code || e.message), true); }
   }
@@ -83,10 +92,11 @@
   function later() { clearTimeout(timer); timer = setTimeout(run, 600); }
   function download(fn, text) { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' })); a.download = fn; document.body.appendChild(a); a.click(); a.remove(); }
   function slug() { return (nm.value || 'my-program').replace(/[^a-z0-9-]/gi, '').slice(0, 40) || 'my-program'; }
-  $('load').addEventListener('click', function () { ed.value = D.templates[tpl.value] || D.templates.starter; if (gatesOut) gatesOut.textContent = ''; run(); });
+  $('load').addEventListener('click', function () { ed.value = D.templates[tpl.value] || D.templates.starter; if (wearOn) ed.value = applyWearToggle(ed.value, wearOn.checked); if (gatesOut) gatesOut.textContent = ''; run(); });
   $('rs').addEventListener('click', function () { ser.value = String(Math.floor(Math.random() * 4294967296)); run(); });
   $('rl').addEventListener('click', function () { var o = new Uint8Array(32); crypto.getRandomValues(o); lin.value = hex(o); run(); });
   $('go').addEventListener('click', run);
+  if (wearOn) wearOn.addEventListener('change', function () { ed.value = applyWearToggle(ed.value, wearOn.checked); run(); });
   if ($('gates')) $('gates').addEventListener('click', runGates);
   $('dlhex').addEventListener('click', function () { if (runGates() && prog) download(slug() + '.hex', hex(prog) + '\n'); });
   $('dlsrc').addEventListener('click', function () { download(slug() + '.rvm.txt', ed.value); });

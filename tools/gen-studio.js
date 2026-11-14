@@ -12,7 +12,7 @@ const body = `<main>
 <textarea id="ed" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" aria-label="Assembler source"></textarea>
 <div class="row"><label for="ser">Serial</label><input id="ser" value="1" inputmode="numeric"><button class="btn ghost" id="rs">Random</button></div>
 <div class="row"><label for="lin">Lineage</label><input id="lin" value="0000000000000000000000000000000000000000000000000000000000000000"><button class="btn ghost" id="rl">Random</button></div>
-<div class="row"><label for="wr">Sales <span id="wv">0</span></label><input id="wr" type="range" min="0" max="255" value="0"></div>
+<div class="row"><label for="wr">Sales <span id="wv">0</span></label><input id="wr" type="range" min="0" max="255" value="0"><label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input id="wear-on" type="checkbox" checked style="width:auto;margin:0">Enable wear</label></div>
 <div class="row"><button class="btn" id="go">Run</button><button class="btn ghost" id="gates">Run gates</button><span id="st" class="small">Starting…</span></div>
 <img id="img" alt="Rendered artwork">
 <pre id="info"></pre>
