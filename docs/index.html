@@ -8,21 +8,21 @@
 <meta name="theme-color" content="#06080b">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2064%2064'%3E%3Crect%20width%3D'64'%20height%3D'64'%20rx%3D'14'%20fill%3D'%2306080b'%2F%3E%3Cpath%20d%3D'M32%2010l20%2011v22L32%2054%2012%2043V21z'%20fill%3D'none'%20stroke%3D'%2349c5b1'%20stroke-width%3D'4'%2F%3E%3Cpath%20d%3D'M32%2010v44M12%2021l40%2022M52%2021L12%2043'%20stroke%3D'%2349c5b1'%20stroke-width%3D'2'%20opacity%3D'.5'%2F%3E%3C%2Fsvg%3E">
 <style>:root {
-  color-scheme: dark;
-  --ink: #06080b; --ink-2: #0b0f14; --panel: #10151c; --panel-2: #151b24; --line: #212a35; --line-2: #2c3745;
-  --text: #e9e6df; --dim: #98a2ad; --faint: #66717d;
-  --teal: #49c5b1; --teal-2: #7fe0cf; --teal-glow: rgba(73,197,177,.14);
-  --amber: #e8923a; --red: #ff6b6b; --green: #7fd1ae;
-  --paper: #e7dfc8;
-  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  --radius: 14px;
+color-scheme: dark;
+--ink: #06080b; --ink-2: #0b0f14; --panel: #10151c; --panel-2: #151b24; --line: #212a35; --line-2: #2c3745;
+--text: #e9e6df; --dim: #98a2ad; --faint: #66717d;
+--teal: #49c5b1; --teal-2: #7fe0cf; --teal-glow: rgba(73,197,177,.14);
+--amber: #e8923a; --red: #ff6b6b; --green: #7fd1ae;
+--paper: #e7dfc8;
+--serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+--sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+--mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+--radius: 14px;
 }
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 body { margin: 0; background: var(--ink); color: var(--text); font: 16px/1.55 var(--sans); min-height: 100vh; overflow-x: hidden;
-  background-image: radial-gradient(1200px 500px at 85% -10%, rgba(73,197,177,.09), transparent 60%), radial-gradient(900px 500px at -10% 10%, rgba(232,146,58,.05), transparent 55%); background-attachment: fixed; }
+background-image: radial-gradient(1200px 500px at 85% -10%, rgba(73,197,177,.09), transparent 60%), radial-gradient(900px 500px at -10% 10%, rgba(232,146,58,.05), transparent 55%); background-attachment: fixed; }
 a { color: var(--teal-2); text-decoration-color: rgba(127,224,207,.35); text-underline-offset: 3px; }
 a:hover { text-decoration-color: currentColor; }
 code, pre, .mono { font-family: var(--mono); }
@@ -30,10 +30,7 @@ code { background: var(--panel-2); border: 1px solid var(--line); border-radius:
 button { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; border-radius: 6px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-
-/* ---------- top bar */
 .bar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 20px; padding: 12px clamp(16px, 4vw, 40px); border-bottom: 1px solid var(--line); }
-/* blur lives on a pseudo-element: backdrop-filter on .bar itself would trap the fixed mobile nav inside the header */
 .bar::before { content: ""; position: absolute; inset: 0; z-index: -1; background: rgba(6,8,11,.78); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
 .brand { display: flex; flex-direction: column; line-height: 1; text-decoration: none; color: var(--text); }
 .brand b { font: 800 19px/1 var(--serif); letter-spacing: .32em; color: var(--teal); }
@@ -51,8 +48,6 @@ nav.tabs button[aria-selected="true"] { color: var(--teal-2); background: var(--
 .dot.ok { background: var(--green); box-shadow: 0 0 0 3px rgba(127,209,174,.18); }
 .dot.warn { background: var(--amber); } .dot.busy { background: var(--teal); animation: pulse 1.2s infinite; }
 @keyframes pulse { 50% { opacity: .3; } }
-
-/* ---------- layout */
 main { max-width: 1200px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px) 96px; }
 .view[hidden] { display: none; }
 .view { animation: rise .35s ease both; }
@@ -65,8 +60,6 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 600; letter-spacing: -.01em
 .eyebrow { font: 11px/1 var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--teal); margin-bottom: 18px; display: block; }
 .section-h { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 48px 0 16px; }
 .section-h h2 { font-size: 26px; } .section-h span { color: var(--faint); font: 12px var(--mono); }
-
-/* ---------- series card */
 .series { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 0; align-items: start; border: 1px solid var(--line); border-radius: 22px; background: linear-gradient(180deg, var(--panel), var(--ink-2)); overflow: hidden; }
 .art-wrap { position: sticky; top: 66px; background: var(--paper); aspect-ratio: 1/1; min-height: 280px; }
 .art-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: var(--paper); }
@@ -90,8 +83,6 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 600; letter-spacing: -.01em
 .btn.ghost { background: none; }
 .note { color: var(--dim); font-size: 14px; margin: 0; }
 .note.warn { color: var(--amber); } .note.bad { color: var(--red); }
-
-/* ---------- proof */
 .proof { border: 1px solid var(--line); border-radius: 16px; background: var(--ink-2); }
 .proof > summary { list-style: none; cursor: pointer; padding: 14px 18px; display: flex; align-items: center; gap: 12px; }
 .proof > summary::-webkit-details-marker { display: none; }
@@ -105,8 +96,6 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 600; letter-spacing: -.01em
 .checks .mark { font: 700 13px var(--mono); text-align: center; padding-top: 1px; }
 .mark.ok { color: var(--green); } .mark.bad { color: var(--red); } .mark.err { color: var(--amber); } .mark.wait { color: var(--faint); }
 .checks small { display: block; color: var(--faint); font: 12px/1.5 var(--mono); word-break: break-all; margin-top: 2px; }
-
-/* ---------- engine explorer */
 .explorer { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 22px; align-items: start; margin-top: 16px; }
 .explorer .frame { aspect-ratio: 1/1; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--paper); }
 .explorer iframe { width: 100%; height: 100%; border: 0; display: block; }
@@ -115,8 +104,6 @@ input, select, textarea { width: 100%; background: var(--ink-2); color: var(--te
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--teal-glow); border-color: var(--teal); }
 .row { display: flex; gap: 10px; flex-wrap: wrap; } .row > * { flex: 1 1 auto; width: auto; }
 pre.code { background: var(--ink-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow: auto; max-height: 260px; font-size: 12px; line-height: 1.55; color: #cfd8d3; margin: 0; white-space: pre-wrap; word-break: break-all; }
-
-/* ---------- studio */
 .studio { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; }
 textarea.editor { min-height: 420px; resize: vertical; line-height: 1.55; tab-size: 2; white-space: pre; overflow: auto; }
 .gate-list { font: 12px/1.7 var(--mono); color: var(--dim); white-space: pre-wrap; margin: 0; }
@@ -133,8 +120,6 @@ table.claims th { font: 11px var(--mono); letter-spacing: .12em; text-transform:
 .steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
 .steps li { counter-increment: s; display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; }
 .steps li::before { content: counter(s); font: 700 13px var(--mono); width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid var(--line-2); border-radius: 50%; color: var(--teal-2); }
-
-/* ---------- dialogs */
 dialog { border: 1px solid var(--line-2); border-radius: 20px; background: var(--panel); color: var(--text); padding: 0; width: min(480px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; box-shadow: 0 30px 90px rgba(0,0,0,.6); }
 dialog::backdrop { background: rgba(2,4,6,.72); backdrop-filter: blur(4px); }
 .dlg { padding: 24px; display: grid; gap: 16px; } .dlg h3 { font-size: 24px; }
@@ -156,20 +141,18 @@ dialog::backdrop { background: rgba(2,4,6,.72); backdrop-filter: blur(4px); }
 footer { border-top: 1px solid var(--line); padding: 28px clamp(16px, 4vw, 40px); color: var(--faint); font-size: 13px; display: flex; gap: 18px; flex-wrap: wrap; justify-content: space-between; }
 footer a { color: var(--dim); }
 .skip { position: absolute; left: -999px; } .skip:focus { left: 12px; top: 12px; background: var(--teal); color: #000; padding: 8px 12px; z-index: 200; border-radius: 8px; }
-
 @media (max-width: 900px) {
-  .art-wrap { position: relative; top: 0; }
-  .series, .studio, .explorer { grid-template-columns: minmax(0, 1fr); }
-  nav.tabs { position: fixed; bottom: 0; left: 0; right: 0; margin: 0; justify-content: space-around; background: rgba(6,8,11,.94); backdrop-filter: blur(14px); border-top: 1px solid var(--line); padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); z-index: 60; }
-  nav.tabs button { flex: 1; padding: 10px 6px; }
-  main { padding-bottom: 120px; }
-  .toasts { bottom: 76px; }
-  .brand i { display: none; }
+.art-wrap { position: relative; top: 0; }
+.series, .studio, .explorer { grid-template-columns: minmax(0, 1fr); }
+nav.tabs { position: fixed; bottom: 0; left: 0; right: 0; margin: 0; justify-content: space-around; background: rgba(6,8,11,.94); backdrop-filter: blur(14px); border-top: 1px solid var(--line); padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); z-index: 60; }
+nav.tabs button { flex: 1; padding: 10px 6px; }
+main { padding-bottom: 120px; }
+.toasts { bottom: 76px; }
+.brand i { display: none; }
 }
 @media (max-width: 520px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } #wallet-label { max-width: 130px; overflow: hidden; text-overflow: ellipsis; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
-.studio .art-wrap { position: relative; top: 0; }
-</style>
+.studio .art-wrap { position: relative; top: 0; }</style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -191,6 +174,7 @@ footer a { color: var(--dim); }
   <p>Reliks anchors a small deterministic engine (Reliks-VM bytecode or JavaScript) inside a Kaspa covenant. Anyone can re-render every edition from public chain data or an offline provenance bundle. This page does exactly that in your browser, and withholds the art if any check fails.</p>
 </div>
 <div class="section-h"><h2>Series &amp; Secondary Market</h2><span>every number below is read from the chain, not from this page</span></div>
+<div class="row" id="gallery-filters" style="margin:0 0 16px;flex-wrap:wrap;gap:8px" role="group" aria-label="Filter editions"></div>
 <div id="series-host"></div>
 <div id="custom-series-host" style="margin-top:18px"></div>
 <div class="section-h"><h2>Offline &amp; Air-Gapped Verifier</h2><span>verify and render any provenance bundle or claim with zero network access</span></div>
@@ -203,12 +187,13 @@ footer a { color: var(--dim); }
   <div class="card"><span class="tag n">Not claimed</span><h3>Audited</h3><p>The contracts had automated reviews, not a formal third-party audit. Start small.</p></div>
 </div></section>
 <section class="view" id="view-studio" hidden>
-<div class="hero" style="padding-bottom:8px"><span class="eyebrow">Studio · Reliks-VM (v13) &amp; JS</span><h1>Design a program. <em>Gate</em> it. Publish it.</h1>
-<p>Write a Reliks-VM assembly program (or legacy v12 JS engine) in the browser, preview patina and optional sales wear across lineages and sales, run the determinism gates, and publish your SeriesFactory covenant on chain in one click with Kaspire. Standalone offline VM studio: <a href="studio.html">studio.html</a>.</p></div>
-<div class="row" style="margin:20px 0 14px">
+<div class="hero" style="padding-bottom:8px"><span class="eyebrow">Studio · Reliks-VM (v13) &amp; High-Level DSL</span><h1>Design a program. <em>Gate</em> it. Publish it.</h1>
+<p>Write high-level Reliks-Script (<code>.vars</code>, <code>seedrng</code>, <code>bg</code>, <code>for/endfor</code>, <code>if/else/endif</code>, <code>rand</code>) or raw Reliks-VM assembly in the browser, preview patina and optional sales wear, run the determinism gates, and publish your SeriesFactory covenant on chain in one click with Kaspire. Standalone offline VM studio: <a href="studio.html">studio.html</a>.</p></div>
+<div class="row" style="margin:20px 0 14px;flex-wrap:wrap">
   <input id="name" value="my-program" aria-label="Series name" style="max-width:220px" />
-  <select id="tpl" aria-label="Template" style="max-width:240px">
+  <select id="tpl" aria-label="Template" style="max-width:280px">
     <option value="iso" selected>Isometric city (Reliks-VM)</option>
+    <option value="dsl_rings">Celestial rings (High-Level DSL)</option>
     <option value="vm_circles">40 circles (Reliks-VM)</option>
     <option value="vm_dagcity">DAG-City (Reliks-VM)</option>
     <option value="dagcity">DAG City (v12 JS, deprecated)</option>
@@ -218,6 +203,10 @@ footer a { color: var(--dim); }
   </select>
   <button class="btn" id="load">Load template</button>
 </div>
+<details class="proof" style="margin-bottom:14px"><summary><span>High-Level Reliks-Script DSL Quick Reference (compiles directly to RVM\x01 bytecode)</span></summary>
+<div style="padding:8px 18px 14px;font:12px/1.6 var(--mono);color:var(--dim)">
+<code>.canvas 1000 1000</code> · <code>.vars I X Y R WR</code> (auto-allocates variable slots) · <code>seedrng</code> (initializes PRNG from serial &amp; lineage) · <code>bg 0x090d16</code> (fills canvas) · <code>set X 100</code> · <code>inc X 5</code> · <code>rand 20 800 st X</code> (random int in [min,max]) · <code>for I 0 40 ... endfor</code> (nestable counted loop) · <code>ld X push 500 lt if ... else ... endif</code> (structured branches without manual labels).
+</div></details>
 <div class="studio">
   <div><label class="sr" for="ed">Program / Engine code</label><textarea id="ed" class="editor" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off"></textarea></div>
   <div style="display:grid;gap:14px;align-content:start">
@@ -258,22 +247,22 @@ footer a { color: var(--dim); }
 <tr><td>The engine cannot be swapped after mint</td><td><span class="tag d">Contract</span></td><td>program_hash is part of covenant state and of every successor's script.</td></tr>
 <tr><td>Serials never collide across parallel lanes</td><td><span class="tag d">Contract</span></td><td>Serial is derived from the consumed lane outpoint; the page recomputes it.</td></tr>
 <tr><td>No protocol fee</td><td><span class="tag d">Contract</span></td><td>Primary sale pays the artist exactly the price. Network fees (about 0.04 KAS per mint) still apply.</td></tr>
-<tr><td>Royalties on resale</td><td><span class="tag d">Contract, partly</span></td><td>Enforced on covenant-priced sales (list/buy, escrow accept). <code>transfer</code> and zero-price <code>sell</code> are royalty-free by design.</td></tr>
+<tr><td>Royalties on resale</td><td><span class="tag d">Contract, partly</span></td><td>Enforced on covenant-priced sales (list/buy, atomic bid/sell, escrow accept). <code>transfer</code> is royalty-free by design.</td></tr>
 <tr><td>The art survives pruning</td><td><span class="tag n">Not claimed</span></td><td>The hash is anchored on chain and the engine bytes ship in the contract script, but pruned nodes may drop old transactions. Keep a copy of the engine or provenance bundle (this repository has both).</td></tr>
 <tr><td>Audited</td><td><span class="tag n">No</span></td><td>Automated review passes only. See <code>docs/AUDIT-SUMMARY.md</code>.</td></tr>
-<tr><td>Publish, mint, list, buy and transfer in the browser</td><td><span class="tag v">In browser + CLI</span></td><td>1-click series publishing, primary minting, and secondary trading (list, buy, cancel listing, transfer) run directly in the browser with Kaspire and verify every covenant script before broadcast.</td></tr>
+<tr><td>Publish, mint, list, buy, bid and transfer in the browser</td><td><span class="tag v">In browser + CLI</span></td><td>1-click series publishing, multi-UTXO minting, fixed-price listings, 2-party atomic bids/offers, and transfers run directly in the browser with Kaspire.</td></tr>
 </tbody></table>
 <div class="section-h"><h2>Wallet</h2></div>
 <div class="cards">
-  <div class="card"><span class="tag d">Recommended</span><h3>Kaspire Extension</h3><p>Injected <code>window.kaspire</code> provider. No relay, no QR, no third-party script. It signs the mint's wallet input and broadcasts with <code>pushTx</code>.</p></div>
-  <div class="card"><span class="tag d">Android</span><h3>Kaspire Mobile</h3><p>WalletConnect v2, loaded only when you choose it. It can connect and sign. Covenant transactions cannot be broadcast through public REST, so paste your own node address, or use the extension.</p></div>
+  <div class="card"><span class="tag d">Recommended</span><h3>Kaspire Extension</h3><p>Injected <code>window.kaspire</code> provider. No relay, no QR, no third-party script. It signs wallet inputs (automatically combining up to 4 UTXOs when needed) and broadcasts with <code>pushTx</code>.</p></div>
+  <div class="card"><span class="tag d">Android</span><h3>Kaspire Mobile</h3><p>WalletConnect v2, loaded only when you choose it. Connect, sign, and pick one of the one-click wRPC presets in the review step (or your own node) to broadcast.</p></div>
   <div class="card"><span class="tag n">Honest limit</span><h3>Test small</h3><p>The wallet flow follows Kaspire's published API and is tested against mocks. Try it first on a series with editions left, with a low-value wallet.</p></div>
 </div>
 <div class="section-h"><h2>How a mint works</h2></div>
 <ol class="steps">
 <li><span>The page rebuilds the live lane state from public chain data and proves it recomputes to the on-chain script.</span></li>
 <li><span>It builds one transaction: the lane advances by one, a new edition covenant is created with a 1 KAS carrier, and the artist is paid the price.</span></li>
-<li><span>Kaspire shows its own review of that exact transaction and signs only your funding input.</span></li>
+<li><span>Kaspire shows its own review of that exact transaction and signs only your funding input(s).</span></li>
 <li><span>The page checks that the signed transaction still matches what you reviewed, and only then broadcasts.</span></li>
 </ol>
 <p class="note" style="margin-top:28px">Source, contracts and tests: <a href="https://github.com/weirdtualguy/Reliks" target="_blank" rel="noopener">github.com/weirdtualguy/Reliks</a>. MIT licensed.</p></section>
@@ -283,11 +272,6 @@ footer a { color: var(--dim); }
 <dialog id="mint-dlg" aria-label="Transaction"><div class="dlg" id="mint-body"></div></dialog>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <script type="text/plain" id="qr-src">var qrcode = function() {
-/**
-* qrcode
-* @param typeNumber 1 to 40
-* @param errorCorrectionLevel 'L','M','Q','H'
-*/
 var qrcode = function(typeNumber, errorCorrectionLevel) {
 var PAD0 = 0xEC;
 var PAD1 = 0x11;
@@ -829,11 +813,6 @@ return bytes;
 }
 };
 qrcode.stringToBytes = qrcode.stringToBytesFuncs['default'];
-/**
-* @param unicodeData base64 string of byte array.
-* [16bit Unicode],[16bit Bytes], ...
-* @param numChars
-*/
 qrcode.createStringToBytes = function(unicodeData, numChars) {
 var unicodeMap = function() {
 var bin = base64DecodeInputStream(unicodeData);
@@ -1904,11 +1883,10 @@ module.exports = factory();
 }(function () {
 return qrcode;
 }));</script>
-<script>window.RELIKS_DATA={"anchors":{"_note":"Claims to be verified, not facts to be trusted. The site recomputes each of these from public chain data and shows PASS or FAIL.","network":"mainnet","hrp":"kaspa","rest":"https://api.kaspa.org","kascov":"https://kascov.io/data/mainnet","explorer":"https://kascov.io/mainnet/tx/","series":[{"id":"genesis-dag-city","title":"Genesis: DAG-City","laneCovenantId":"1569a69fd3e82b28ef32d9daea0d1a107cd26a586cf30458416889e689739c09","genesisTxId":"029c14e56034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb904","programHash":"16440384b2b00579d67e1366e8aa9c835e276fbf84a711d4920e87b134d7eaa4","renderHash":"836c15aecc078e0c19ae71467ff12cdd85a904d1c965a991af095a246dcc403c","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","engine_lang":1,"engine":"reliks-engine-mainnet.js","editions":[{"index":0,"serial":"2884738305227171331","covenantId":"6f8f076f72ff39eab63b11cd5e5ee3f7d1a9f31e570c4ac3d1ba5e3394146999","mintTxId":"9d9342c69446e9d25881c23296b82671350350e3df0d0ec27e155fffea19939c","outputIndex":1,"ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b"}],"engineKind":"js"}],"wrpc":[],"_wrpc_note":"No public mainnet wRPC endpoints are pinned on purpose (audit finding). Kaspire Extension broadcasts with pushTx; others can paste their own node URL in the mint panel."},"templates":{"factory":{"prefixHex":"6b","suffixHex":"6c7604b781beeb8763755a798201209d75597982519d75587982599f6975577982599f6975527900a0695979010087695479009c55790400e1f505a29b69537951a2547902d007a19a694d300f__ENG12__b9ba7eaa20000000000000000000000000000000000000000000000000000000000000000087916956794d300f__ENG12__aa8769547900a06354790300002057797e01ac7e5979c252799c695979c37887697575680f52656c696b7353657269616c56313076b9ba7eb9bb54cd7eaa760051957651937f01007e785151957651937f01007e0200019593785251957651937f01007e030000019593785351957651937f01007e04000000019593785451957651937f01007e0500000000019593785551957651937f01007e060000000000019593785651957651937f01007e07000000000000019593785751957651937f01007e028000970800000000000000019593765e795e79005c795b795f79b9cf5779200514190ac75aa6d0c63ba393c37df9ca186c64be048d52e0d9170966d6a75859016b827c75519658cd016b7e4dd207__ED12__827c75519658cd4dd207__ED12__7e7ed988012058797e010158797e0108587958cd7e012058797e0108587958cd7e012058797e012058797e0108587958cd7e7e7e7e7e7e7e7e016b7c7e4dd207__ED12__7eaa02000001aa7e01207e7c7e01877e011579c388011479c20400e1f505a269b9cb519c69b900cc76c2b9bea2690113790113790113790113790113795194011379011379012057797e012057797e0108577958cd7e0108577958cd7e0108577958cd7e0108577958cd7e012057797e7e7e7e7e7e7eb976c902a53c94765193bc7c7eb976c976021dbc937cbc7eaa02000001aa7e01207e7c7e01877e5879c388757575757575757575757575757575757575757575757575757575757575755167760499ec7fba87637559798201419d75587982599f6975577982599f6975b9cb5779577957795779577957795779567956795679567956795679567901187901187901187952795979ac697800a07800a09a6978789356799c69b900ccb951cc78c278c293b9bea2695b795c797e5b795c797e5b7958cd5c7958cd7e5b7958cd5c7958cd7e577958cd577958cd7e5b7958cd5c7958cd7e5b795c797e011a7952a169011a795779827c750120969c6900011b79787853799452a1697652799f6376b978cc5b795279012095760120937f5b795379012095760120937f5b79547958957658937f5b79557958957658937f5b79567958957658937f5b79577958957658937f5b795879012095760120937f012057797e012057797e0108577958cd7e0108577958cd7e0108577958cd7e0108577958cd7e012057797e7e7e7e7e7e7eb976c902a53c94765193bc7c7eb976c976021dbc937cbc7eaa02000001aa7e01207e7c7e01877e5879c388587951935a7a75777777777777777777687652799f6376b978cc5b795279012095760120937f5b795379012095760120937f5b79547958957658937f5b79557958957658937f5b79567958957658937f5b79577958957658937f5b795879012095760120937f012057797e012057797e0108577958cd7e0108577958cd7e0108577958cd7e0108577958cd7e012057797e7e7e7e7e7e7eb976c902a53c94765193bc7c7eb976c976021dbc937cbc7eaa02000001aa7e01207e7c7e01877e5879c388587951935a7a757777777777777777776875757575757575757575757575757575757575757575757575757575757575757575757575757575516776045342244487637557798201419d75b9cb57795779577957795779577957795679567956795679567956795679011679765779ac690000000000000001167951a1690116795779827c750120969c6900011779787853799451a1697652799f6376b978cc5b795279012095760120937f5b795379012095760120937f5b79547958957658937f5b79557958957658937f5b79567958957658937f5b79577958957658937f5b795879012095760120937f012057797e012057797e0108577958cd7e0108577958cd7e0108577958cd7e0108577958cd7e012057797e7e7e7e7e7e7eb976c902a53c94765193bc7c7eb976c976021dbc937cbc7eaa02000001aa7e01207e7c7e01877e5879c388587951935a7a75777777777777777777687575757575757575757575757575757575757575757575757575757575757575757551676a686868","span":{"offset":1,"len":135},"templateHashHex":"b070609c7ae51ff778a172009351dd0f1d18e5c36d4593c3514a248cfd2177ee","entries":{"close":"53422444","fork":"99ec7fba","mint":"b781beeb"},"fields":["program_hash","artist","price","royalty_bips","mints_left","engine_lang","render_hash"]},"edition":{"prefixHex":"6b","suffixHex":"6c7604674a8ea4876375597982599f697558798201419d75b9cb5879587958795879587958795879587957795779577957795779577957795779011a79011a7976011a790100876976011c79ac69b900cc76c2b9bea26953790400e1f505a25479076588635ddc4603a19a695b795b7955795b795b795b795b795b79011c79519c69b900cc012059797e010159797e0108597958cd7e012059797e0108597958cd7e012059797e012059797e0108597958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e78c388757575757575757575757575757575757575757575757575757575757575757575757575757575755167760488709f2587637558798201419d75b9cb5879587958795879587958795879587957795779577957795779577957795779011979760119790100876976011b79ac69b900cc76c2b9bea2695a7976010000011c79011c79011c79011c79011c7957795779577957795779577957795779012479519c69b900cc012059797e010159797e0108597958cd7e012059797e0108597958cd7e012059797e012059797e0108597958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575516776041cd4096a8763755a798201209d75597982599f6975587982599f6975b9cb5879587958795879587958795879587957795779577957795779577957795779011b79011b79011b7901197900a069011979076588635ddc4603a169b900cc76c2b9bea269011a7953795379011e790100876978789e695279011c799502102796537978947600a26903000020011f797e01ac7e030000200123797e01ac7e5579c25379a2695579c37887695479c254799c695479c3527987695a797601000001247901247901247901247901247957795779577957795779577957795779012c79519c69b900cc012059797e010159797e0108597958cd7e012059797e0108597958cd7e012059797e012059797e0108597958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575755167760489cfc99a8763755c798201209d755b7982599f69755a7982599f6975597982599f697558798201419d75b9cb5879587958795879587958795879587957795779577957795779577957795779011d79011d79011d79011d79011d7976011d790100876976011f79ac69b900cc76c2b9bea2695579009c56790400e1f505a25779076588635ddc4603a19a9b69557900a0635579557955790121790100876978789e695279011f799502102796537978947600a269030000200122797e01ac7e030000200126797e01ac7e5579c25379a2695579c37887695479c254799c695479c352798769757575757575756856797601000001207901207901207901207901207957795779577957795779577957795779012879519c69b900cc012059797e010159797e0108597958cd7e012059797e0108597958cd7e012059797e012059797e0108597958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551677604794dca5487637559798201209d7558798201419d75b9cb5879587958795879587958795879587957795779577957795779577957795779011a79011a7976011a790100876976011c79ac69b900cc76c2b9bea269537976010000011d79011d79011d79011d79011d7957795779577957795779577957795779012579519c69b900cc012059797e010159797e0108597958cd7e012059797e0108597958cd7e012059797e012059797e0108597958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551677604bf4a166087637558798201419d75b9cb5879587958795879587958795879587957795779577957795779577957795779011979760119790100876976011b79ac690000000000000000011a7951a169011a795879827c750120969c6900011b79787853799451a1697652799f6376b978cc5c795279012095760120937f5c79537951957651937f5c79547958957658937f5c795579012095760120937f5c79567958957658937f5c795779012095760120937f5c795879012095760120937f5c79597958957658937f012058797e010158797e0108587958cd7e012058797e0108587958cd7e012058797e012058797e0108587958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e5979c388597951935b7a75777777777777777777776875757575757575757575757575757575757575757575757575757575757575757575757575757551676a686868686868","span":{"offset":1,"len":161},"templateHashHex":"0514190ac75aa6d0c63ba393c37df9ca186c64be048d52e0d9170966d6a75859","entries":{"buy":"1cd4096a","list":"674a8ea4","sell":"89cfc99a","spend":"bf4a1660","transfer":"794dca54","unlist":"88709f25"},"fields":["ownerIdentifier","identifierType","price","artist","royalty_bips","program_hash","factory_covid","serial"]}},"templatesV13":{"edition":{"prefixHex":"6b","suffixHex":"6c7604674a8ea48763755b7982599f69755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979012079012079760120790100876976012279ac69b900cc76c2b9bea26953790400e1f505a25479076588635ddc4603a19a695d795d7955795d795d795d795d795d795d795d79012279519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902e10994765193bc7c7eb976c976021589937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575755167760488709f258763755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979011f7976011f790100876976012179ac69b900cc76c2b9bea2695c79760100000122790122790122790122790122790122790122795979597959795979597959795979597959795979012c79519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902e10994765193bc7c7eb976c976021589937cbc7eaa02000001aa7e01207e7c7e01877e78c388757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575516776041cd4096a8763755c798201209d755b7982599f69755a7982599f6975b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979012179012179012179011f7900a069011f79076588635ddc4603a169b900cc76c2b9bea269012079537953790124790100876978789e6952790122799502102796537978947600a269030000200125797e01ac7e030000200129797e01ac7e5579c25379a2695579c37887695479c254799c695479c3527987695a790f52656c696b734c696e65616765563278010000012b79012b79012b79012b79012b795879012c797e5a797eaa012b7951935979597959795979597959795979597959795979013579519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902e10994765193bc7c7eb976c976021589937cbc7eaa02000001aa7e01207e7c7e01877e78c38875757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575755167760489cfc99a8763755e798201209d755d7982599f69755c7982599f69755b7982599f69755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979012379012379012379012379012379760123790100876976012579ac69b900cc76c2b9bea26955790400e1f505a25679076588635ddc4603a19a695579557955790127790100876978789e6952790125799502102796537978947600a269030000200128797e01ac7e03000020012c797e01ac7e5579c25379a2695579c37887695479c254799c695479c3527987695d790f52656c696b734c696e65616765563278010000012e79012e79012e79012e79012e795879012f797e5a797eaa012e7951935979597959795979597959795979597959795979013879519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902e10994765193bc7c7eb976c976021589937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551677604794dca548763755b798201209d755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979012079012079760120790100876976012279ac69b900cc76c2b9bea26953790f52656c696b734c696e6561676556327801000001247901247901247901247901247958790125797e5a797eaa0124795979597959795979597959795979597959795979012e79519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902e10994765193bc7c7eb976c976021589937cbc7eaa02000001aa7e01207e7c7e01877e78c38875757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551677604bf4a16608763755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979011f7976011f790100876976012179ac690000000000000000000001207951a1690120795a79827c750120969c6900012179787853799451a1697652799f6376b978cc5e795279012095760120937f5e79537951957651937f5e79547958957658937f5e795579012095760120937f5e79567958957658937f5e795779012095760120937f5e795879012095760120937f5e79597958957658937f5e795a79012095760120937f5e795b7958957658937f01205a797e01015a797e01085a7958cd7e01205a797e01085a7958cd7e01205a797e01205a797e01085a7958cd7e01205a797e01085a7958cd7e7e7e7e7e7e7e7e7e7eb976c902e10994765193bc7c7eb976c976021589937cbc7eaa02000001aa7e01207e7c7e01877e5b79c3885b7951935d7a7577777777777777777777777768757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551676a686868686868","span":{"offset":1,"len":203},"templateHashHex":"dcdcd59b5069faf56b10712e668fd10bc2a6b8b37acdea944ccdf1e4f145f610","entries":{"buy":"1cd4096a","list":"674a8ea4","sell":"89cfc99a","spend":"bf4a1660","transfer":"794dca54","unlist":"88709f25"},"fields":["ownerIdentifier","identifierType","price","artist","royalty_bips","program_hash","factory_covid","serial","lineage","sales"]}},"engines":{"reliks-engine-mainnet.js":"\nfunction reliks(L,serial){\nvar x=(L[0]^serial)|0,y=L[1]|0,z=L[2]|0,w=L[3]|0;\nfunction rnd(){var t=(x^(x<<11))|0;x=y;y=z;z=w;w=(w^(w>>>19))^(t^(t>>>8));return w>>>0;}\nfunction ri(a,b){return a+(rnd()%(b-a+1));}\nvar W=1600,CX=800,CY=770,A=36,B=18,Z=22,R=13,i,j,k,s,h,x,y,d,o=[],wat={},wpts=[];\nfunction IX(i,j){return CX+(i-j)*A;}\nfunction IY(i,j){return CY+(i+j-R)*B;}\nfunction dia(x,y){return 'M'+x+' '+y+'l'+A+' '+B+'l'+-A+' '+B+'l'+-A+' '+-B+'z';}\nfunction pl(p,wd,col,op){var q='M'+p[0][0]+' '+p[0][1];for(var v=1;v<p.length;v++)q+='L'+p[v][0]+' '+p[v][1];return '<path d=\"'+q+'\" fill=\"none\" stroke=\"'+col+'\" stroke-width=\"'+wd+'\"'+(op?' opacity=\"'+op+'\"':'')+'/>';}\no.push('<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1600 1600\"><defs><radialGradient id=\"g\"><stop offset=\"0\" stop-color=\"#ffd9a0\"/><stop offset=\".3\" stop-color=\"#e8923a\" stop-opacity=\".8\"/><stop offset=\"1\" stop-color=\"#e8923a\" stop-opacity=\"0\"/></radialGradient></defs><rect width=\"1600\" height=\"1600\" fill=\"#e7dfc8\"/>');\no.push('<g stroke=\"#d3c9ab\" opacity=\".5\">');\nfor(i=0;i<150;i++){x=ri(60,1540);y=ri(60,1540);k=ri(30,130);o.push('<line x1=\"'+x+'\" y1=\"'+y+'\" x2=\"'+(x+k)+'\" y2=\"'+(y+(k/2|0))+'\"/>');}\no.push('</g><g stroke=\"#cfc5a8\" opacity=\".55\">');\nfor(i=0;i<=R;i++){o.push('<line x1=\"'+IX(i,0)+'\" y1=\"'+IY(i,0)+'\" x2=\"'+IX(i,R)+'\" y2=\"'+IY(i,R)+'\"/><line x1=\"'+IX(0,i)+'\" y1=\"'+IY(0,i)+'\" x2=\"'+IX(R,i)+'\" y2=\"'+IY(R,i)+'\"/>');}\no.push('</g>');\nvar c,pts,wi,wj;\nfor(c=0;c<4;c++){wi=c%2?ri(2,R-2):0;wj=c%2?0:ri(2,R-2);pts=[[IX(wi,wj),IY(wi,wj)]];wat[wi+'_'+wj]=1;wpts.push([IX(wi,wj),IY(wi,wj)]);\nwhile(wi<R&&wj<R){if(rnd()%2)wi++;else wj++;wat[wi+'_'+wj]=1;pts.push([IX(wi,wj),IY(wi,wj)]);wpts.push([IX(wi,wj),IY(wi,wj)]);}\no.push(pl(pts,30,'#2f2f28',0)+pl(pts,22,'#49c5b1',0)+pl(pts,6,'#bfeee2','.85'));}\nfor(s=0;s<=2*R;s++){for(i=s-R>0?s-R:0;i<=R&&i<=s;i++){j=s-i;\nif(wat[i+'_'+j])continue;\nvar t=rnd()%10;if(t<1){o.push('<path d=\"'+dia(IX(i,j),IY(i,j))+'\" fill=\"#ddd4ba\"/>');continue;}\nh=t>7?ri(6,9):ri(2,5);\nvar dk=t%3,top,lf,rf;\nif(dk==0){top='#4b4a3f';lf='#34332b';rf='#26251e';}else if(dk==1){top='#f0e9d3';lf='#d8cfb3';rf='#bfb598';}else{top='#49c5b1';lf='#2e8f85';rf='#1f6b64';}\nx=IX(i,j);y=IY(i,j)-h*Z;d=h*Z;\no.push('<path d=\"'+dia(x,y)+'\" fill=\"'+top+'\"/><path d=\"M'+(x-A)+' '+(y+B)+'l'+A+' '+B+'v'+d+'l'+-A+' '+-B+'z\" fill=\"'+lf+'\"/><path d=\"M'+(x+A)+' '+(y+B)+'l'+-A+' '+B+'v'+d+'l'+A+' '+-B+'z\" fill=\"'+rf+'\"/>');\nif(h>=2){var wn=h>3?3:2;for(k=0;k<wn;k++){o.push('<path d=\"M'+(x-A+6+k*10)+' '+(y+B+6)+'l7 4v11l-7 -4z\" fill=\"'+(dk==1?'#34332b':'#8fe8d8')+'\"'+(dk==1?'':' opacity=\".9\"')+'/>');}}\nif(h>=6){o.push('<path d=\"M'+(x+6)+' '+(y+B+d-24)+'v-11q10 -12 20 0v11z\" fill=\"'+(dk==1?'#26251e':'#123c36')+'\"/>');\nvar ah=ri(18,42);o.push('<line x1=\"'+x+'\" y1=\"'+(y+B)+'\" x2=\"'+x+'\" y2=\"'+(y+B-ah)+'\" stroke=\"#26251e\" stroke-width=\"3\"/><circle cx=\"'+x+'\" cy=\"'+(y+B-ah)+'\" r=\"3\" fill=\"#49c5b1\"/>');}\nif(t==6||t==7){var di=rnd()%2,dj=di?0:1,n=ri(4,7);\nfor(k=1;k<=n;k++){var e2=h*Z-k*13,qx=IX(i+di*k,j+dj*k),qy=IY(i+di*k,j+dj*k)-(e2>0?e2:0);\no.push('<path d=\"'+dia(qx,qy)+'\" fill=\"#efe8d2\"/><path d=\"M'+(qx-A)+' '+(qy+B)+'l'+A+' '+B+'v13l'+-A+' '+-B+'z\" fill=\"#34332b\"/>');}}\n}}\no.push('<g>');\nfor(k=0;k<wpts.length;k++){if(rnd()%3==0){var bx=wpts[k][0]+(rnd()%2?26:-26),by=wpts[k][1]+8;o.push('<circle cx=\"'+bx+'\" cy=\"'+by+'\" r=\"9\" fill=\"#49c5b1\" opacity=\".22\"/><circle cx=\"'+bx+'\" cy=\"'+by+'\" r=\"3\" fill=\"#bfeee2\"/>');}}\no.push('</g>');\nvar m=R/2|0,gx=IX(m,m),gy=IY(m,m)-ri(2,4)*Z;\no.push('<circle cx=\"'+gx+'\" cy=\"'+gy+'\" r=\"110\" fill=\"url(#g)\"/><circle cx=\"'+gx+'\" cy=\"'+gy+'\" r=\"9\" fill=\"#fff\"/>');\nfor(k=14;k<=42;k+=7)o.push('<circle cx=\"'+gx+'\" cy=\"'+gy+'\" r=\"'+k+'\" fill=\"none\" stroke=\"'+(k>34?'#49c5b1':'#e8923a')+'\" stroke-width=\"2\" opacity=\".75\"/>');\no.push('<rect x=\"36\" y=\"36\" width=\"1528\" height=\"1528\" fill=\"none\" stroke=\"#3a3a33\" stroke-width=\"7\"/></svg>');\nreturn o.join('');\n}"},"bundles":{"v12":{"reliks_provenance_bundle":1,"generated_at":"2026-11-13","network":"mainnet","hrp":"kaspa","series":{"id":"genesis-dag-city","title":"Genesis: DAG-City","protocol_version":"v12","laneCovenantId":"1569a69fd3e82b28ef32d9daea0d1a107cd26a586cf30458416889e689739c09","genesisTxId":"029c14e56034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb904","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","price":"100000000","royalty_bips":"500","mints_left_at_genesis":1,"engine_lang":1,"engine_kind":"js","program_hash":"16440384b2b00579d67e1366e8aa9c835e276fbf84a711d4920e87b134d7eaa4","render_hash":"836c15aecc078e0c19ae71467ff12cdd85a904d1c965a991af095a246dcc403c"},"editions":[{"index":0,"serial":"2884738305227171331","serial32":1627858435,"lanes":[1232521659,-613504186,-1758390526,-131891038,-2003096083,2116399032,1200263756,602121247],"covenantId":"6f8f076f72ff39eab63b11cd5e5ee3f7d1a9f31e570c4ac3d1ba5e3394146999","mintTxId":"9d9342c69446e9d25881c23296b82671350350e3df0d0ec27e155fffea19939c","outputIndex":1,"consumedLaneOutpoint":"029c14e56034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb904:0","ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","state":{"ownerIdentifier":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","identifierType":0,"price":"0","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","royalty_bips":"500","program_hash":"16440384b2b00579d67e1366e8aa9c835e276fbf84a711d4920e87b134d7eaa4","factory_covid":"1569a69fd3e82b28ef32d9daea0d1a107cd26a586cf30458416889e689739c09","serial":"2884738305227171331"},"expectedSpk":"aa20adbeb3a482341484e552f52fbade6355250c58b691488b66909690bc27760d3487","render_hash":"3f04acc79f970b7a5789d6cdbdc6fdac4784d24726108deeedb19e113f0a127e","svg_bytes":89907}]},"v13":{"reliks_provenance_bundle":1,"generated_at":"2026-11-13","network":"testnet-10","hrp":"kaspatest","series":{"id":"v13-vm-dag-city","title":"Reliks v13: DAG-City (Reliks-VM)","protocol_version":"v13","laneCovenantId":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","genesisTxId":"029c14e56034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb904","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","price":"100000000","royalty_bips":"500","mints_left_at_genesis":8,"engine_lang":2,"engine_kind":"vm","program_hash":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","render_hash":"9bd989c4375220fbcb87b566c310b1ec6cb1f053ed3a701408d10bd805b9d405","program_hex":"52564d01400640069d010001a0b3ff0701e4009e011e01baa4a20701d0009e01e40001baa4a20701009e9f01c8bf9f07800100010001c00c01c00c90600061226001600260037001ab93cf068101329b01005104013c01840c4305065111013c01840c4305065112011e0182014305065106501150125011500610501250060102131092500401011002510401960132424c009c01a88bbf068101379b010051045004010043610550040100436a055004010d4361055004010d436a05920100500443610501005004436a05010d5004436105010d5004436a05925004010110025104010d334299009c0100510f0100510c500c0102144102010102010b430506510d0100510e400f010100510d0102010b430506510e500f5110438e05500d010d32500e010d32204143010102430f06413601500d010110510d403d01500e010110510e438e05401601011e01a8debc0101e40043c105011601b18ba70201e40043c105010601e2ddff0501d50043c105500c01011002510c01043242ea00017f8101e40083010051075007010d1101001851045004010d33500450073320415c04500750041151055004010e125005100180021052425204010a430f06510a500a01013241db0101baa9f706805004500543610550045005436a05437605405204500a01073441ef0101060109430506510840f801010201054305065108500a010314510b500b421c0201bf94ad02511501abe6d0015116019eca98015117405802500b010130413c0201d3d3c307511501b39fe30651160198ebfe05511740580201b18ba70262018488101222511501859fba01511601e4d6fd00511750045005436105511150045005436a055008011612115112500801161251095015805011501243760550168094501101241150120112109501240112990100500999015c016e999798501780945011012410501201121095015c01129901005009990124016e99979801025008010334105118500b01013041e00201abe6d0018001e4008340ef0201d8d1bf048001da00630132171183010051069450110124110106105006010a121050120112100106109501070104990100010b990179017c999798500601011002510650183242f30201e40083500801063242ae03500b010130414703019eca980180404d0301b6f8c800809450110106105012011210500910011811950100017599010a0174011401009a0100010b9997980112012a4305065119019eca980181010382501150120112105011501201121050191192017f8101b18ba7028050115012011210501911010391500a010630500a010730214152040102430f06511a0101501a11511b01040107430506511c0101510650080116125006010d1211511d5004501a500612105005501b50061210436105511e5004501a500612105005501b50061210436a05501d01001811511f01d2d1bf0780501e501f43760501abe6d0018094501e012411501f0112109501240112990100010d99015c016e9997985006010110025106501c3342d70350040101105104408d015007010110025107011a3342830101e4009b010051065006500f3241d2040103430f0642c804500601800410520102430f06419604011a409804016610512050060180051052010810512101b18ba702800116835020502101099101e4008301e2ddff058050205021010391500601011051064072049c01060106436105512201060106436a05010201044305060116121151230180808008805022502301ee009101ffffff078050225023010991017f8001028201cb0083010e51065006012234412a0501b18ba7028140300501baa4a20781502250235006915006010710025106012a33421905017f8001b3f4e8018101078201e400830124012401f80b01f80b90001101241201a006104410010d110112120182061044940505950124011299015c011299015c016e9997980303440101500d010e12500e100180021053500d500e436105500f0180041053500d500e436a05500f0180051053500f010110510f44838182017f809450105106500601800410525006018005105295500601011051065006500f324103065006018004105250060180051052965006010110510640e20598440511010110430f0610440100040101117244"},"editions":[{"index":0,"serial":"2884738305227171331","serial32":1627858435,"lanes":[-1539051654,1550940364,-1752465193,-1318761273,-798323025,1552770662,388025969,-1903202835],"pat":61,"wear":0,"covenantId":"212a4610be6ddf268c7fbe9e95416bfd53292525c97e1073af738ec0778bc9ae","mintTxId":"c7fc689f54f404e0a770ddb4d303b861592d1d508c779c545a64407fccf72846","outputIndex":1,"consumedLaneOutpoint":"029c14e56034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb904:0","ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","state":{"ownerIdentifier":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","identifierType":0,"price":"0","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","royalty_bips":"500","program_hash":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","factory_covid":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","serial":"2884738305227171331","lineage":"7554b3d0cbe86969697ae9cd4f7e65ed973ad6b82fec1e2ba68d50dda26cfa22","sales":"0"},"expectedSpk":"aa202c727e75134245ec5ed54136ba1bd84c90ba27414b02e2655e98b637b3df732687","render_hash":"37d0f856943f4f1aeb1aeacc4566252c786aa50fffc95ab474a109da51d76c58","svg_bytes":86222,"vm_stats":{"fuel":80704,"elems":1397,"svg_len":86222,"max_stack":6,"max_calls":2,"max_groups":1,"max_segs":18,"grads":1}},{"index":1,"serial":"4030318016432366363","serial32":-447814885,"lanes":[-762878556,1537421474,885658214,82739676,-348944091,-861878542,1648509338,-1506154826],"pat":26,"wear":1,"covenantId":"e878a5cbbf9eacac40bf939715099a38055d26c9882bbe1ea1966a04fc2b2200","mintTxId":"86860766c7a104e0a770ddb4d303b861592d1d508c779c545a64407fccf72847","outputIndex":1,"consumedLaneOutpoint":"c7fc689f54f404e0a770ddb4d303b861592d1d508c779c545a64407fccf72846:0","ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","state":{"ownerIdentifier":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","identifierType":0,"price":"0","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","royalty_bips":"500","program_hash":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","factory_covid":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","serial":"4030318016432366363","lineage":"923225ca2d2a47c0650e04da3b86de881c8f2a6d1592ff5b450e97423b7414d7","sales":"1"},"expectedSpk":"aa20d52420a0d8e5c7af68b001e4761054ed42b2a978c1441c98593492da782891c587","render_hash":"7b43c2553e97fcae81577c32b2e72421d8a8e8ca78551aa6103035b61da2a071","svg_bytes":84527,"vm_stats":{"fuel":81765,"elems":1354,"svg_len":84527,"max_stack":6,"max_calls":2,"max_groups":1,"max_segs":22,"grads":1}},{"index":2,"serial":"8561826841341975308","serial32":1385683724,"lanes":[708565355,2049925419,1880875281,637155205,-1644075554,743942356,-1959020575,693423529],"pat":59,"wear":3,"covenantId":"d8aee38b2b1dc4943631c6fd0b3dcbf393238e295e0185c738c58c2efca8cdba","mintTxId":"4fef24e96034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb905","outputIndex":1,"consumedLaneOutpoint":"86860766c7a104e0a770ddb4d303b861592d1d508c779c545a64407fccf72847:0","ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","state":{"ownerIdentifier":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","identifierType":0,"price":"0","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","royalty_bips":"500","program_hash":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","factory_covid":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","serial":"8561826841341975308","lineage":"78fa058f23be77e15c5e7b4f0546bbe1600995ac6236ee807afe145769ece7b1","sales":"3"},"expectedSpk":"aa2051873544539b4eeceb91bebe0da61b2c75b5c2b29127de2f8c2c8de832ae35a087","render_hash":"e4524a8fae028a4118717207d085ef298ff4251f7012343e302857c839782783","svg_bytes":80138,"vm_stats":{"fuel":77917,"elems":1278,"svg_len":80138,"max_stack":6,"max_calls":2,"max_groups":1,"max_segs":23,"grads":1}}]}},"studio":{"prelude":"var R=(function(L,serial){\nvar x=(L[0]^serial)|0,y=L[1]|0,z=L[2]|0,w=L[3]|0;\nfunction rnd(){var t=(x^(x<<11))|0;x=y;y=z;z=w;w=(w^(w>>>19))^(t^(t>>>8));return w>>>0;}\nfunction ri(a,b){return a+(rnd()%(b-a+1));}\nfunction pick(a){return a[rnd()%a.length];}\nfunction chance(p){return rnd()%100<p;}\nfunction hsl(){return 'hsl('+rnd()%360+','+ri(40,90)+'%,'+ri(30,70)+'%)';}\nfunction sin(a){a&=4095;var s=a<2048?1:-1,q=a<2048?a:a-2048,u=q*(2048-q);return s*(16*u*10000/(20971520-4*u)|0);}\nfunction cos(a){return sin(a+1024);}\nfunction dir(a,len){return [cos(a)*len/10000|0,sin(a)*len/10000|0];}\nfunction svg(parts,bg){return '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1000 1000\">'+(bg?'<rect width=\"1000\" height=\"1000\" fill=\"'+bg+'\"/>':'')+parts.join('')+'</svg>';}\nreturn {rnd:rnd,ri:ri,pick:pick,chance:chance,hsl:hsl,sin:sin,cos:cos,dir:dir,svg:svg,serial:serial,lanes:L};\n})(L,serial);","templates":{"circles":"function reliks(L, serial) {\n  var n = R.ri(18, 48), out = [];\n  for (var i = 0; i < n; i++) {\n    out.push('<circle cx=\"' + R.ri(0,1000) + '\" cy=\"' + R.ri(0,1000) +\n      '\" r=\"' + R.ri(20,240) + '\" fill=\"' + R.hsl() +\n      '\" fill-opacity=\"0.' + R.ri(30,85) + '\"/>');\n  }\n  return R.svg(out, '#000');\n}","flow":"function reliks(L, serial) {\n  var out = [], i;\n  for (i = 0; i < 700; i++) {\n    var x = R.ri(0, 1000), y = R.ri(0, 1000);\n    var a = (R.sin(x >> 2) + R.cos(y >> 2)) | 0;\n    var d = R.dir(a, R.ri(20, 90));\n    out.push('<line x1=\"' + x + '\" y1=\"' + y + '\" x2=\"' + (x + d[0]) +\n      '\" y2=\"' + (y + d[1]) + '\" stroke=\"' + R.hsl() +\n      '\" stroke-width=\"1\" opacity=\"0.5\"/>');\n  }\n  return R.svg(out, '#0a0b10');\n}","blank":"function reliks(L, serial) {\n  return R.svg([], '#000');\n}","iso":"; Reliks metropolis diorama. Patina: bits 0-1 theme (paper, dusk, night, rose), bits 2-3 district style.\n; Light, gradual, optional sales wear (change \"wear push 1 mul\" to \"wear push 0 mul\" or uncheck Enable Wear in Studio to disable):\n; delicate celestial halo rings, gentle starlight/firefly motes, warmer window life, and glowing spire/rooftop beacons.\n.canvas 1600 1600\n.var X 0 .var Y 1 .var I 2 .var J 3 .var S 4 .var K 5 .var H 6 .var D 7 .var T 8\n.var WR 9 .var TH 10 .var STY 11 .var BB 12 .var BT 13 .var MT 14 .var FG 15 .var DC 16 .var A 17 .var B 18 .var R 19\n.var COL 20 .var TY 21 .var E 22 .var DW 23 .var DH 24\n.var S0 30 .var S1 31 .var SUC 32 .var SUD 33 .var M0 34 .var M1 35 .var M2 36 .var SHD 37 .var RD 38 .var PV1 39 .var PV2 40\n.var GRS 41 .var TRE 42 .var WLT 43 .var WDK 44 .var LITP 45 .var STR 46 .var INK 47 .var SR 48\n.var BX 50 .var BY 51 .var BW 52 .var BWH 53 .var BD 54 .var CT 55 .var CL 56 .var CR 57\n.var C0 58 .var C1 59 .var MT2 60 .var CA 61 .var CB 62 .var CTT 63 .var WX 64 .var WY 65 .var SLP 66\n.var PK 68 .var LO 69 .var MD 70\nlane 0 serial xor lane 1 lane 2 lane 3 rnginit\nwear push 1 mul st WR ; wear_toggle (1 = enabled, 0 = disabled)\npat push 3 and st TH\npat push 2 shr push 3 and st STY\ncall theme\npush 12 st PK push 25 st LO push 30 st MD\nld STY push 3 eq jz y3 push 35 st PK\ny3: ld STY push 1 eq jz y1 push 10 st LO push 20 st MD\ny1: ld STY push 2 eq jz y2 push 50 st LO\ny2: push 0 st K\nbl: push 100 call rmod st T\nld T ld PK lt jz b1 push 0 st BT jmp bset\nb1: ld T ld PK ld LO add lt jz b2 push 1 st BT jmp bset\nb2: ld T ld PK ld LO add ld MD add lt jz b3 push 2 st BT jmp bset\nb3: push 3 st BT\nbset: ld BT ld K push 256 add stx\npush 3 call rmod ld K push 272 add stx\nnext K 16 bl\npush -1 stroke push 100 opacity push 0 st K\nsky: ld S0 ld S1 ld K call mix fill push 0 ld K push 25 mul push 1600 push 26 rect next K 64 sky\npush 30 gopen ld S1 fill push 0 st K\ncl: push -100 push 900 rndr st X push 120 push 520 rndr st Y push 240 push 700 rndr st A push 8 push 16 rndr st B\nld X ld Y ld A ld B rect\nld X ld Y ld B push 2 div add ld B push 2 div circle\nld X ld A add ld Y ld B push 2 div add ld B push 2 div circle\nnext K 6 cl\ngclose\nld SUD fill push 70 opacity\nld STR jz nost push 0 st K\nstars: push 20 push 1580 rndr push 20 push 640 rndr push 1 push 3 rndr circle next K STR stars\nnost: push 100 opacity\ngradbegin push 0 ld SUC push 100 gradstop push 40 ld SUC push 45 gradstop push 100 ld SUC push 0 gradstop gradend\npush 0x1000000 fill push 800 push 560 push 520 ld WR push 3 div add circle\nld SUD fill push 800 push 560 ld SR circle\npush -1 fill ld SUD stroke push 2 swidth push 45 opacity\npush 800 push 560 ld SR push 40 add circle push 800 push 560 ld SR push 90 add circle push 800 push 560 ld SR push 160 add circle\nld WR jz nohalo\nld WLT stroke push 1 swidth push 12 ld WR push 10 div add opacity\npush 800 push 560 ld SR push 220 add ld WR push 6 div add circle\nld WR push 24 lt jnz nohalo\npush 800 push 560 ld SR push 290 add ld WR push 4 div add circle\nld WR push 80 lt jnz nohalo\npush 800 push 560 ld SR push 370 add ld WR push 3 div add circle\nnohalo: push -1 stroke push 100 opacity\nld INK fill push 8 opacity push 40 st E\nsh: call bigdia ld E push 12 sub st E ld E push 0 gt jnz sh\npush 100 opacity\nld RD ld SHD push 14 call mix fill\npbegin push 140 push 970 m push 800 push 1300 l push 800 push 1340 l push 140 push 1010 l z pend\nld RD ld SHD push 28 call mix fill\npbegin push 1460 push 970 m push 800 push 1300 l push 800 push 1340 l push 1460 push 1010 l z pend\npush 0 st S\nsloop: ld S push 14 sub push 0 max st I\niloop: ld I push 14 le ld I ld S le and jz idone ld S ld I sub st J\ncall tile\nld I push 1 add st I jmp iloop\nidone: nextle S 28 sloop\npush -1 fill ld INK stroke push 3 swidth push 70 opacity\npbegin push 140 push 970 m push 800 push 1300 l push 1460 push 970 l pend\npush -1 stroke push 100 opacity\nld WR jz nowear\n; Gentle atmospheric fireflies / starlight motes rising around the metropolis\npush 1 ld WR push 7 div add st A\npush 0 st K\nmotes: push 180 push 1420 rndr st X push 140 push 1060 rndr st Y\npush 0x1000000 fill push 18 ld WR push 12 div add opacity\nld X ld Y push 10 push 22 rndr circle\nld WLT fill push 45 ld WR push 6 div add push 85 min opacity\nld X ld Y push 1 push 3 rndr circle\nnext K A motes\nnowear: push 100 opacity push -1 fill ld INK stroke push 7 swidth push 36 push 36 push 1528 push 1528 rect halt\ntile: ld I ld J call ix st X\nld I ld J call iy st Y\npush 28 ld S sub push 5 mul push 8 div st FG\npush 44 st DW push 22 st DH\nld I push 4 mod push 3 eq st A\nld J push 4 mod push 3 eq st B\nld A ld B or jz noroad\nld RD ld S1 ld FG call mix fill\nld X ld Y call dia\nld A ld B and jnz plaza\nld A jz alongi\nld WLT stroke push 3 swidth push 60 opacity\nld X push 18 add ld Y push 13 add ld X push 18 sub ld Y push 31 add line\npush -1 stroke push 100 opacity ret\nalongi: ld WLT stroke push 3 swidth push 60 opacity\nld X push 18 sub ld Y push 13 add ld X push 18 add ld Y push 31 add line\npush -1 stroke push 100 opacity ret\nplaza: ld PV2 ld S1 ld FG call mix fill push 30 st DW push 15 st DH ld X ld Y push 7 add call dia\nld I push 7 eq ld J push 7 eq and jz pz\ncall spire\npz: ret\nnoroad: ld I ld J add push 2 mod jz p1 ld PV1 jmp p2\np1: ld PV2\np2: ld S1 ld FG call mix fill\ncall dia0\nld I push 12 and ld J push 2 shr add st BB\nld BB push 256 add ldx st BT\nld BT jnz bld\nld GRS ld S1 ld FG call mix fill push 36 st DW push 18 st DH ld X ld Y push 4 add call dia\npush 0 st K\ntr: push -20 push 20 rndr st A push -6 push 6 rndr st B push 8 push 13 rndr st R\nld TRE ld S1 ld FG call mix fill\nld X ld A add ld Y push 12 add ld B add ld R circle\nld GRS ld S1 ld FG call mix fill\nld X ld A add push 2 sub ld Y push 10 add ld B add ld R push 3 sub circle\nnext K 3 tr\nret\nbld: ld I push 7 sub abs ld J push 7 sub abs add st DC\npush 14 ld DC sub ld BT push 4 mul push 1 add mul push 12 div push 1 push 3 rndr add st H\nld H push 18 min push 1 max st H\nld H push 22 mul st D\nld BB push 272 add ldx st MT\npush 100 call rmod push 30 lt jz km push 3 call rmod st MT\nkm: ld MT jnz ma ld M0 st CT jmp ms\nma: ld MT push 1 eq jz mb ld M1 st CT jmp ms\nmb: ld M2 st CT\nms: ld CT ld WLT ld WR push 24 div call mix st CT\nld CT ld SHD push 12 call mix st CL\nld CT ld SHD push 24 call mix st CR\nld CT ld S1 ld FG call mix st CT\nld CL ld S1 ld FG call mix st CL\nld CR ld S1 ld FG call mix st CR\nld X st BX ld Y push 4 add st BY ld D st BD push 36 st BW push 18 st BWH call cube\nld BY ld BD sub st TY\ncall windows\nld H push 8 lt jnz done2\npush 100 call rmod push 60 lt jz done2\nld X st BX ld TY push 8 add st BY push 20 st BW push 10 st BWH push 2 push 4 rndr push 22 mul st BD call cube\nld H push 10 lt jnz done2\nld BY ld BD sub push 10 add st TY\npush 18 push 40 rndr st A\nld INK stroke push 3 swidth ld X ld TY ld X ld TY ld A sub line push -1 stroke\nld WR jz nocrownhalo\npush 0x1000000 fill push 25 ld WR push 8 div add opacity ld X ld TY ld A sub push 8 ld WR push 18 div add circle push 100 opacity\nnocrownhalo: ld WLT fill ld X ld TY ld A sub push 3 circle\ndone2: ret\ndia0: push 44 st DW push 22 st DH ld X ld Y call dia ret\ndia: pbegin over over m ld DW ld DH lr ld DW neg ld DH lr ld DW neg ld DH neg lr z pend drop drop ret\ncube: ld CT fill\npbegin ld BX ld BY ld BD sub m ld BW ld BWH lr ld BW neg ld BWH lr ld BW neg ld BWH neg lr z pend\nld CL fill\npbegin ld BX ld BW sub ld BY ld BD sub ld BWH add m ld BW ld BWH lr push 0 ld BD lr ld BW neg ld BWH neg lr z pend\nld CR fill\npbegin ld BX ld BW add ld BY ld BD sub ld BWH add m ld BW neg ld BWH lr push 0 ld BD lr ld BW ld BWH neg lr z pend\nret\nwindows: push 0 st K\nwrow: push 0 st COL\nwcol: ld X push 31 sub ld COL push 16 mul add st WX\nld TY push 18 add push 5 ld COL push 16 mul add push 2 div add ld K push 22 mul add push 6 add st WY\npush 1 st SLP call win\nld X push 5 add ld COL push 16 mul add st WX\nld TY push 36 add push 5 ld COL push 16 mul add push 2 div sub ld K push 22 mul add push 6 add st WY\npush -1 st SLP call win\nnext COL 2 wcol\nnext K H wrow\nret\nwin: push 100 call rmod st T\nld LITP ld WR push 10 div add push 78 min st B\nld T ld B lt jz wdark\nld WLT fill push 100 opacity jmp wdraw\nwdark: ld WDK fill push 55 opacity\nwdraw: pbegin ld WX ld WY m push 9 push 4 ld SLP mul lr push 0 push 10 lr push -9 push -4 ld SLP mul lr z pend\npush 100 opacity ret\nspire: ld M2 st CT\nld CT ld SHD push 12 call mix st CL\nld CT ld SHD push 24 call mix st CR\nld X st BX ld Y push 17 add st BY push 10 st BW push 5 st BWH push 540 st BD call cube\nld INK stroke push 3 swidth ld X ld Y push 22 add push 540 sub ld X ld Y push 22 add push 600 sub line push -1 stroke\npush 0x1000000 fill ld X ld Y push 22 add push 604 sub push 80 ld WR push 4 div add circle\nld WR jz nospirehalo\npush -1 fill ld WLT stroke push 1 swidth push 22 ld WR push 8 div add opacity\nld X ld Y push 22 add push 604 sub push 26 ld WR push 6 div add circle\npush -1 stroke push 100 opacity\nnospirehalo: ld SUD fill ld X ld Y push 22 add push 604 sub push 7 circle\nret\nbigdia: pbegin push 800 push 680 ld E push 2 div sub m push 1460 ld E add push 1010 l push 800 push 1340 ld E push 2 div add l push 140 ld E sub push 1010 l z pend ret\nix: sub push 44 mul push 800 add ret\niy: add push 22 mul push 640 add ret\nrmod: push 0 swap push 1 sub rndr ret\nch: st CTT st CB st CA ld CA ld CB ld CA sub ld CTT mul push 63 div add ret\nmix: st MT2 st C1 st C0\nld C0 push 16 ushr push 255 and ld C1 push 16 ushr push 255 and ld MT2 call ch push 16 shl\nld C0 push 8 ushr push 255 and ld C1 push 8 ushr push 255 and ld MT2 call ch push 8 shl or\nld C0 push 255 and ld C1 push 255 and ld MT2 call ch or ret\ntheme: ld TH jnz t1\npush 0xe0d8c0 st S0 push 0xeee7d1 st S1 push 0xe8923a st SUC push 0xffd9a0 st SUD push 0x4b4a3f st M0 push 0xf0e9d3 st M1 push 0x49c5b1 st M2 push 0x1c1c16 st SHD\npush 0x3a3a33 st RD push 0xd8cfb2 st PV1 push 0xe0d8bf st PV2 push 0x7fbfa4 st GRS push 0x2e8f85 st TRE push 0x8fe8d8 st WLT push 0x34332b st WDK push 40 st LITP push 0 st STR push 0x3a3a33 st INK push 150 st SR ret\nt1: ld TH push 1 eq jz t2\npush 0x3b2a5c st S0 push 0xf29a5b st S1 push 0xff7a3d st SUC push 0xffe2a8 st SUD push 0x2d2438 st M0 push 0xf0d5b8 st M1 push 0x49c5b1 st M2 push 0x1a0f26 st SHD\npush 0x2a2233 st RD push 0x8a6a78 st PV1 push 0x967483 st PV2 push 0x3f7f78 st GRS push 0x1f5c58 st TRE push 0xffd27a st WLT push 0x1a1424 st WDK push 55 st LITP push 25 st STR push 0x1a0f26 st INK push 190 st SR ret\nt2: ld TH push 2 eq jz t3\npush 0x060a14 st S0 push 0x1b2f4f st S1 push 0x9ad8e8 st SUC push 0xf4f8ff st SUD push 0x1c2233 st M0 push 0x5b6b8f st M1 push 0x2a8c88 st M2 push 0x000208 st SHD\npush 0x0c1018 st RD push 0x1a2236 st PV1 push 0x202a40 st PV2 push 0x12403f st GRS push 0x0d2c2e st TRE push 0xffe39a st WLT push 0x0a0e18 st WDK push 60 st LITP push 70 st STR push 0x2a3a5c st INK push 90 st SR ret\nt3: push 0xf3cfc8 st S0 push 0xfaf0e0 st S1 push 0xe86a8a st SUC push 0xfff4e0 st SUD push 0x5a3446 st M0 push 0xfff0e6 st M1 push 0xe86a8a st M2 push 0x3a1c2c st SHD\npush 0x6b4a5a st RD push 0xf0d9d0 st PV1 push 0xf6e4dc st PV2 push 0xa8d5b5 st GRS push 0x4f9a78 st TRE push 0xffe8b0 st WLT push 0x5a3446 st WDK push 35 st LITP push 0 st STR push 0x5a3446 st INK push 130 st SR ret\n","vm_circles":"; Starter: 40 circles. Position and size come from the seed (RNG), opacity from wear, colour from patina.\n.canvas 400 400\n.var I 0 .var X 1 .var Y 2 .var R 3\nlane 0 serial xor lane 1 lane 2 lane 3 rnginit\npush 0x0b0f14 fill push 0 push 0 push 400 push 400 rect\npush 0 st I\nloop:\npush 20 push 380 rndr st X\npush 20 push 380 rndr st Y\npush 6 push 40 rndr st R\npush 0x49c5b1 pat push 16 shl xor fill\npush 100 wear push 6 div sub opacity\nld X ld Y ld R circle\nnext I 40 loop\nhalt\n","vm_dagcity":".canvas 1600 1600\n.var RX 0 .var RY 1 .var RZ 2 .var RW 3\n.var X 17 .var Y 18\n.var I 4 .var J 5 .var K 6 .var S 7 .var H 8 .var D 9 .var T 10 .var DK 11 .var C 12\n.var WI 13 .var WJ 14 .var N 15 .var P0 16 .var TM 20 .var TOP 21 .var LF 22 .var RF 23\n.var WN 24 .var AH 25 .var DI 26 .var DJ 27 .var NN 28 .var E2 29 .var QX 30 .var QY 31\n.var BX 32 .var BY 33 .var GX 34 .var GY 35\ngradbegin push 0 push 0xffd9a0 push 100 gradstop push 30 push 0xe8923a push 80 gradstop push 100 push 0xe8923a push 0 gradstop gradend\npush 0xe7dfc8 fill push 0 push 0 push 1600 push 1600 rect\nlane 0 serial xor lane 1 lane 2 lane 3 rnginit\npush 0xd3c9ab stroke push 50 gopen push 0 st I\nscatter: push 60 push 1540 call ri st X push 60 push 1540 call ri st Y push 30 push 130 call ri st K\nld X ld Y ld X ld K add ld Y ld K push 2 div add line next I 150 scatter gclose\npush 0xcfc5a8 stroke push 55 gopen push 0 st I\ngrid: ld I push 0 call ix ld I push 0 call iy ld I push 13 call ix ld I push 13 call iy line\npush 0 ld I call ix push 0 ld I call iy push 13 ld I call ix push 13 ld I call iy line nextle I 13 grid gclose\npush 0 st N push 0 st C\ncanal: ld C push 2 mod jz even push 2 push 11 call ri st WI push 0 st WJ jmp start\neven: push 0 st WI push 2 push 11 call ri st WJ\nstart: ld N st P0 call addpt\nwalk: ld WI push 13 lt ld WJ push 13 lt and jz wdone push 2 call rmod jz incj ld WI push 1 add st WI jmp cont\nincj: ld WJ push 1 add st WJ\ncont: call addpt jmp walk\nwdone: push 30 push 0x2f2f28 push 100 call poly push 22 push 0x49c5b1 push 100 call poly push 6 push 0xbfeee2 push 85 call poly next C 4 canal\npush -1 stroke push 100 opacity\npush 0 st S\nsloop: ld S push 13 sub push 0 max st I\niloop: ld I push 13 le ld I ld S le and jz idone ld S ld I sub st J\nld I push 14 mul ld J add push 256 add ldx jnz inext\npush 10 call rmod st T ld T push 1 lt jz notplaza\npush 0xddd4ba fill ld I ld J call ix ld I ld J call iy call dia jmp inext\nnotplaza: ld T push 7 gt jz lowh push 6 push 9 call ri st H jmp hset\nlowh: push 2 push 5 call ri st H\nhset: ld T push 3 mod st DK\nld DK jnz c1 push 0x4b4a3f st TOP push 0x34332b st LF push 0x26251e st RF jmp cdone\nc1: ld DK push 1 eq jz c2 push 0xf0e9d3 st TOP push 0xd8cfb3 st LF push 0xbfb598 st RF jmp cdone\nc2: push 0x49c5b1 pat push 0x040404 mul xor st TOP push 0x2e8f85 st LF push 0x1f6b64 st RF\ncdone: ld I ld J call ix st X ld I ld J call iy ld H push 22 mul sub st Y ld H push 22 mul st D\nld TOP fill ld X ld Y call dia\nld LF fill pbegin ld X push 36 sub ld Y push 18 add m push 36 push 18 lr push 0 ld D lr push -36 push -18 lr z pend\nld RF fill pbegin ld X push 36 add ld Y push 18 add m push -36 push 18 lr push 0 ld D lr push 36 push -18 lr z pend\npush 2 ld H push 3 gt add st WN\nld DK push 1 eq jz wl1 push 0x34332b fill push 100 opacity jmp wl2\nwl1: push 0x8fe8d8 fill push 90 wear push 50 min sub opacity\nwl2: push 0 st K\nwloop: pbegin ld X push 36 sub push 6 add ld K push 10 mul add ld Y push 18 add push 6 add m push 7 push 4 lr push 0 push 11 lr push -7 push -4 lr z pend next K WN wloop push 100 opacity\nld H push 6 lt jnz nodoor\nld DK push 1 eq jz d1 push 0x26251e fill jmp d2\nd1: push 0x123c36 fill\nd2: pbegin ld X push 6 add ld Y push 18 add ld D add push 24 sub m push 0 push -11 lr push 10 push -12 push 20 push 0 qr push 0 push 11 lr z pend\npush 18 push 42 call ri st AH push 0x26251e stroke push 3 swidth\nld X ld Y push 18 add ld X ld Y push 18 add ld AH sub line\npush -1 stroke push 0x49c5b1 fill ld X ld Y push 18 add ld AH sub push 3 circle\nnodoor: ld T push 6 eq ld T push 7 eq or jz inext\npush 2 call rmod st DI push 1 ld DI sub st DJ push 4 push 7 call ri st NN push 1 st K\nrloop: ld H push 22 mul ld K push 13 mul sub st E2\nld I ld DI ld K mul add ld J ld DJ ld K mul add call ix st QX\nld I ld DI ld K mul add ld J ld DJ ld K mul add call iy ld E2 push 0 max sub st QY\npush 0xefe8d2 fill ld QX ld QY call dia\npush 0x34332b fill pbegin ld QX push 36 sub ld QY push 18 add m push 36 push 18 lr push 0 push 13 lr push -36 push -18 lr z pend nextle K NN rloop\ninext: ld I push 1 add st I jmp iloop\nidone: nextle S 26 sloop\npush 100 gopen push 0 st K\nbloop: ld K ld N lt jz bdone push 3 call rmod jnz bskip\nld K push 512 add ldx push 2 call rmod jz bneg push 26 jmp bx2\nbneg: push -26\nbx2: add st BX ld K push 640 add ldx push 8 add st BY\npush 0x49c5b1 fill push 22 opacity ld BX ld BY push 9 circle push 100 opacity push 0xbfeee2 fill ld BX ld BY push 3 circle\nbskip: ld K push 1 add st K jmp bloop\nbdone: gclose\npush 6 push 6 call ix st GX push 6 push 6 call iy push 2 push 4 call ri push 22 mul sub st GY\npush 0x1000000 fill ld GX ld GY push 110 circle push 0xffffff fill ld GX ld GY push 9 circle\npush -1 fill push 2 swidth push 75 opacity push 14 st K\nrings: ld K push 34 gt jz warm push 0x49c5b1 stroke jmp go\nwarm: push 0xe8923a stroke\ngo: ld GX ld GY ld K circle ld K push 7 add dup st K push 42 le jnz rings\npush -1 fill push 0x3a3a33 stroke push 7 swidth push 100 opacity push 36 push 36 push 1528 push 1528 rect halt\nix: sub push 36 mul push 800 add ret\niy: add push 13 sub push 18 mul push 770 add ret\ndia: pbegin over over m push 36 push 18 lr push -36 push 18 lr push -36 push -18 lr z pend drop drop ret\naddpt: push 1 ld WI push 14 mul ld WJ add push 256 add stx ld WI ld WJ call ix ld N push 512 add stx ld WI ld WJ call iy ld N push 640 add stx ld N push 1 add st N ret\npoly: opacity stroke swidth push -1 fill pbegin ld P0 st K ld K push 512 add ldx ld K push 640 add ldx m ld K push 1 add st K\npl: ld K ld N lt jz pldone ld K push 512 add ldx ld K push 640 add ldx l ld K push 1 add st K jmp pl\npldone: pend ret\nri: over sub push 1 add call rmod add ret\nrmod: push 0 swap push 1 sub rndr ret"},"cap":25641}};
+<script>window.RELIKS_DATA={"anchors":{"_note":"Claims to be verified, not facts to be trusted. The site recomputes each of these from public chain data and shows PASS or FAIL.","network":"mainnet","hrp":"kaspa","rest":"https://api.kaspa.org","kascov":"https://kascov.io/data/mainnet","explorer":"https://kascov.io/mainnet/tx/","series":[{"id":"genesis-dag-city","title":"Genesis: DAG-City","laneCovenantId":"1569a69fd3e82b28ef32d9daea0d1a107cd26a586cf30458416889e689739c09","genesisTxId":"029c14e56034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb904","programHash":"16440384b2b00579d67e1366e8aa9c835e276fbf84a711d4920e87b134d7eaa4","renderHash":"836c15aecc078e0c19ae71467ff12cdd85a904d1c965a991af095a246dcc403c","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","engine_lang":1,"engine":"reliks-engine-mainnet.js","editions":[{"index":0,"serial":"2884738305227171331","covenantId":"6f8f076f72ff39eab63b11cd5e5ee3f7d1a9f31e570c4ac3d1ba5e3394146999","mintTxId":"9d9342c69446e9d25881c23296b82671350350e3df0d0ec27e155fffea19939c","outputIndex":1,"ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b"}],"engineKind":"js"}],"wrpc":[],"_wrpc_note":"No public mainnet wRPC endpoints are pinned on purpose (audit finding). Kaspire Extension broadcasts with pushTx; others can paste their own node URL in the mint panel."},"templates":{"factory":{"prefixHex":"6b","suffixHex":"6c7604b781beeb8763755a798201209d75597982519d75587982599f6975577982599f6975527900a0695979010087695479009c55790400e1f505a29b69537951a2547902d007a19a694d300f__ENG12__b9ba7eaa20000000000000000000000000000000000000000000000000000000000000000087916956794d300f__ENG12__aa8769547900a06354790300002057797e01ac7e5979c252799c695979c37887697575680f52656c696b7353657269616c56313076b9ba7eb9bb54cd7eaa760051957651937f01007e785151957651937f01007e0200019593785251957651937f01007e030000019593785351957651937f01007e04000000019593785451957651937f01007e0500000000019593785551957651937f01007e060000000000019593785651957651937f01007e07000000000000019593785751957651937f01007e028000970800000000000000019593765e795e79005c795b795f79b9cf5779200514190ac75aa6d0c63ba393c37df9ca186c64be048d52e0d9170966d6a75859016b827c75519658cd016b7e4dd207__ED12__827c75519658cd4dd207__ED12__7e7ed988012058797e010158797e0108587958cd7e012058797e0108587958cd7e012058797e012058797e0108587958cd7e7e7e7e7e7e7e7e016b7c7e4dd207__ED12__7eaa02000001aa7e01207e7c7e01877e011579c388011479c20400e1f505a269b9cb519c69b900cc76c2b9bea2690113790113790113790113790113795194011379011379012057797e012057797e0108577958cd7e0108577958cd7e0108577958cd7e0108577958cd7e012057797e7e7e7e7e7e7eb976c902a53c94765193bc7c7eb976c976021dbc937cbc7eaa02000001aa7e01207e7c7e01877e5879c388757575757575757575757575757575757575757575757575757575757575755167760499ec7fba87637559798201419d75587982599f6975577982599f6975b9cb5779577957795779577957795779567956795679567956795679567901187901187901187952795979ac697800a07800a09a6978789356799c69b900ccb951cc78c278c293b9bea2695b795c797e5b795c797e5b7958cd5c7958cd7e5b7958cd5c7958cd7e577958cd577958cd7e5b7958cd5c7958cd7e5b795c797e011a7952a169011a795779827c750120969c6900011b79787853799452a1697652799f6376b978cc5b795279012095760120937f5b795379012095760120937f5b79547958957658937f5b79557958957658937f5b79567958957658937f5b79577958957658937f5b795879012095760120937f012057797e012057797e0108577958cd7e0108577958cd7e0108577958cd7e0108577958cd7e012057797e7e7e7e7e7e7eb976c902a53c94765193bc7c7eb976c976021dbc937cbc7eaa02000001aa7e01207e7c7e01877e5879c388587951935a7a75777777777777777777687652799f6376b978cc5b795279012095760120937f5b795379012095760120937f5b79547958957658937f5b79557958957658937f5b79567958957658937f5b79577958957658937f5b795879012095760120937f012057797e012057797e0108577958cd7e0108577958cd7e0108577958cd7e0108577958cd7e012057797e7e7e7e7e7e7eb976c902a53c94765193bc7c7eb976c976021dbc937cbc7eaa02000001aa7e01207e7c7e01877e5879c388587951935a7a757777777777777777776875757575757575757575757575757575757575757575757575757575757575757575757575757575516776045342244487637557798201419d75b9cb57795779577957795779577957795679567956795679567956795679011679765779ac690000000000000001167951a1690116795779827c750120969c6900011779787853799451a1697652799f6376b978cc5b795279012095760120937f5b795379012095760120937f5b79547958957658937f5b79557958957658937f5b79567958957658937f5b79577958957658937f5b795879012095760120937f012057797e012057797e0108577958cd7e0108577958cd7e0108577958cd7e0108577958cd7e012057797e7e7e7e7e7e7eb976c902a53c94765193bc7c7eb976c976021dbc937cbc7eaa02000001aa7e01207e7c7e01877e5879c388587951935a7a75777777777777777777687575757575757575757575757575757575757575757575757575757575757575757551676a686868","span":{"offset":1,"len":135},"templateHashHex":"b070609c7ae51ff778a172009351dd0f1d18e5c36d4593c3514a248cfd2177ee","entries":{"close":"53422444","fork":"99ec7fba","mint":"b781beeb"},"fields":["program_hash","artist","price","royalty_bips","mints_left","engine_lang","render_hash"]},"edition":{"prefixHex":"6b","suffixHex":"6c7604674a8ea4876375597982599f697558798201419d75b9cb5879587958795879587958795879587957795779577957795779577957795779011a79011a7976011a790100876976011c79ac69b900cc76c2b9bea26953790400e1f505a25479076588635ddc4603a19a695b795b7955795b795b795b795b795b79011c79519c69b900cc012059797e010159797e0108597958cd7e012059797e0108597958cd7e012059797e012059797e0108597958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e78c388757575757575757575757575757575757575757575757575757575757575757575757575757575755167760488709f2587637558798201419d75b9cb5879587958795879587958795879587957795779577957795779577957795779011979760119790100876976011b79ac69b900cc76c2b9bea2695a7976010000011c79011c79011c79011c79011c7957795779577957795779577957795779012479519c69b900cc012059797e010159797e0108597958cd7e012059797e0108597958cd7e012059797e012059797e0108597958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575516776041cd4096a8763755a798201209d75597982599f6975587982599f6975b9cb5879587958795879587958795879587957795779577957795779577957795779011b79011b79011b7901197900a069011979076588635ddc4603a169b900cc76c2b9bea269011a7953795379011e790100876978789e695279011c799502102796537978947600a26903000020011f797e01ac7e030000200123797e01ac7e5579c25379a2695579c37887695479c254799c695479c3527987695a797601000001247901247901247901247901247957795779577957795779577957795779012c79519c69b900cc012059797e010159797e0108597958cd7e012059797e0108597958cd7e012059797e012059797e0108597958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575755167760489cfc99a8763755c798201209d755b7982599f69755a7982599f6975597982599f697558798201419d75b9cb5879587958795879587958795879587957795779577957795779577957795779011d79011d79011d79011d79011d7976011d790100876976011f79ac69b900cc76c2b9bea2695579009c56790400e1f505a25779076588635ddc4603a19a9b69557900a0635579557955790121790100876978789e695279011f799502102796537978947600a269030000200122797e01ac7e030000200126797e01ac7e5579c25379a2695579c37887695479c254799c695479c352798769757575757575756856797601000001207901207901207901207901207957795779577957795779577957795779012879519c69b900cc012059797e010159797e0108597958cd7e012059797e0108597958cd7e012059797e012059797e0108597958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551677604794dca5487637559798201209d7558798201419d75b9cb5879587958795879587958795879587957795779577957795779577957795779011a79011a7976011a790100876976011c79ac69b900cc76c2b9bea269537976010000011d79011d79011d79011d79011d7957795779577957795779577957795779012579519c69b900cc012059797e010159797e0108597958cd7e012059797e0108597958cd7e012059797e012059797e0108597958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551677604bf4a166087637558798201419d75b9cb5879587958795879587958795879587957795779577957795779577957795779011979760119790100876976011b79ac690000000000000000011a7951a169011a795879827c750120969c6900011b79787853799451a1697652799f6376b978cc5c795279012095760120937f5c79537951957651937f5c79547958957658937f5c795579012095760120937f5c79567958957658937f5c795779012095760120937f5c795879012095760120937f5c79597958957658937f012058797e010158797e0108587958cd7e012058797e0108587958cd7e012058797e012058797e0108587958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e5979c388597951935b7a75777777777777777777776875757575757575757575757575757575757575757575757575757575757575757575757575757551676a686868686868","span":{"offset":1,"len":161},"templateHashHex":"0514190ac75aa6d0c63ba393c37df9ca186c64be048d52e0d9170966d6a75859","entries":{"buy":"1cd4096a","list":"674a8ea4","sell":"89cfc99a","spend":"bf4a1660","transfer":"794dca54","unlist":"88709f25"},"fields":["ownerIdentifier","identifierType","price","artist","royalty_bips","program_hash","factory_covid","serial"]}},"templatesV13":{"edition":{"prefixHex":"6b","suffixHex":"6c7604674a8ea48763755b7982599f69755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979012079012079760120790100876976012279ac69b900cc76c2b9bea26953790400e1f505a25479076588635ddc4603a19a695d795d7955795d795d795d795d795d795d795d79012279519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902e10994765193bc7c7eb976c976021589937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575755167760488709f258763755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979011f7976011f790100876976012179ac69b900cc76c2b9bea2695c79760100000122790122790122790122790122790122790122795979597959795979597959795979597959795979012c79519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902e10994765193bc7c7eb976c976021589937cbc7eaa02000001aa7e01207e7c7e01877e78c388757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575516776041cd4096a8763755c798201209d755b7982599f69755a7982599f6975b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979012179012179012179011f7900a069011f79076588635ddc4603a169b900cc76c2b9bea269012079537953790124790100876978789e6952790122799502102796537978947600a269030000200125797e01ac7e030000200129797e01ac7e5579c25379a2695579c37887695479c254799c695479c3527987695a790f52656c696b734c696e65616765563278010000012b79012b79012b79012b79012b795879012c797e5a797eaa012b7951935979597959795979597959795979597959795979013579519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902e10994765193bc7c7eb976c976021589937cbc7eaa02000001aa7e01207e7c7e01877e78c38875757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575755167760489cfc99a8763755e798201209d755d7982599f69755c7982599f69755b7982599f69755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979012379012379012379012379012379760123790100876976012579ac69b900cc76c2b9bea26955790400e1f505a25679076588635ddc4603a19a695579557955790127790100876978789e6952790125799502102796537978947600a269030000200128797e01ac7e03000020012c797e01ac7e5579c25379a2695579c37887695479c254799c695479c3527987695d790f52656c696b734c696e65616765563278010000012e79012e79012e79012e79012e795879012f797e5a797eaa012e7951935979597959795979597959795979597959795979013879519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902e10994765193bc7c7eb976c976021589937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551677604794dca548763755b798201209d755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979012079012079760120790100876976012279ac69b900cc76c2b9bea26953790f52656c696b734c696e6561676556327801000001247901247901247901247901247958790125797e5a797eaa0124795979597959795979597959795979597959795979012e79519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902e10994765193bc7c7eb976c976021589937cbc7eaa02000001aa7e01207e7c7e01877e78c38875757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551677604bf4a16608763755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979011f7976011f790100876976012179ac690000000000000000000001207951a1690120795a79827c750120969c6900012179787853799451a1697652799f6376b978cc5e795279012095760120937f5e79537951957651937f5e79547958957658937f5e795579012095760120937f5e79567958957658937f5e795779012095760120937f5e795879012095760120937f5e79597958957658937f5e795a79012095760120937f5e795b7958957658937f01205a797e01015a797e01085a7958cd7e01205a797e01085a7958cd7e01205a797e01205a797e01085a7958cd7e01205a797e01085a7958cd7e7e7e7e7e7e7e7e7e7eb976c902e10994765193bc7c7eb976c976021589937cbc7eaa02000001aa7e01207e7c7e01877e5b79c3885b7951935d7a7577777777777777777777777768757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551676a686868686868","span":{"offset":1,"len":203},"templateHashHex":"dcdcd59b5069faf56b10712e668fd10bc2a6b8b37acdea944ccdf1e4f145f610","entries":{"buy":"1cd4096a","list":"674a8ea4","sell":"89cfc99a","spend":"bf4a1660","transfer":"794dca54","unlist":"88709f25"},"fields":["ownerIdentifier","identifierType","price","artist","royalty_bips","program_hash","factory_covid","serial","lineage","sales"]}},"engines":{"reliks-engine-mainnet.js":"\nfunction reliks(L,serial){\nvar x=(L[0]^serial)|0,y=L[1]|0,z=L[2]|0,w=L[3]|0;\nfunction rnd(){var t=(x^(x<<11))|0;x=y;y=z;z=w;w=(w^(w>>>19))^(t^(t>>>8));return w>>>0;}\nfunction ri(a,b){return a+(rnd()%(b-a+1));}\nvar W=1600,CX=800,CY=770,A=36,B=18,Z=22,R=13,i,j,k,s,h,x,y,d,o=[],wat={},wpts=[];\nfunction IX(i,j){return CX+(i-j)*A;}\nfunction IY(i,j){return CY+(i+j-R)*B;}\nfunction dia(x,y){return 'M'+x+' '+y+'l'+A+' '+B+'l'+-A+' '+B+'l'+-A+' '+-B+'z';}\nfunction pl(p,wd,col,op){var q='M'+p[0][0]+' '+p[0][1];for(var v=1;v<p.length;v++)q+='L'+p[v][0]+' '+p[v][1];return '<path d=\"'+q+'\" fill=\"none\" stroke=\"'+col+'\" stroke-width=\"'+wd+'\"'+(op?' opacity=\"'+op+'\"':'')+'/>';}\no.push('<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1600 1600\"><defs><radialGradient id=\"g\"><stop offset=\"0\" stop-color=\"#ffd9a0\"/><stop offset=\".3\" stop-color=\"#e8923a\" stop-opacity=\".8\"/><stop offset=\"1\" stop-color=\"#e8923a\" stop-opacity=\"0\"/></radialGradient></defs><rect width=\"1600\" height=\"1600\" fill=\"#e7dfc8\"/>');\no.push('<g stroke=\"#d3c9ab\" opacity=\".5\">');\nfor(i=0;i<150;i++){x=ri(60,1540);y=ri(60,1540);k=ri(30,130);o.push('<line x1=\"'+x+'\" y1=\"'+y+'\" x2=\"'+(x+k)+'\" y2=\"'+(y+(k/2|0))+'\"/>');}\no.push('</g><g stroke=\"#cfc5a8\" opacity=\".55\">');\nfor(i=0;i<=R;i++){o.push('<line x1=\"'+IX(i,0)+'\" y1=\"'+IY(i,0)+'\" x2=\"'+IX(i,R)+'\" y2=\"'+IY(i,R)+'\"/><line x1=\"'+IX(0,i)+'\" y1=\"'+IY(0,i)+'\" x2=\"'+IX(R,i)+'\" y2=\"'+IY(R,i)+'\"/>');}\no.push('</g>');\nvar c,pts,wi,wj;\nfor(c=0;c<4;c++){wi=c%2?ri(2,R-2):0;wj=c%2?0:ri(2,R-2);pts=[[IX(wi,wj),IY(wi,wj)]];wat[wi+'_'+wj]=1;wpts.push([IX(wi,wj),IY(wi,wj)]);\nwhile(wi<R&&wj<R){if(rnd()%2)wi++;else wj++;wat[wi+'_'+wj]=1;pts.push([IX(wi,wj),IY(wi,wj)]);wpts.push([IX(wi,wj),IY(wi,wj)]);}\no.push(pl(pts,30,'#2f2f28',0)+pl(pts,22,'#49c5b1',0)+pl(pts,6,'#bfeee2','.85'));}\nfor(s=0;s<=2*R;s++){for(i=s-R>0?s-R:0;i<=R&&i<=s;i++){j=s-i;\nif(wat[i+'_'+j])continue;\nvar t=rnd()%10;if(t<1){o.push('<path d=\"'+dia(IX(i,j),IY(i,j))+'\" fill=\"#ddd4ba\"/>');continue;}\nh=t>7?ri(6,9):ri(2,5);\nvar dk=t%3,top,lf,rf;\nif(dk==0){top='#4b4a3f';lf='#34332b';rf='#26251e';}else if(dk==1){top='#f0e9d3';lf='#d8cfb3';rf='#bfb598';}else{top='#49c5b1';lf='#2e8f85';rf='#1f6b64';}\nx=IX(i,j);y=IY(i,j)-h*Z;d=h*Z;\no.push('<path d=\"'+dia(x,y)+'\" fill=\"'+top+'\"/><path d=\"M'+(x-A)+' '+(y+B)+'l'+A+' '+B+'v'+d+'l'+-A+' '+-B+'z\" fill=\"'+lf+'\"/><path d=\"M'+(x+A)+' '+(y+B)+'l'+-A+' '+B+'v'+d+'l'+A+' '+-B+'z\" fill=\"'+rf+'\"/>');\nif(h>=2){var wn=h>3?3:2;for(k=0;k<wn;k++){o.push('<path d=\"M'+(x-A+6+k*10)+' '+(y+B+6)+'l7 4v11l-7 -4z\" fill=\"'+(dk==1?'#34332b':'#8fe8d8')+'\"'+(dk==1?'':' opacity=\".9\"')+'/>');}}\nif(h>=6){o.push('<path d=\"M'+(x+6)+' '+(y+B+d-24)+'v-11q10 -12 20 0v11z\" fill=\"'+(dk==1?'#26251e':'#123c36')+'\"/>');\nvar ah=ri(18,42);o.push('<line x1=\"'+x+'\" y1=\"'+(y+B)+'\" x2=\"'+x+'\" y2=\"'+(y+B-ah)+'\" stroke=\"#26251e\" stroke-width=\"3\"/><circle cx=\"'+x+'\" cy=\"'+(y+B-ah)+'\" r=\"3\" fill=\"#49c5b1\"/>');}\nif(t==6||t==7){var di=rnd()%2,dj=di?0:1,n=ri(4,7);\nfor(k=1;k<=n;k++){var e2=h*Z-k*13,qx=IX(i+di*k,j+dj*k),qy=IY(i+di*k,j+dj*k)-(e2>0?e2:0);\no.push('<path d=\"'+dia(qx,qy)+'\" fill=\"#efe8d2\"/><path d=\"M'+(qx-A)+' '+(qy+B)+'l'+A+' '+B+'v13l'+-A+' '+-B+'z\" fill=\"#34332b\"/>');}}\n}}\no.push('<g>');\nfor(k=0;k<wpts.length;k++){if(rnd()%3==0){var bx=wpts[k][0]+(rnd()%2?26:-26),by=wpts[k][1]+8;o.push('<circle cx=\"'+bx+'\" cy=\"'+by+'\" r=\"9\" fill=\"#49c5b1\" opacity=\".22\"/><circle cx=\"'+bx+'\" cy=\"'+by+'\" r=\"3\" fill=\"#bfeee2\"/>');}}\no.push('</g>');\nvar m=R/2|0,gx=IX(m,m),gy=IY(m,m)-ri(2,4)*Z;\no.push('<circle cx=\"'+gx+'\" cy=\"'+gy+'\" r=\"110\" fill=\"url(#g)\"/><circle cx=\"'+gx+'\" cy=\"'+gy+'\" r=\"9\" fill=\"#fff\"/>');\nfor(k=14;k<=42;k+=7)o.push('<circle cx=\"'+gx+'\" cy=\"'+gy+'\" r=\"'+k+'\" fill=\"none\" stroke=\"'+(k>34?'#49c5b1':'#e8923a')+'\" stroke-width=\"2\" opacity=\".75\"/>');\no.push('<rect x=\"36\" y=\"36\" width=\"1528\" height=\"1528\" fill=\"none\" stroke=\"#3a3a33\" stroke-width=\"7\"/></svg>');\nreturn o.join('');\n}"},"bundles":{"v12":{"reliks_provenance_bundle":1,"generated_at":"2026-11-13","network":"mainnet","hrp":"kaspa","series":{"id":"genesis-dag-city","title":"Genesis: DAG-City","protocol_version":"v12","laneCovenantId":"1569a69fd3e82b28ef32d9daea0d1a107cd26a586cf30458416889e689739c09","genesisTxId":"029c14e56034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb904","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","price":"100000000","royalty_bips":"500","mints_left_at_genesis":1,"engine_lang":1,"engine_kind":"js","program_hash":"16440384b2b00579d67e1366e8aa9c835e276fbf84a711d4920e87b134d7eaa4","render_hash":"836c15aecc078e0c19ae71467ff12cdd85a904d1c965a991af095a246dcc403c"},"editions":[{"index":0,"serial":"2884738305227171331","serial32":1627858435,"lanes":[1232521659,-613504186,-1758390526,-131891038,-2003096083,2116399032,1200263756,602121247],"covenantId":"6f8f076f72ff39eab63b11cd5e5ee3f7d1a9f31e570c4ac3d1ba5e3394146999","mintTxId":"9d9342c69446e9d25881c23296b82671350350e3df0d0ec27e155fffea19939c","outputIndex":1,"consumedLaneOutpoint":"029c14e56034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb904:0","ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","state":{"ownerIdentifier":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","identifierType":0,"price":"0","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","royalty_bips":"500","program_hash":"16440384b2b00579d67e1366e8aa9c835e276fbf84a711d4920e87b134d7eaa4","factory_covid":"1569a69fd3e82b28ef32d9daea0d1a107cd26a586cf30458416889e689739c09","serial":"2884738305227171331"},"expectedSpk":"aa20adbeb3a482341484e552f52fbade6355250c58b691488b66909690bc27760d3487","render_hash":"3f04acc79f970b7a5789d6cdbdc6fdac4784d24726108deeedb19e113f0a127e","svg_bytes":89907}]},"v13":{"reliks_provenance_bundle":1,"generated_at":"2026-11-13","network":"testnet-10","hrp":"kaspatest","series":{"id":"v13-vm-dag-city","title":"Reliks v13: DAG-City (Reliks-VM)","protocol_version":"v13","laneCovenantId":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","genesisTxId":"029c14e56034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb904","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","price":"100000000","royalty_bips":"500","mints_left_at_genesis":8,"engine_lang":2,"engine_kind":"vm","program_hash":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","render_hash":"9bd989c4375220fbcb87b566c310b1ec6cb1f053ed3a701408d10bd805b9d405","program_hex":"52564d01400640069d010001a0b3ff0701e4009e011e01baa4a20701d0009e01e40001baa4a20701009e9f01c8bf9f07800100010001c00c01c00c90600061226001600260037001ab93cf068101329b01005104013c01840c4305065111013c01840c4305065112011e0182014305065106501150125011500610501250060102131092500401011002510401960132424c009c01a88bbf068101379b010051045004010043610550040100436a055004010d4361055004010d436a05920100500443610501005004436a05010d5004436105010d5004436a05925004010110025104010d334299009c0100510f0100510c500c0102144102010102010b430506510d0100510e400f010100510d0102010b430506510e500f5110438e05500d010d32500e010d32204143010102430f06413601500d010110510d403d01500e010110510e438e05401601011e01a8debc0101e40043c105011601b18ba70201e40043c105010601e2ddff0501d50043c105500c01011002510c01043242ea00017f8101e40083010051075007010d1101001851045004010d33500450073320415c04500750041151055004010e125005100180021052425204010a430f06510a500a01013241db0101baa9f706805004500543610550045005436a05437605405204500a01073441ef0101060109430506510840f801010201054305065108500a010314510b500b421c0201bf94ad02511501abe6d0015116019eca98015117405802500b010130413c0201d3d3c307511501b39fe30651160198ebfe05511740580201b18ba70262018488101222511501859fba01511601e4d6fd00511750045005436105511150045005436a055008011612115112500801161251095015805011501243760550168094501101241150120112109501240112990100500999015c016e999798501780945011012410501201121095015c01129901005009990124016e99979801025008010334105118500b01013041e00201abe6d0018001e4008340ef0201d8d1bf048001da00630132171183010051069450110124110106105006010a121050120112100106109501070104990100010b990179017c999798500601011002510650183242f30201e40083500801063242ae03500b010130414703019eca980180404d0301b6f8c800809450110106105012011210500910011811950100017599010a0174011401009a0100010b9997980112012a4305065119019eca980181010382501150120112105011501201121050191192017f8101b18ba7028050115012011210501911010391500a010630500a010730214152040102430f06511a0101501a11511b01040107430506511c0101510650080116125006010d1211511d5004501a500612105005501b50061210436105511e5004501a500612105005501b50061210436a05501d01001811511f01d2d1bf0780501e501f43760501abe6d0018094501e012411501f0112109501240112990100010d99015c016e9997985006010110025106501c3342d70350040101105104408d015007010110025107011a3342830101e4009b010051065006500f3241d2040103430f0642c804500601800410520102430f06419604011a409804016610512050060180051052010810512101b18ba702800116835020502101099101e4008301e2ddff058050205021010391500601011051064072049c01060106436105512201060106436a05010201044305060116121151230180808008805022502301ee009101ffffff078050225023010991017f8001028201cb0083010e51065006012234412a0501b18ba7028140300501baa4a20781502250235006915006010710025106012a33421905017f8001b3f4e8018101078201e400830124012401f80b01f80b90001101241201a006104410010d110112120182061044940505950124011299015c011299015c016e9997980303440101500d010e12500e100180021053500d500e436105500f0180041053500d500e436a05500f0180051053500f010110510f44838182017f809450105106500601800410525006018005105295500601011051065006500f324103065006018004105250060180051052965006010110510640e20598440511010110430f0610440100040101117244"},"editions":[{"index":0,"serial":"2884738305227171331","serial32":1627858435,"lanes":[-1539051654,1550940364,-1752465193,-1318761273,-798323025,1552770662,388025969,-1903202835],"pat":61,"wear":0,"covenantId":"212a4610be6ddf268c7fbe9e95416bfd53292525c97e1073af738ec0778bc9ae","mintTxId":"c7fc689f54f404e0a770ddb4d303b861592d1d508c779c545a64407fccf72846","outputIndex":1,"consumedLaneOutpoint":"029c14e56034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb904:0","ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","state":{"ownerIdentifier":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","identifierType":0,"price":"0","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","royalty_bips":"500","program_hash":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","factory_covid":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","serial":"2884738305227171331","lineage":"7554b3d0cbe86969697ae9cd4f7e65ed973ad6b82fec1e2ba68d50dda26cfa22","sales":"0"},"expectedSpk":"aa202c727e75134245ec5ed54136ba1bd84c90ba27414b02e2655e98b637b3df732687","render_hash":"37d0f856943f4f1aeb1aeacc4566252c786aa50fffc95ab474a109da51d76c58","svg_bytes":86222,"vm_stats":{"fuel":80704,"elems":1397,"svg_len":86222,"max_stack":6,"max_calls":2,"max_groups":1,"max_segs":18,"grads":1}},{"index":1,"serial":"4030318016432366363","serial32":-447814885,"lanes":[-762878556,1537421474,885658214,82739676,-348944091,-861878542,1648509338,-1506154826],"pat":26,"wear":1,"covenantId":"e878a5cbbf9eacac40bf939715099a38055d26c9882bbe1ea1966a04fc2b2200","mintTxId":"86860766c7a104e0a770ddb4d303b861592d1d508c779c545a64407fccf72847","outputIndex":1,"consumedLaneOutpoint":"c7fc689f54f404e0a770ddb4d303b861592d1d508c779c545a64407fccf72846:0","ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","state":{"ownerIdentifier":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","identifierType":0,"price":"0","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","royalty_bips":"500","program_hash":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","factory_covid":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","serial":"4030318016432366363","lineage":"923225ca2d2a47c0650e04da3b86de881c8f2a6d1592ff5b450e97423b7414d7","sales":"1"},"expectedSpk":"aa20d52420a0d8e5c7af68b001e4761054ed42b2a978c1441c98593492da782891c587","render_hash":"7b43c2553e97fcae81577c32b2e72421d8a8e8ca78551aa6103035b61da2a071","svg_bytes":84527,"vm_stats":{"fuel":81765,"elems":1354,"svg_len":84527,"max_stack":6,"max_calls":2,"max_groups":1,"max_segs":22,"grads":1}},{"index":2,"serial":"8561826841341975308","serial32":1385683724,"lanes":[708565355,2049925419,1880875281,637155205,-1644075554,743942356,-1959020575,693423529],"pat":59,"wear":3,"covenantId":"d8aee38b2b1dc4943631c6fd0b3dcbf393238e295e0185c738c58c2efca8cdba","mintTxId":"4fef24e96034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb905","outputIndex":1,"consumedLaneOutpoint":"86860766c7a104e0a770ddb4d303b861592d1d508c779c545a64407fccf72847:0","ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","state":{"ownerIdentifier":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","identifierType":0,"price":"0","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","royalty_bips":"500","program_hash":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","factory_covid":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","serial":"8561826841341975308","lineage":"78fa058f23be77e15c5e7b4f0546bbe1600995ac6236ee807afe145769ece7b1","sales":"3"},"expectedSpk":"aa2051873544539b4eeceb91bebe0da61b2c75b5c2b29127de2f8c2c8de832ae35a087","render_hash":"e4524a8fae028a4118717207d085ef298ff4251f7012343e302857c839782783","svg_bytes":80138,"vm_stats":{"fuel":77917,"elems":1278,"svg_len":80138,"max_stack":6,"max_calls":2,"max_groups":1,"max_segs":23,"grads":1}}]}},"studio":{"prelude":"var R=(function(L,serial){\nvar x=(L[0]^serial)|0,y=L[1]|0,z=L[2]|0,w=L[3]|0;\nfunction rnd(){var t=(x^(x<<11))|0;x=y;y=z;z=w;w=(w^(w>>>19))^(t^(t>>>8));return w>>>0;}\nfunction ri(a,b){return a+(rnd()%(b-a+1));}\nfunction pick(a){return a[rnd()%a.length];}\nfunction chance(p){return rnd()%100<p;}\nfunction hsl(){return 'hsl('+rnd()%360+','+ri(40,90)+'%,'+ri(30,70)+'%)';}\nfunction sin(a){a&=4095;var s=a<2048?1:-1,q=a<2048?a:a-2048,u=q*(2048-q);return s*(16*u*10000/(20971520-4*u)|0);}\nfunction cos(a){return sin(a+1024);}\nfunction dir(a,len){return [cos(a)*len/10000|0,sin(a)*len/10000|0];}\nfunction svg(parts,bg){return '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1000 1000\">'+(bg?'<rect width=\"1000\" height=\"1000\" fill=\"'+bg+'\"/>':'')+parts.join('')+'</svg>';}\nreturn {rnd:rnd,ri:ri,pick:pick,chance:chance,hsl:hsl,sin:sin,cos:cos,dir:dir,svg:svg,serial:serial,lanes:L};\n})(L,serial);","templates":{"circles":"function reliks(L, serial) {\n  var n = R.ri(18, 48), out = [];\n  for (var i = 0; i < n; i++) {\n    out.push('<circle cx=\"' + R.ri(0,1000) + '\" cy=\"' + R.ri(0,1000) +\n      '\" r=\"' + R.ri(20,240) + '\" fill=\"' + R.hsl() +\n      '\" fill-opacity=\"0.' + R.ri(30,85) + '\"/>');\n  }\n  return R.svg(out, '#000');\n}","flow":"function reliks(L, serial) {\n  var out = [], i;\n  for (i = 0; i < 700; i++) {\n    var x = R.ri(0, 1000), y = R.ri(0, 1000);\n    var a = (R.sin(x >> 2) + R.cos(y >> 2)) | 0;\n    var d = R.dir(a, R.ri(20, 90));\n    out.push('<line x1=\"' + x + '\" y1=\"' + y + '\" x2=\"' + (x + d[0]) +\n      '\" y2=\"' + (y + d[1]) + '\" stroke=\"' + R.hsl() +\n      '\" stroke-width=\"1\" opacity=\"0.5\"/>');\n  }\n  return R.svg(out, '#0a0b10');\n}","blank":"function reliks(L, serial) {\n  return R.svg([], '#000');\n}","iso":"; Reliks metropolis diorama. Patina: bits 0-1 theme (paper, dusk, night, rose), bits 2-3 district style.\n; Light, gradual, optional sales wear (change \"wear push 1 mul\" to \"wear push 0 mul\" or uncheck Enable Wear in Studio to disable):\n; delicate celestial halo rings, gentle starlight/firefly motes, warmer window life, and glowing spire/rooftop beacons.\n.canvas 1600 1600\n.var X 0 .var Y 1 .var I 2 .var J 3 .var S 4 .var K 5 .var H 6 .var D 7 .var T 8\n.var WR 9 .var TH 10 .var STY 11 .var BB 12 .var BT 13 .var MT 14 .var FG 15 .var DC 16 .var A 17 .var B 18 .var R 19\n.var COL 20 .var TY 21 .var E 22 .var DW 23 .var DH 24\n.var S0 30 .var S1 31 .var SUC 32 .var SUD 33 .var M0 34 .var M1 35 .var M2 36 .var SHD 37 .var RD 38 .var PV1 39 .var PV2 40\n.var GRS 41 .var TRE 42 .var WLT 43 .var WDK 44 .var LITP 45 .var STR 46 .var INK 47 .var SR 48\n.var BX 50 .var BY 51 .var BW 52 .var BWH 53 .var BD 54 .var CT 55 .var CL 56 .var CR 57\n.var C0 58 .var C1 59 .var MT2 60 .var CA 61 .var CB 62 .var CTT 63 .var WX 64 .var WY 65 .var SLP 66\n.var PK 68 .var LO 69 .var MD 70\nlane 0 serial xor lane 1 lane 2 lane 3 rnginit\nwear push 1 mul st WR ; wear_toggle (1 = enabled, 0 = disabled)\npat push 3 and st TH\npat push 2 shr push 3 and st STY\ncall theme\npush 12 st PK push 25 st LO push 30 st MD\nld STY push 3 eq jz y3 push 35 st PK\ny3: ld STY push 1 eq jz y1 push 10 st LO push 20 st MD\ny1: ld STY push 2 eq jz y2 push 50 st LO\ny2: push 0 st K\nbl: push 100 call rmod st T\nld T ld PK lt jz b1 push 0 st BT jmp bset\nb1: ld T ld PK ld LO add lt jz b2 push 1 st BT jmp bset\nb2: ld T ld PK ld LO add ld MD add lt jz b3 push 2 st BT jmp bset\nb3: push 3 st BT\nbset: ld BT ld K push 256 add stx\npush 3 call rmod ld K push 272 add stx\nnext K 16 bl\npush -1 stroke push 100 opacity push 0 st K\nsky: ld S0 ld S1 ld K call mix fill push 0 ld K push 25 mul push 1600 push 26 rect next K 64 sky\npush 30 gopen ld S1 fill push 0 st K\ncl: push -100 push 900 rndr st X push 120 push 520 rndr st Y push 240 push 700 rndr st A push 8 push 16 rndr st B\nld X ld Y ld A ld B rect\nld X ld Y ld B push 2 div add ld B push 2 div circle\nld X ld A add ld Y ld B push 2 div add ld B push 2 div circle\nnext K 6 cl\ngclose\nld SUD fill push 70 opacity\nld STR jz nost push 0 st K\nstars: push 20 push 1580 rndr push 20 push 640 rndr push 1 push 3 rndr circle next K STR stars\nnost: push 100 opacity\ngradbegin push 0 ld SUC push 100 gradstop push 40 ld SUC push 45 gradstop push 100 ld SUC push 0 gradstop gradend\npush 0x1000000 fill push 800 push 560 push 520 ld WR push 3 div add circle\nld SUD fill push 800 push 560 ld SR circle\npush -1 fill ld SUD stroke push 2 swidth push 45 opacity\npush 800 push 560 ld SR push 40 add circle push 800 push 560 ld SR push 90 add circle push 800 push 560 ld SR push 160 add circle\nld WR jz nohalo\nld WLT stroke push 1 swidth push 12 ld WR push 10 div add opacity\npush 800 push 560 ld SR push 220 add ld WR push 6 div add circle\nld WR push 24 lt jnz nohalo\npush 800 push 560 ld SR push 290 add ld WR push 4 div add circle\nld WR push 80 lt jnz nohalo\npush 800 push 560 ld SR push 370 add ld WR push 3 div add circle\nnohalo: push -1 stroke push 100 opacity\nld INK fill push 8 opacity push 40 st E\nsh: call bigdia ld E push 12 sub st E ld E push 0 gt jnz sh\npush 100 opacity\nld RD ld SHD push 14 call mix fill\npbegin push 140 push 970 m push 800 push 1300 l push 800 push 1340 l push 140 push 1010 l z pend\nld RD ld SHD push 28 call mix fill\npbegin push 1460 push 970 m push 800 push 1300 l push 800 push 1340 l push 1460 push 1010 l z pend\npush 0 st S\nsloop: ld S push 14 sub push 0 max st I\niloop: ld I push 14 le ld I ld S le and jz idone ld S ld I sub st J\ncall tile\nld I push 1 add st I jmp iloop\nidone: nextle S 28 sloop\npush -1 fill ld INK stroke push 3 swidth push 70 opacity\npbegin push 140 push 970 m push 800 push 1300 l push 1460 push 970 l pend\npush -1 stroke push 100 opacity\nld WR jz nowear\n; Gentle atmospheric fireflies / starlight motes rising around the metropolis\npush 1 ld WR push 7 div add st A\npush 0 st K\nmotes: push 180 push 1420 rndr st X push 140 push 1060 rndr st Y\npush 0x1000000 fill push 18 ld WR push 12 div add opacity\nld X ld Y push 10 push 22 rndr circle\nld WLT fill push 45 ld WR push 6 div add push 85 min opacity\nld X ld Y push 1 push 3 rndr circle\nnext K A motes\nnowear: push 100 opacity push -1 fill ld INK stroke push 7 swidth push 36 push 36 push 1528 push 1528 rect halt\ntile: ld I ld J call ix st X\nld I ld J call iy st Y\npush 28 ld S sub push 5 mul push 8 div st FG\npush 44 st DW push 22 st DH\nld I push 4 mod push 3 eq st A\nld J push 4 mod push 3 eq st B\nld A ld B or jz noroad\nld RD ld S1 ld FG call mix fill\nld X ld Y call dia\nld A ld B and jnz plaza\nld A jz alongi\nld WLT stroke push 3 swidth push 60 opacity\nld X push 18 add ld Y push 13 add ld X push 18 sub ld Y push 31 add line\npush -1 stroke push 100 opacity ret\nalongi: ld WLT stroke push 3 swidth push 60 opacity\nld X push 18 sub ld Y push 13 add ld X push 18 add ld Y push 31 add line\npush -1 stroke push 100 opacity ret\nplaza: ld PV2 ld S1 ld FG call mix fill push 30 st DW push 15 st DH ld X ld Y push 7 add call dia\nld I push 7 eq ld J push 7 eq and jz pz\ncall spire\npz: ret\nnoroad: ld I ld J add push 2 mod jz p1 ld PV1 jmp p2\np1: ld PV2\np2: ld S1 ld FG call mix fill\ncall dia0\nld I push 12 and ld J push 2 shr add st BB\nld BB push 256 add ldx st BT\nld BT jnz bld\nld GRS ld S1 ld FG call mix fill push 36 st DW push 18 st DH ld X ld Y push 4 add call dia\npush 0 st K\ntr: push -20 push 20 rndr st A push -6 push 6 rndr st B push 8 push 13 rndr st R\nld TRE ld S1 ld FG call mix fill\nld X ld A add ld Y push 12 add ld B add ld R circle\nld GRS ld S1 ld FG call mix fill\nld X ld A add push 2 sub ld Y push 10 add ld B add ld R push 3 sub circle\nnext K 3 tr\nret\nbld: ld I push 7 sub abs ld J push 7 sub abs add st DC\npush 14 ld DC sub ld BT push 4 mul push 1 add mul push 12 div push 1 push 3 rndr add st H\nld H push 18 min push 1 max st H\nld H push 22 mul st D\nld BB push 272 add ldx st MT\npush 100 call rmod push 30 lt jz km push 3 call rmod st MT\nkm: ld MT jnz ma ld M0 st CT jmp ms\nma: ld MT push 1 eq jz mb ld M1 st CT jmp ms\nmb: ld M2 st CT\nms: ld CT ld WLT ld WR push 24 div call mix st CT\nld CT ld SHD push 12 call mix st CL\nld CT ld SHD push 24 call mix st CR\nld CT ld S1 ld FG call mix st CT\nld CL ld S1 ld FG call mix st CL\nld CR ld S1 ld FG call mix st CR\nld X st BX ld Y push 4 add st BY ld D st BD push 36 st BW push 18 st BWH call cube\nld BY ld BD sub st TY\ncall windows\nld H push 8 lt jnz done2\npush 100 call rmod push 60 lt jz done2\nld X st BX ld TY push 8 add st BY push 20 st BW push 10 st BWH push 2 push 4 rndr push 22 mul st BD call cube\nld H push 10 lt jnz done2\nld BY ld BD sub push 10 add st TY\npush 18 push 40 rndr st A\nld INK stroke push 3 swidth ld X ld TY ld X ld TY ld A sub line push -1 stroke\nld WR jz nocrownhalo\npush 0x1000000 fill push 25 ld WR push 8 div add opacity ld X ld TY ld A sub push 8 ld WR push 18 div add circle push 100 opacity\nnocrownhalo: ld WLT fill ld X ld TY ld A sub push 3 circle\ndone2: ret\ndia0: push 44 st DW push 22 st DH ld X ld Y call dia ret\ndia: pbegin over over m ld DW ld DH lr ld DW neg ld DH lr ld DW neg ld DH neg lr z pend drop drop ret\ncube: ld CT fill\npbegin ld BX ld BY ld BD sub m ld BW ld BWH lr ld BW neg ld BWH lr ld BW neg ld BWH neg lr z pend\nld CL fill\npbegin ld BX ld BW sub ld BY ld BD sub ld BWH add m ld BW ld BWH lr push 0 ld BD lr ld BW neg ld BWH neg lr z pend\nld CR fill\npbegin ld BX ld BW add ld BY ld BD sub ld BWH add m ld BW neg ld BWH lr push 0 ld BD lr ld BW ld BWH neg lr z pend\nret\nwindows: push 0 st K\nwrow: push 0 st COL\nwcol: ld X push 31 sub ld COL push 16 mul add st WX\nld TY push 18 add push 5 ld COL push 16 mul add push 2 div add ld K push 22 mul add push 6 add st WY\npush 1 st SLP call win\nld X push 5 add ld COL push 16 mul add st WX\nld TY push 36 add push 5 ld COL push 16 mul add push 2 div sub ld K push 22 mul add push 6 add st WY\npush -1 st SLP call win\nnext COL 2 wcol\nnext K H wrow\nret\nwin: push 100 call rmod st T\nld LITP ld WR push 10 div add push 78 min st B\nld T ld B lt jz wdark\nld WLT fill push 100 opacity jmp wdraw\nwdark: ld WDK fill push 55 opacity\nwdraw: pbegin ld WX ld WY m push 9 push 4 ld SLP mul lr push 0 push 10 lr push -9 push -4 ld SLP mul lr z pend\npush 100 opacity ret\nspire: ld M2 st CT\nld CT ld SHD push 12 call mix st CL\nld CT ld SHD push 24 call mix st CR\nld X st BX ld Y push 17 add st BY push 10 st BW push 5 st BWH push 540 st BD call cube\nld INK stroke push 3 swidth ld X ld Y push 22 add push 540 sub ld X ld Y push 22 add push 600 sub line push -1 stroke\npush 0x1000000 fill ld X ld Y push 22 add push 604 sub push 80 ld WR push 4 div add circle\nld WR jz nospirehalo\npush -1 fill ld WLT stroke push 1 swidth push 22 ld WR push 8 div add opacity\nld X ld Y push 22 add push 604 sub push 26 ld WR push 6 div add circle\npush -1 stroke push 100 opacity\nnospirehalo: ld SUD fill ld X ld Y push 22 add push 604 sub push 7 circle\nret\nbigdia: pbegin push 800 push 680 ld E push 2 div sub m push 1460 ld E add push 1010 l push 800 push 1340 ld E push 2 div add l push 140 ld E sub push 1010 l z pend ret\nix: sub push 44 mul push 800 add ret\niy: add push 22 mul push 640 add ret\nrmod: push 0 swap push 1 sub rndr ret\nch: st CTT st CB st CA ld CA ld CB ld CA sub ld CTT mul push 63 div add ret\nmix: st MT2 st C1 st C0\nld C0 push 16 ushr push 255 and ld C1 push 16 ushr push 255 and ld MT2 call ch push 16 shl\nld C0 push 8 ushr push 255 and ld C1 push 8 ushr push 255 and ld MT2 call ch push 8 shl or\nld C0 push 255 and ld C1 push 255 and ld MT2 call ch or ret\ntheme: ld TH jnz t1\npush 0xe0d8c0 st S0 push 0xeee7d1 st S1 push 0xe8923a st SUC push 0xffd9a0 st SUD push 0x4b4a3f st M0 push 0xf0e9d3 st M1 push 0x49c5b1 st M2 push 0x1c1c16 st SHD\npush 0x3a3a33 st RD push 0xd8cfb2 st PV1 push 0xe0d8bf st PV2 push 0x7fbfa4 st GRS push 0x2e8f85 st TRE push 0x8fe8d8 st WLT push 0x34332b st WDK push 40 st LITP push 0 st STR push 0x3a3a33 st INK push 150 st SR ret\nt1: ld TH push 1 eq jz t2\npush 0x3b2a5c st S0 push 0xf29a5b st S1 push 0xff7a3d st SUC push 0xffe2a8 st SUD push 0x2d2438 st M0 push 0xf0d5b8 st M1 push 0x49c5b1 st M2 push 0x1a0f26 st SHD\npush 0x2a2233 st RD push 0x8a6a78 st PV1 push 0x967483 st PV2 push 0x3f7f78 st GRS push 0x1f5c58 st TRE push 0xffd27a st WLT push 0x1a1424 st WDK push 55 st LITP push 25 st STR push 0x1a0f26 st INK push 190 st SR ret\nt2: ld TH push 2 eq jz t3\npush 0x060a14 st S0 push 0x1b2f4f st S1 push 0x9ad8e8 st SUC push 0xf4f8ff st SUD push 0x1c2233 st M0 push 0x5b6b8f st M1 push 0x2a8c88 st M2 push 0x000208 st SHD\npush 0x0c1018 st RD push 0x1a2236 st PV1 push 0x202a40 st PV2 push 0x12403f st GRS push 0x0d2c2e st TRE push 0xffe39a st WLT push 0x0a0e18 st WDK push 60 st LITP push 70 st STR push 0x2a3a5c st INK push 90 st SR ret\nt3: push 0xf3cfc8 st S0 push 0xfaf0e0 st S1 push 0xe86a8a st SUC push 0xfff4e0 st SUD push 0x5a3446 st M0 push 0xfff0e6 st M1 push 0xe86a8a st M2 push 0x3a1c2c st SHD\npush 0x6b4a5a st RD push 0xf0d9d0 st PV1 push 0xf6e4dc st PV2 push 0xa8d5b5 st GRS push 0x4f9a78 st TRE push 0xffe8b0 st WLT push 0x5a3446 st WDK push 35 st LITP push 0 st STR push 0x5a3446 st INK push 130 st SR ret\n","dsl_rings":"; Celestial Rings — High-Level Reliks-Script DSL example.\n; Uses .vars (auto-numbered), seedrng, bg, set, rand, for/endfor, and if/else/endif.\n.canvas 1000 1000\n.vars I X Y R C WR\nseedrng\nwear push 1 mul st WR ; wear_toggle (1 = enabled, 0 = disabled)\nbg 0x090d16\n\n; Central radial glow\ngradbegin push 0 push 0xffd9a0 push 95 gradstop push 45 push 0x49c5b1 push 35 gradstop push 100 push 0x090d16 push 0 gradstop gradend\npush 0x1000000 fill push 500 push 500 push 360 ld WR add circle\n\n; Concentric orbital rings (structured for loop + if/else)\npush -1 fill push 2 swidth\nfor I 1 18\n  ld I push 2 mod if\n    push 0x49c5b1 pat push 4096 mul xor stroke\n    push 55 opacity\n  else\n    push 0xe8923a stroke\n    push 35 opacity\n  endif\n  push 500 push 500 ld I push 24 mul circle\nendfor\n\n; Orbiting moons & starlight motes\npush -1 stroke\nfor I 0 48\n  rand 120 880 st X\n  rand 120 880 st Y\n  rand 4 26 st R\n  rand 0 100 push 35 lt if\n    push 0xffd9a0 fill push 85 opacity\n  else\n    push 0x49c5b1 pat push 65536 mul xor fill\n    push 70 ld WR push 6 div add push 95 min opacity\n  endif\n  ld X ld Y ld R circle\nendfor\nhalt\n","vm_circles":"; Starter: 40 circles. Position and size come from the seed (RNG), opacity from wear, colour from patina.\n.canvas 400 400\n.var I 0 .var X 1 .var Y 2 .var R 3\nlane 0 serial xor lane 1 lane 2 lane 3 rnginit\npush 0x0b0f14 fill push 0 push 0 push 400 push 400 rect\npush 0 st I\nloop:\npush 20 push 380 rndr st X\npush 20 push 380 rndr st Y\npush 6 push 40 rndr st R\npush 0x49c5b1 pat push 16 shl xor fill\npush 100 wear push 6 div sub opacity\nld X ld Y ld R circle\nnext I 40 loop\nhalt\n","vm_dagcity":".canvas 1600 1600\n.var RX 0 .var RY 1 .var RZ 2 .var RW 3\n.var X 17 .var Y 18\n.var I 4 .var J 5 .var K 6 .var S 7 .var H 8 .var D 9 .var T 10 .var DK 11 .var C 12\n.var WI 13 .var WJ 14 .var N 15 .var P0 16 .var TM 20 .var TOP 21 .var LF 22 .var RF 23\n.var WN 24 .var AH 25 .var DI 26 .var DJ 27 .var NN 28 .var E2 29 .var QX 30 .var QY 31\n.var BX 32 .var BY 33 .var GX 34 .var GY 35\ngradbegin push 0 push 0xffd9a0 push 100 gradstop push 30 push 0xe8923a push 80 gradstop push 100 push 0xe8923a push 0 gradstop gradend\npush 0xe7dfc8 fill push 0 push 0 push 1600 push 1600 rect\nlane 0 serial xor lane 1 lane 2 lane 3 rnginit\npush 0xd3c9ab stroke push 50 gopen push 0 st I\nscatter: push 60 push 1540 call ri st X push 60 push 1540 call ri st Y push 30 push 130 call ri st K\nld X ld Y ld X ld K add ld Y ld K push 2 div add line next I 150 scatter gclose\npush 0xcfc5a8 stroke push 55 gopen push 0 st I\ngrid: ld I push 0 call ix ld I push 0 call iy ld I push 13 call ix ld I push 13 call iy line\npush 0 ld I call ix push 0 ld I call iy push 13 ld I call ix push 13 ld I call iy line nextle I 13 grid gclose\npush 0 st N push 0 st C\ncanal: ld C push 2 mod jz even push 2 push 11 call ri st WI push 0 st WJ jmp start\neven: push 0 st WI push 2 push 11 call ri st WJ\nstart: ld N st P0 call addpt\nwalk: ld WI push 13 lt ld WJ push 13 lt and jz wdone push 2 call rmod jz incj ld WI push 1 add st WI jmp cont\nincj: ld WJ push 1 add st WJ\ncont: call addpt jmp walk\nwdone: push 30 push 0x2f2f28 push 100 call poly push 22 push 0x49c5b1 push 100 call poly push 6 push 0xbfeee2 push 85 call poly next C 4 canal\npush -1 stroke push 100 opacity\npush 0 st S\nsloop: ld S push 13 sub push 0 max st I\niloop: ld I push 13 le ld I ld S le and jz idone ld S ld I sub st J\nld I push 14 mul ld J add push 256 add ldx jnz inext\npush 10 call rmod st T ld T push 1 lt jz notplaza\npush 0xddd4ba fill ld I ld J call ix ld I ld J call iy call dia jmp inext\nnotplaza: ld T push 7 gt jz lowh push 6 push 9 call ri st H jmp hset\nlowh: push 2 push 5 call ri st H\nhset: ld T push 3 mod st DK\nld DK jnz c1 push 0x4b4a3f st TOP push 0x34332b st LF push 0x26251e st RF jmp cdone\nc1: ld DK push 1 eq jz c2 push 0xf0e9d3 st TOP push 0xd8cfb3 st LF push 0xbfb598 st RF jmp cdone\nc2: push 0x49c5b1 pat push 0x040404 mul xor st TOP push 0x2e8f85 st LF push 0x1f6b64 st RF\ncdone: ld I ld J call ix st X ld I ld J call iy ld H push 22 mul sub st Y ld H push 22 mul st D\nld TOP fill ld X ld Y call dia\nld LF fill pbegin ld X push 36 sub ld Y push 18 add m push 36 push 18 lr push 0 ld D lr push -36 push -18 lr z pend\nld RF fill pbegin ld X push 36 add ld Y push 18 add m push -36 push 18 lr push 0 ld D lr push 36 push -18 lr z pend\npush 2 ld H push 3 gt add st WN\nld DK push 1 eq jz wl1 push 0x34332b fill push 100 opacity jmp wl2\nwl1: push 0x8fe8d8 fill push 90 wear push 50 min sub opacity\nwl2: push 0 st K\nwloop: pbegin ld X push 36 sub push 6 add ld K push 10 mul add ld Y push 18 add push 6 add m push 7 push 4 lr push 0 push 11 lr push -7 push -4 lr z pend next K WN wloop push 100 opacity\nld H push 6 lt jnz nodoor\nld DK push 1 eq jz d1 push 0x26251e fill jmp d2\nd1: push 0x123c36 fill\nd2: pbegin ld X push 6 add ld Y push 18 add ld D add push 24 sub m push 0 push -11 lr push 10 push -12 push 20 push 0 qr push 0 push 11 lr z pend\npush 18 push 42 call ri st AH push 0x26251e stroke push 3 swidth\nld X ld Y push 18 add ld X ld Y push 18 add ld AH sub line\npush -1 stroke push 0x49c5b1 fill ld X ld Y push 18 add ld AH sub push 3 circle\nnodoor: ld T push 6 eq ld T push 7 eq or jz inext\npush 2 call rmod st DI push 1 ld DI sub st DJ push 4 push 7 call ri st NN push 1 st K\nrloop: ld H push 22 mul ld K push 13 mul sub st E2\nld I ld DI ld K mul add ld J ld DJ ld K mul add call ix st QX\nld I ld DI ld K mul add ld J ld DJ ld K mul add call iy ld E2 push 0 max sub st QY\npush 0xefe8d2 fill ld QX ld QY call dia\npush 0x34332b fill pbegin ld QX push 36 sub ld QY push 18 add m push 36 push 18 lr push 0 push 13 lr push -36 push -18 lr z pend nextle K NN rloop\ninext: ld I push 1 add st I jmp iloop\nidone: nextle S 26 sloop\npush 100 gopen push 0 st K\nbloop: ld K ld N lt jz bdone push 3 call rmod jnz bskip\nld K push 512 add ldx push 2 call rmod jz bneg push 26 jmp bx2\nbneg: push -26\nbx2: add st BX ld K push 640 add ldx push 8 add st BY\npush 0x49c5b1 fill push 22 opacity ld BX ld BY push 9 circle push 100 opacity push 0xbfeee2 fill ld BX ld BY push 3 circle\nbskip: ld K push 1 add st K jmp bloop\nbdone: gclose\npush 6 push 6 call ix st GX push 6 push 6 call iy push 2 push 4 call ri push 22 mul sub st GY\npush 0x1000000 fill ld GX ld GY push 110 circle push 0xffffff fill ld GX ld GY push 9 circle\npush -1 fill push 2 swidth push 75 opacity push 14 st K\nrings: ld K push 34 gt jz warm push 0x49c5b1 stroke jmp go\nwarm: push 0xe8923a stroke\ngo: ld GX ld GY ld K circle ld K push 7 add dup st K push 42 le jnz rings\npush -1 fill push 0x3a3a33 stroke push 7 swidth push 100 opacity push 36 push 36 push 1528 push 1528 rect halt\nix: sub push 36 mul push 800 add ret\niy: add push 13 sub push 18 mul push 770 add ret\ndia: pbegin over over m push 36 push 18 lr push -36 push 18 lr push -36 push -18 lr z pend drop drop ret\naddpt: push 1 ld WI push 14 mul ld WJ add push 256 add stx ld WI ld WJ call ix ld N push 512 add stx ld WI ld WJ call iy ld N push 640 add stx ld N push 1 add st N ret\npoly: opacity stroke swidth push -1 fill pbegin ld P0 st K ld K push 512 add ldx ld K push 640 add ldx m ld K push 1 add st K\npl: ld K ld N lt jz pldone ld K push 512 add ldx ld K push 640 add ldx l ld K push 1 add st K jmp pl\npldone: pend ret\nri: over sub push 1 add call rmod add ret\nrmod: push 0 swap push 1 sub rndr ret"},"cap":25641}};
 (function(D){var e=D.engines['reliks-engine-mainnet.js']||'',eh='';for(var i=0;i<e.length;i++){var c=e.charCodeAt(i);eh+=(c<16?'0':'')+c.toString(16);}D.templates.factory.suffixHex=D.templates.factory.suffixHex.split('__ENG12__').join(eh).split('__ED12__').join(D.templates.edition.suffixHex);if(D.bundles&&D.bundles.v12&&D.bundles.v12.series&&!D.bundles.v12.series.engine_src)D.bundles.v12.series.engine_src=e;if(D.studio&&D.studio.templates&&!D.studio.templates.dagcity)D.studio.templates.dagcity=e.trim();})(window.RELIKS_DATA);
 window.__qr=function(){if(!window.qrcode){(0,eval)(document.getElementById('qr-src').textContent);}return window.qrcode;};</script>
 <script id="rvm-src">var RVM=(function(){var module={exports:{}};
-/* Reliks-VM v1: second reference interpreter (JavaScript, no dependencies; hostInputs takes a blake2b-256 function as a parameter). */
 'use strict';
 var MAGIC = [0x52, 0x56, 0x4d, 0x01];
 var FUEL_MAX = 1000000, STACK_MAX = 256, CALL_MAX = 64, MAX_ELEMS = 10000, MAX_SEGS = 2048, MAX_SVG = 1 << 20, WEAR_CAP = 255, MEM_SIZE = 1024, GROUP_MAX = 4, GRAD_MAX = 8, STOP_MAX = 8;
@@ -2199,6 +2177,7 @@ gradbegin: [0x9d, null], gradstop: [0x9e, null], gradend: [0x9f, null]
 };
 var has = function (o, k) { return Object.prototype.hasOwnProperty.call(o, k); };
 function errAt(msg, ln) { return new Error(ln ? msg + ' (line ' + ln + ')' : msg); }
+function isIntTok(s) { return typeof s === 'string' && /^([+-]?)(?:0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|(?:0+|[1-9][0-9]*))$/.test(s); }
 function int0(s, ln) {
 if (s === undefined) throw errAt('missing operand', ln);
 var m = /^([+-]?)(?:0[xX]([0-9a-fA-F]+)|0[bB]([01]+)|0[oO]([0-7]+)|(0+|[1-9][0-9]*))$/.exec(s);
@@ -2222,12 +2201,123 @@ var p = lines[i].split(';')[0].split(/\s+/);
 for (j = 0; j < p.length; j++) if (p[j]) { toks.push(p[j]); tlines.push(i + 1); }
 }
 var at = function (a, lns, k, refLn) { if (k >= a.length) throw errAt('missing operand', refLn || (lns && lns[a.length - 1])); return a[k]; };
-var exp = [], elines = [], names = new Map();
+var exp = [], elines = [], names = new Map(), usedSlots = new Set(), nextSlot = 0;
+function allocSlot(ln) {
+while (usedSlots.has(nextSlot)) nextSlot++;
+if (nextSlot > 254) throw errAt('too many .vars (max 255)', ln);
+usedSlots.add(nextSlot);
+return BigInt(nextSlot++);
+}
+for (i = 0; i < toks.length; i++) {
+if (toks[i].toLowerCase() === '.var' && i + 2 < toks.length && isIntTok(toks[i + 2])) {
+var sv = int0(toks[i + 2], tlines[i + 2]);
+if (sv >= 0n && sv <= 255n) usedSlots.add(Number(sv));
+i += 2;
+}
+}
 function pushE(ln) { for (var k = 1; k < arguments.length; k++) { exp.push(arguments[k]); elines.push(ln); } }
+function pushValOrVar(ln, tok) {
+if (names.has(tok)) pushE(ln, 'load', tok);
+else pushE(ln, 'push', tok);
+}
+var canvasW = '64', canvasH = '64', macroSeq = 0, forStack = [], ifStack = [];
 i = 0;
 while (i < toks.length) {
 var t = toks[i], tl = t.toLowerCase(), ln = tlines[i];
-if (tl === '.var') { names.set(at(toks, tlines, i + 1, ln), int0(at(toks, tlines, i + 2, ln), tlines[i + 2] || ln)); i += 3; continue; }
+if (tl === '.canvas' && i + 2 < toks.length) {
+canvasW = toks[i + 1]; canvasH = toks[i + 2];
+pushE(ln, '.canvas', canvasW, canvasH);
+i += 3; continue;
+}
+if (tl === '.var') {
+var vname = at(toks, tlines, i + 1, ln);
+if (i + 2 < toks.length && isIntTok(toks[i + 2])) {
+names.set(vname, int0(toks[i + 2], tlines[i + 2] || ln));
+i += 3;
+} else {
+names.set(vname, allocSlot(ln));
+i += 2;
+}
+continue;
+}
+if (tl === '.vars') {
+var vln = ln; i += 1;
+while (i < toks.length && tlines[i] === vln && toks[i].charAt(0) !== '.' && !has(OPS, toks[i].toLowerCase())) {
+names.set(toks[i], allocSlot(vln));
+i += 1;
+}
+continue;
+}
+if (tl === 'seedrng') {
+pushE(ln, 'lane', '0', 'serial', 'xor', 'lane', '1', 'lane', '2', 'lane', '3', 'rnginit');
+i += 1; continue;
+}
+if (tl === 'bg') {
+var bgCol = at(toks, tlines, i + 1, ln);
+pushE(ln, 'push', '-1', 'stroke', 'push', '100', 'opacity');
+pushValOrVar(ln, bgCol);
+pushE(ln, 'fill', 'push', '0', 'push', '0', 'push', canvasW, 'push', canvasH, 'rect');
+i += 2; continue;
+}
+if (tl === 'set') {
+var dstV = at(toks, tlines, i + 1, ln), valV = at(toks, tlines, i + 2, ln);
+pushValOrVar(ln, valV);
+pushE(ln, 'store', dstV);
+i += 3; continue;
+}
+if (tl === 'inc') {
+var incV = at(toks, tlines, i + 1, ln), stepV = at(toks, tlines, i + 2, ln);
+pushE(ln, 'load', incV);
+pushValOrVar(ln, stepV);
+pushE(ln, 'add', 'store', incV);
+i += 3; continue;
+}
+if (tl === 'rand') {
+var rMin = at(toks, tlines, i + 1, ln), rMax = at(toks, tlines, i + 2, ln);
+pushValOrVar(ln, rMin);
+pushValOrVar(ln, rMax);
+pushE(ln, 'rndr');
+i += 3; continue;
+}
+if (tl === 'for' || tl === 'forle') {
+var fv = at(toks, tlines, i + 1, ln), fStart = at(toks, tlines, i + 2, ln), fLim = at(toks, tlines, i + 3, ln);
+if (!names.has(fv) && !isIntTok(fv)) names.set(fv, allocSlot(ln));
+var flbl = '__for_' + (++macroSeq);
+pushValOrVar(ln, fStart);
+pushE(ln, 'store', fv, flbl + ':');
+forStack.push({ v: fv, lim: fLim, lbl: flbl, le: tl === 'forle', ln: ln });
+i += 4; continue;
+}
+if (tl === 'endfor') {
+if (!forStack.length) throw errAt('endfor without matching for', ln);
+var ftop = forStack.pop();
+pushE(ln, 'load', ftop.v, 'push', '1', 'add', 'dup', 'store', ftop.v);
+pushValOrVar(ln, ftop.lim);
+pushE(ln, ftop.le ? 'le' : 'lt', 'jnz', ftop.lbl);
+i += 1; continue;
+}
+if (tl === 'if' || tl === 'ifz') {
+var id = ++macroSeq;
+var elseL = '__else_' + id, endL = '__endif_' + id;
+pushE(ln, tl === 'if' ? 'jz' : 'jnz', elseL);
+ifStack.push({ elseLbl: elseL, endLbl: endL, hasElse: false, ln: ln });
+i += 1; continue;
+}
+if (tl === 'else') {
+if (!ifStack.length) throw errAt('else without matching if', ln);
+var itop = ifStack[ifStack.length - 1];
+if (itop.hasElse) throw errAt('duplicate else in if block', ln);
+itop.hasElse = true;
+pushE(ln, 'jmp', itop.endLbl, itop.elseLbl + ':');
+i += 1; continue;
+}
+if (tl === 'endif') {
+if (!ifStack.length) throw errAt('endif without matching if', ln);
+var idone = ifStack.pop();
+if (!idone.hasElse) pushE(ln, idone.elseLbl + ':');
+else pushE(ln, idone.endLbl + ':');
+i += 1; continue;
+}
 if (tl === 'show') pushE(ln, 'store', '255', 'load', '255', 'push', '0', 'push', '1', 'push', '1', 'rect');
 else if (tl === 'next' || tl === 'nextle') {
 var v = at(toks, tlines, i + 1, ln), lim = at(toks, tlines, i + 2, ln), lab = at(toks, tlines, i + 3, ln);
@@ -2239,6 +2329,8 @@ i += 3;
 else pushE(ln, t);
 i += 1;
 }
+if (forStack.length) throw errAt('unclosed for loop', forStack[forStack.length - 1].ln);
+if (ifStack.length) throw errAt('unclosed if block', ifStack[ifStack.length - 1].ln);
 var W = 64n, H = 64n, canvasLn = 1, items = [];
 i = 0;
 while (i < exp.length) {
@@ -2276,11 +2368,7 @@ var api = { assemble: assemble, OPS: OPS };
 if (typeof module === 'object' && module.exports) module.exports = api; else g.RvmAsm = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 return module.exports;})();window.RvmAsm=RvmAsm;</script>
-<script>/* Reliks BLAKE2b: zero-dependency, unkeyed or keyed, digest 1..64 bytes.
-Shared by the site, the Studio, the gallery and the Node tooling.
-Validated against Python hashlib and @noble/hashes in `npm test`.
-API: blake2b(bytes, dkLen = 32, keyBytes?) -> Uint8Array */
-(function (root, factory) {
+<script>(function (root, factory) {
 if (typeof module === 'object' && module.exports) module.exports = factory();
 else root.ReliksBlake2b = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
@@ -2345,17 +2433,7 @@ return out.slice(0, dkLen);
 }
 return { blake2b: blake2b };
 });</script>
-<script>/* Reliks chain library: everything the browser (and the tests) need to read
-Reliks state from Kaspa and to build series deployment, mint, and secondary
-market (list, unlist, buy, transfer) transactions.
-Zero dependencies. Depends only on ReliksBlake2b (web/blake2b.js).
-Nothing here talks to a wallet; see web/kaspire.js for that.
-Trust model, in one paragraph: every value that comes from a network
-service (kascov, the Kaspa REST API) is treated as a claim. Claims are
-recomputed locally (script hashes, serials, covenant ids) and compared to
-what the chain says. A mismatch fails closed: no art is presented as
-verified and no transaction is built. */
-(function (root, factory) {
+<script>(function (root, factory) {
 if (typeof module === 'object' && module.exports) module.exports = factory(require('./blake2b.js'));
 else root.ReliksChain = factory(root.ReliksBlake2b);
 })(typeof self !== 'undefined' ? self : this, function (B2) {
@@ -2367,7 +2445,6 @@ var P2PK_BUDGET = 10;
 var FEE_PER_BYTE = 200n;        // sompi per serialized tx byte (mainnet mempool policy, see docs/ENGINEERING-NOTES.md)
 var MIN_CHANGE = 1000000n;      // below this, change is folded into the fee
 var MAX_PRICE = 922337203685477n; // contract i64 overflow guard for price * royalty_bips
-/* ------------------------------------------------------------ bytes */
 function hex2u8(h) {
 if (typeof h !== 'string' || h.length % 2 || /[^0-9a-fA-F]/.test(h)) throw new Error('bad hex');
 var u = new Uint8Array(h.length / 2);
@@ -2387,7 +2464,6 @@ function le32(n) { var b = new Uint8Array(4); new DataView(b.buffer).setUint32(0
 function le64(v) { var b = new Uint8Array(8); new DataView(b.buffer).setBigUint64(0, BigInt(v), true); return b; }
 function hash(bytes, key) { return B2.blake2b(bytes, 32, key ? utf8(key) : undefined); }
 function hashHex(bytes) { return u8hex(hash(bytes)); }
-/* ------------------------------------------------------------ script pushes */
 function pushExp(p) {           // explicit push, used for state (KCC-1)
 var n = p.length;
 if (n === 0) return new Uint8Array([0]);
@@ -2418,7 +2494,6 @@ if (a[a.length - 1] & 128) return cat([new Uint8Array([a.length + 1]), a, new Ui
 if (neg) a[a.length - 1] |= 128;
 return cat([new Uint8Array([a.length]), a]);
 }
-/* ------------------------------------------------------------ state codec */
 var ED = [['ownerIdentifier', 32], ['identifierType', 1], ['price', 8], ['artist', 32], ['royalty_bips', 8], ['program_hash', 32], ['factory_covid', 32], ['serial', 8]];
 var ED13 = ED.concat([['lineage', 32], ['sales', 8]]);
 function edTable(edTpl) {
@@ -2503,7 +2578,6 @@ function factoryRedeem(s, progBytes, edTemplate) { return buildFactoryRedeem(s, 
 function editionRedeem(s, edTemplate) { return redeem(edTemplate || tpl().edition, encEditionState(s, edTemplate)); }
 function p2shSpk(redeemBytes) { return 'aa20' + u8hex(hash(redeemBytes)) + '87'; }
 function p2pkSpk(pubkeyHex) { return '20' + pubkeyHex + 'ac'; }
-/* ------------------------------------------------------------ serial and covenant id */
 function serialFromOutpoint(txId, index) {
 var h = hash(cat([utf8('ReliksSerialV10'), hex2u8(txId), le32(index)]));
 var s = 0n;
@@ -2520,7 +2594,6 @@ parts.push(cat([le32(o.idx), le64(o.value), le16(0), le64(sc.length), sc]));
 }
 return u8hex(hash(cat(parts), 'CovenantID'));
 }
-/* ------------------------------------------------------------ Kaspa addresses (encode + decode) */
 var B32 = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
 function polymod(values) {
 var GEN = [0x98f2bc8e61n, 0x79b76d99e2n, 0xf33e5fb3c4n, 0xae2eabe2a8n, 0x1e4f43e470n];
@@ -2589,7 +2662,6 @@ return { pubkey: dec.payloadHex, address: s };
 }
 function p2pkAddress(hrp, pubkeyHex) { return encodeAddress(hrp, 0, hex2u8(pubkeyHex)); }
 function p2shAddress(hrp, spkHex) { return encodeAddress(hrp, 8, hex2u8(spkHex).subarray(2, 34)); }
-/* ------------------------------------------------------------ tolerant readers for REST and kascov */
 function pick(o, ks) { for (var i = 0; i < ks.length; i++) if (o && o[ks[i]] != null) return o[ks[i]]; return undefined; }
 function stripVersion(s) { return typeof s === 'string' && s.slice(0, 4) === '0000' ? s.slice(4) : s; }
 function spkOfOutput(o) {
@@ -2652,7 +2724,6 @@ var st = { ownerIdentifier: p[0], identifierType: Number(u64le(p[1])), price: u6
 if (want === 10) { st.lineage = p[8]; st.sales = u64le(p[9]); }
 return st;
 }
-/* ------------------------------------------------------------ chain access (injected fetch, so tests can mock) */
 function makeIO(cfg, fetchImpl) {
 var f = fetchImpl || (typeof fetch !== 'undefined' ? fetch.bind(globalThis) : null);
 if (!f) throw new Error('no fetch available');
@@ -2667,7 +2738,6 @@ covenant: function (id) { return json(cfg.kascov + '/c/' + id + '.json'); },
 utxos: function (address) { return json(cfg.rest + '/addresses/' + address + '/utxos'); }
 };
 }
-/* ------------------------------------------------------------ series resolution */
 async function resolveLane(io, series, opts) {
 opts = opts || {};
 var progBytes = opts.progBytes || series._progBytes || null;
@@ -2708,7 +2778,6 @@ covenantId: series.laneCovenantId,
 progBytes: progBytes, editionTemplate: edTpl
 };
 }
-/* ------------------------------------------------------------ edition live-state resolution (secondary market) */
 function applyEditionTransition(prevState, sigScriptHex, edTpl) {
 var pushes = parsePushes(sigScriptHex);
 if (pushes.length < 2) throw new Error('edition input signatureScript too short');
@@ -2799,7 +2868,20 @@ value: BigInt(live[0].value != null ? live[0].value : (kj.live_value != null ? k
 state: state, spk: expectSpk, source: source, editionTemplate: edTpl
 };
 }
-/* ------------------------------------------------------------ 1-click series deploy draft (Studio -> Kaspire) */
+function buildWalletInputs(funding, wallet) {
+var list = (funding && Array.isArray(funding.inputs) && funding.inputs.length) ? funding.inputs : [funding];
+return list.map(function (u) {
+return {
+txId: u.txId, index: Number(u.index), sequence: 0n, sigScript: '', computeBudget: P2PK_BUDGET,
+utxo: { amount: BigInt(u.amount), spk: p2pkSpk(wallet.pubkey), address: wallet.address, daa: BigInt(u.daa || 0), sign: true }
+};
+});
+}
+function walletSignIndices(draft) {
+var out = [];
+(draft.inputs || []).forEach(function (inp, idx) { if (inp.utxo && inp.utxo.sign) out.push(idx); });
+return out;
+}
 function buildDeploySeries(p) {
 var st = p.state, funding = p.funding, artist = p.artist, edTpl = p.editionTemplate || tpl().edition;
 if (!/^[0-9a-f]{64}$/.test(artist.pubkey)) throw new Error('artist key must be 32 bytes of lowercase hex');
@@ -2831,10 +2913,7 @@ var outputs = [
 if (change > 0n) outputs.push({ value: change, spk: p2pkSpk(artist.pubkey), role: 'change' });
 return {
 version: 1, hrp: p.hrp,
-inputs: [
-{ txId: funding.txId, index: funding.index, sequence: 0n, sigScript: '', computeBudget: P2PK_BUDGET,
-utxo: { amount: BigInt(funding.amount), spk: p2pkSpk(artist.pubkey), address: artist.address, daa: BigInt(funding.daa || 0), sign: true } }
-],
+inputs: buildWalletInputs(funding, artist),
 outputs: outputs, lockTime: 0n, gas: 0n, payload: '', fee: fee,
 summary: {
 kind: 'deploy', laneCovenantId: laneCov, factorySpk: factorySpk, redeemBytesLen: redeemBytes.length,
@@ -2843,7 +2922,6 @@ artist: artist.pubkey, programHash: st.program_hash, renderHash: st.render_hash,
 }
 };
 }
-/* ------------------------------------------------------------ mint draft */
 function buildMint(p) {
 var st = p.lane.state, funding = p.funding, buyer = p.buyer;
 var progBytes = p.progBytes || p.lane.progBytes || null;
@@ -2877,14 +2955,13 @@ if (change > 0n) outputs.push({ value: change, spk: p2pkSpk(buyer.pubkey), role:
 var tag = tpl().factory.entries.mint;
 var sigScript = cat([pushMin(hex2u8(buyer.pubkey)), pushMin(new Uint8Array([0])), pushMinInt(1), pushMinInt(2), pushMin(hex2u8(tag)),
 pushMin(curRedeem)]);
+var covInput = {
+txId: p.lane.outpoint.txId, index: p.lane.outpoint.index, sequence: 0n, sigScript: u8hex(sigScript), computeBudget: LANE_BUDGET,
+utxo: { amount: p.lane.value, spk: curSpk, address: p2shAddress(p.hrp, curSpk), daa: p.lane.daa || 0n, sign: false }
+};
 return {
 version: 1, hrp: p.hrp,
-inputs: [
-{ txId: p.lane.outpoint.txId, index: p.lane.outpoint.index, sequence: 0n, sigScript: u8hex(sigScript), computeBudget: LANE_BUDGET,
-utxo: { amount: p.lane.value, spk: curSpk, address: p2shAddress(p.hrp, curSpk), daa: p.lane.daa || 0n, sign: false } },
-{ txId: funding.txId, index: funding.index, sequence: 0n, sigScript: '', computeBudget: P2PK_BUDGET,
-utxo: { amount: BigInt(funding.amount), spk: p2pkSpk(buyer.pubkey), address: buyer.address, daa: BigInt(funding.daa || 0), sign: true } }
-],
+inputs: [covInput].concat(buildWalletInputs(funding, buyer)),
 outputs: outputs, lockTime: 0n, gas: 0n, payload: '', fee: fee,
 summary: {
 serial: serial, editionCovenantId: edCov, price: price, carrier: CARRIER, fee: fee, change: change,
@@ -2892,7 +2969,6 @@ royaltyBips: BigInt(st.royalty_bips), mintsLeftAfter: st.mints_left - 1n, artist
 }
 };
 }
-/* ------------------------------------------------------------ secondary market builders (buy, list, unlist, transfer) */
 function buildBuyEdition(p) {
 var ed = p.edition, st = ed.state, funding = p.funding, buyer = p.buyer;
 var edTpl = p.editionTemplate || ed.editionTemplate || tpl().edition;
@@ -2928,19 +3004,69 @@ var outputs = [
 if (change > 0n) outputs.push({ value: change, spk: p2pkSpk(buyer.pubkey), role: 'change' });
 var tag = (edTpl.entries && edTpl.entries.buy) || '1cd4096a';
 var sigScript = cat([pushMin(hex2u8(buyer.pubkey)), pushMinInt(1), pushMinInt(2), pushMin(hex2u8(tag)), pushMin(curRedeem)]);
+var covInput = {
+txId: ed.outpoint.txId, index: ed.outpoint.index, sequence: 0n, sigScript: u8hex(sigScript), computeBudget: LANE_BUDGET,
+utxo: { amount: ed.value, spk: curSpk, address: p2shAddress(p.hrp, curSpk), daa: ed.daa || 0n, sign: false }
+};
 return {
 version: 1, hrp: p.hrp,
-inputs: [
-{ txId: ed.outpoint.txId, index: ed.outpoint.index, sequence: 0n, sigScript: u8hex(sigScript), computeBudget: LANE_BUDGET,
-utxo: { amount: ed.value, spk: curSpk, address: p2shAddress(p.hrp, curSpk), daa: ed.daa || 0n, sign: false } },
-{ txId: funding.txId, index: funding.index, sequence: 0n, sigScript: '', computeBudget: P2PK_BUDGET,
-utxo: { amount: BigInt(funding.amount), spk: p2pkSpk(buyer.pubkey), address: buyer.address, daa: BigInt(funding.daa || 0), sign: true } }
-],
+inputs: [covInput].concat(buildWalletInputs(funding, buyer)),
 outputs: outputs, lockTime: 0n, gas: 0n, payload: '', fee: fee,
 summary: {
 kind: 'buy', serial: String(st.serial), editionCovenantId: ed.covenantId,
 price: price, ownerNet: ownerNet, royalty: roy, fee: fee, change: change,
 seller: st.ownerIdentifier, buyer: buyer.pubkey, artist: st.artist, nextState: nextState
+}
+};
+}
+function buildMakeBid(p) {
+var ed = p.edition, st = ed.state, funding = p.funding, bidder = p.bidder;
+var edTpl = p.editionTemplate || ed.editionTemplate || tpl().edition;
+if (!/^[0-9a-f]{64}$/.test(bidder.pubkey)) throw new Error('bidder key must be 32 bytes of lowercase hex');
+if (p2pkAddress(p.hrp, bidder.pubkey) !== bidder.address) throw new Error('wallet public key does not belong to the connected address');
+var offerPrice = BigInt(p.offerPrice);
+if (offerPrice < SOMPI || offerPrice > MAX_PRICE) throw new Error('bid / offer must be at least 1 KAS');
+var roy = (offerPrice * BigInt(st.royalty_bips)) / 10000n;
+var ownerNet = offerPrice - roy;
+var fee = BigInt(p.fee);
+var need = offerPrice + fee;
+if (BigInt(funding.amount) < need) throw new Error('funding output too small');
+var change = BigInt(funding.amount) - need;
+if (change < MIN_CHANGE) { fee += change; change = 0n; }
+var curRedeem = editionRedeem(st, edTpl);
+var curSpk = p2shSpk(curRedeem);
+if (ed.spk && curSpk !== ed.spk) throw new Error('edition spk drift');
+var nextState = {
+ownerIdentifier: bidder.pubkey, identifierType: 0, price: 0n,
+artist: st.artist, royalty_bips: BigInt(st.royalty_bips),
+program_hash: st.program_hash, factory_covid: st.factory_covid, serial: String(st.serial)
+};
+if (editionHasLineage(edTpl)) {
+nextState.lineage = advanceLineage(st.lineage, bidder.pubkey);
+nextState.sales = BigInt(st.sales || 0) + 1n;
+}
+var nextSpk = p2shSpk(editionRedeem(nextState, edTpl));
+var outputs = [
+{ value: ed.value, spk: nextSpk, covenant: { authorizingInput: 0, covenantId: ed.covenantId }, role: 'edition' },
+{ value: ownerNet, spk: p2pkSpk(st.ownerIdentifier), role: 'seller' },
+{ value: roy, spk: p2pkSpk(st.artist), role: 'artist' }
+];
+if (change > 0n) outputs.push({ value: change, spk: p2pkSpk(bidder.pubkey), role: 'change' });
+var tag = (edTpl.entries && edTpl.entries.sell) || '89cfc99a';
+var sellerAddr = p2pkAddress(p.hrp, String(st.ownerIdentifier).toLowerCase());
+var covInput = {
+txId: ed.outpoint.txId, index: ed.outpoint.index, sequence: 0n, sigScript: '', computeBudget: LANE_BUDGET,
+ownerCovenant: { kind: 'sell', buyer: bidder.pubkey, salePrice: offerPrice, redeemHex: u8hex(curRedeem), tag: tag },
+utxo: { amount: ed.value, spk: curSpk, address: sellerAddr, daa: ed.daa || 0n, sign: false }
+};
+return {
+version: 1, hrp: p.hrp,
+inputs: [covInput].concat(buildWalletInputs(funding, bidder)),
+outputs: outputs, lockTime: 0n, gas: 0n, payload: '', fee: fee,
+summary: {
+kind: 'bid', serial: String(st.serial), editionCovenantId: ed.covenantId,
+price: offerPrice, ownerNet: ownerNet, royalty: roy, fee: fee, change: change,
+seller: st.ownerIdentifier, buyer: bidder.pubkey, artist: st.artist, nextState: nextState
 }
 };
 }
@@ -2990,15 +3116,14 @@ var outputs = [
 { value: ed.value, spk: nextSpk, covenant: { authorizingInput: 0, covenantId: ed.covenantId }, role: 'edition' }
 ];
 if (change > 0n) outputs.push({ value: change, spk: p2pkSpk(owner.pubkey), role: 'change' });
+var covInput = {
+txId: ed.outpoint.txId, index: ed.outpoint.index, sequence: 0n, sigScript: '', computeBudget: LANE_BUDGET,
+ownerCovenant: covMeta,
+utxo: { amount: ed.value, spk: curSpk, address: owner.address, daa: ed.daa || 0n, sign: true }
+};
 return {
 version: 1, hrp: p.hrp,
-inputs: [
-{ txId: ed.outpoint.txId, index: ed.outpoint.index, sequence: 0n, sigScript: '', computeBudget: LANE_BUDGET,
-ownerCovenant: covMeta,
-utxo: { amount: ed.value, spk: curSpk, address: owner.address, daa: ed.daa || 0n, sign: true } },
-{ txId: funding.txId, index: funding.index, sequence: 0n, sigScript: '', computeBudget: P2PK_BUDGET,
-utxo: { amount: BigInt(funding.amount), spk: p2pkSpk(owner.pubkey), address: owner.address, daa: BigInt(funding.daa || 0), sign: true } }
-],
+inputs: [covInput].concat(buildWalletInputs(funding, owner)),
 outputs: outputs, lockTime: 0n, gas: 0n, payload: '', fee: fee,
 summary: {
 kind: mode, serial: String(st.serial), editionCovenantId: ed.covenantId,
@@ -3023,6 +3148,7 @@ var parts;
 if (meta.kind === 'list') parts = [pushMinInt(meta.newPrice), pushMin(ownerSig65), pushMin(tagBytes), pushMin(curRedeem)];
 else if (meta.kind === 'unlist') parts = [pushMin(ownerSig65), pushMin(tagBytes), pushMin(curRedeem)];
 else if (meta.kind === 'transfer') parts = [pushMin(hex2u8(meta.newOwner)), pushMin(ownerSig65), pushMin(tagBytes), pushMin(curRedeem)];
+else if (meta.kind === 'sell') parts = [pushMin(hex2u8(meta.buyer)), pushMinInt(meta.salePrice), pushMinInt(1), pushMinInt(2), pushMin(ownerSig65), pushMin(tagBytes), pushMin(curRedeem)];
 else throw new Error('unknown owner covenant kind: ' + meta.kind);
 var fullSigHex = u8hex(cat(parts));
 t.inputs[0].signatureScript = fullSigHex;
@@ -3054,7 +3180,6 @@ function estimateFee(draft) {
 var raw = BigInt(estimateSize(draft)) * FEE_PER_BYTE;
 return raw + raw / 4n + 20000n;                              // +25% and a small floor; overpaying is harmless
 }
-/* ------------------------------------------------------------ wire formats */
 function withVersion(spk) { return '0000' + spk; }
 function toSafeJSON(draft) {
 return JSON.stringify({
@@ -3091,7 +3216,6 @@ return r;
 lockTime: 0, subnetworkId: '00'.repeat(20), gas: 0, payload: ''
 };
 }
-/* ------------------------------------------------------------ post-signature verification */
 function verifySigned(draft, signedJson) {
 var t = typeof signedJson === 'string' ? JSON.parse(signedJson) : signedJson;
 function fail(m) { throw new Error('wallet returned a different transaction: ' + m); }
@@ -3124,17 +3248,36 @@ if (id !== want.covenant.covenantId || Number(ai) !== want.covenant.authorizingI
 });
 return { sigScripts: sigs, rpcTx: toRpcTx(draft, sigs) };
 }
-/* ------------------------------------------------------------ wallet funding selection */
 function utxoEntry(x) { return x.utxoEntry || x; }
-function pickFunding(list, needAtLeast) {
+function toUtxoObj(x) {
+var e = utxoEntry(x), op = x.outpoint || e.outpoint;
+return {
+txId: pick(op, ['transactionId', 'transaction_id']),
+index: Number(op.index),
+amount: BigInt(e.amount),
+daa: BigInt(pick(e, ['blockDaaScore', 'block_daa_score']))
+};
+}
+function pickFunding(list, needAtLeast, maxInputs) {
+var cap = maxInputs == null ? 4 : Number(maxInputs);
 var conf = (list || []).filter(function (x) { var e = utxoEntry(x); return pick(e, ['blockDaaScore', 'block_daa_score']) != null && !pick(e, ['isCoinbase', 'is_coinbase']); });
 conf.sort(function (a, b) { var d = BigInt(utxoEntry(b).amount) - BigInt(utxoEntry(a).amount); return d > 0n ? 1 : d < 0n ? -1 : 0; });
-var best = conf[0];
-if (!best) return { error: 'no confirmed, spendable output in this wallet' };
-var amt = BigInt(utxoEntry(best).amount);
-if (amt < needAtLeast) return { error: 'largest output holds ' + fmtKas(amt) + ' KAS; this transaction needs a single output of at least ' + fmtKas(needAtLeast) + ' KAS (compound your UTXOs in Kaspire first)', largest: amt };
-var op = best.outpoint || utxoEntry(best).outpoint;
-return { txId: pick(op, ['transactionId', 'transaction_id']), index: Number(op.index), amount: amt, daa: BigInt(pick(utxoEntry(best), ['blockDaaScore', 'block_daa_score'])) };
+if (!conf.length) return { error: 'no confirmed, spendable output in this wallet' };
+var first = toUtxoObj(conf[0]);
+if (first.amount >= needAtLeast) {
+first.inputs = [ { txId: first.txId, index: first.index, amount: first.amount, daa: first.daa } ];
+return first;
+}
+var chosen = [], sum = 0n;
+for (var i = 0; i < conf.length && i < cap; i++) {
+var u = toUtxoObj(conf[i]);
+chosen.push(u);
+sum += u.amount;
+if (sum >= needAtLeast) {
+return { txId: chosen[0].txId, index: chosen[0].index, amount: sum, daa: chosen[0].daa, inputs: chosen };
+}
+}
+return { error: 'top ' + chosen.length + ' wallet outputs hold ' + fmtKas(sum) + ' KAS total; this transaction needs at least ' + fmtKas(needAtLeast) + ' KAS', largest: first.amount, total: sum };
 }
 function fmtKas(sompi) {
 var v = BigInt(sompi), neg = v < 0n; if (neg) v = -v;
@@ -3156,28 +3299,16 @@ decodeFactoryState: decodeFactoryState, decodeEditionState: decodeEditionState, 
 spkOfOutput: spkOfOutput, outputValue: outputValue, inputOutpoint: inputOutpoint, covenantOf: covenantOf,
 makeIO: makeIO, resolveLane: resolveLane, resolveEdition: resolveEdition,
 buildDeploySeries: buildDeploySeries, buildMint: buildMint,
-buildBuyEdition: buildBuyEdition, buildListEdition: buildListEdition, buildUnlistEdition: buildUnlistEdition, buildTransferEdition: buildTransferEdition,
-finalizeOwnerCovenantTx: finalizeOwnerCovenantTx,
+buildBuyEdition: buildBuyEdition, buildMakeBid: buildMakeBid,
+buildListEdition: buildListEdition, buildUnlistEdition: buildUnlistEdition, buildTransferEdition: buildTransferEdition,
+finalizeOwnerCovenantTx: finalizeOwnerCovenantTx, walletSignIndices: walletSignIndices,
 estimateSize: estimateSize, estimateFee: estimateFee,
 toSafeJSON: toSafeJSON, toRpcTx: toRpcTx, verifySigned: verifySigned, pickFunding: pickFunding, fmtKas: fmtKas,
 pick: pick, stripVersion: stripVersion
 };
 return api;
 });</script>
-<script>/* Kaspire wallet connector for Reliks.
-Two transports, one interface:
-1. Kaspire Extension (Chromium): the injected `window.kaspire` provider.
-No dependency, no relay, no QR code. This is the default and the only path
-that can also broadcast (`pushTx`).
-2. Kaspire Mobile (Android): WalletConnect v2. The SDK is NOT part of the
-page. It is fetched from one pinned URL only after the user taps
-"Kaspire Mobile", so the site, the verification path and the extension
-flow never load third-party code.
-Neither transport ever sees a private key. Signing happens inside Kaspire
-after it shows its own review of the exact transaction.
-Protocol references (verified 2026-09): kaspire.kaslab.space/developers and
-kaspire.kaslab.space/developers/extension. */
-(function (root, factory) {
+<script>(function (root, factory) {
 if (typeof module === 'object' && module.exports) module.exports = factory();
 else root.Kaspire = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
@@ -3204,11 +3335,10 @@ var listeners = [];
 var s = { status: 'idle', transport: null, address: null, pubkey: null, network: null, message: '' };
 var signClient = null, wcSession = null, provider = null, providerHooks = null;
 function snapshot() { return { status: s.status, transport: s.transport, address: s.address, pubkey: s.pubkey, network: s.network, message: s.message }; }
-function emit() { var snap = snapshot(); listeners.slice().forEach(function (f) { try { f(snap); } catch (e) { /* listener errors never break the wallet layer */ } }); }
+function emit() { var snap = snapshot(); listeners.slice().forEach(function (f) { try { f(snap); } catch (e) {  } }); }
 function set(patch) { for (var k in patch) s[k] = patch[k]; emit(); }
-function remember(v) { try { if (store) { if (v) store.setItem(STORE_KEY, v); else store.removeItem(STORE_KEY); } } catch (e) { /* storage may be blocked */ } }
+function remember(v) { try { if (store) { if (v) store.setItem(STORE_KEY, v); else store.removeItem(STORE_KEY); } } catch (e) {  } }
 function remembered() { try { return store ? store.getItem(STORE_KEY) : null; } catch (e) { return null; } }
-/* ------------------------------------------------ errors */
 function friendly(err) {
 var code = err && err.code, msg = String((err && err.message) || err || 'unknown error');
 var e = new Error(msg); e.code = code;
@@ -3227,7 +3357,6 @@ var t = setTimeout(function () { reject(new Error(label + ' timed out. Nothing w
 promise.then(function (v) { clearTimeout(t); resolve(v); }, function (e) { clearTimeout(t); reject(e); });
 });
 }
-/* ------------------------------------------------ extension transport */
 function detectExtension(timeoutMs) {
 timeoutMs = timeoutMs == null ? 1200 : timeoutMs;
 if (win.kaspire && win.kaspire.isKaspire) return Promise.resolve(win.kaspire);
@@ -3255,7 +3384,7 @@ p.on('accountsChanged', providerHooks.accounts);
 p.on('networkChanged', providerHooks.network);
 p.on('chainChanged', providerHooks.network);
 p.on('disconnect', providerHooks.disconnect);
-} catch (e) { /* older providers may lack some events */ }
+} catch (e) {  }
 }
 async function refreshExtension() {
 var accounts = await extReq('getAccounts');
@@ -3279,7 +3408,6 @@ remember('extension');
 } catch (e) { set({ status: 'idle', transport: null, message: e.userCancelled ? '' : e.message }); throw e; }
 return snapshot();
 }
-/* ------------------------------------------------ mobile transport (WalletConnect v2, on demand) */
 function pairingLinks(uri) {
 var link = LINKS.walletConnectLink + encodeURIComponent(uri);
 var intent = 'intent://wc?uri=' + encodeURIComponent(uri) + '#Intent;scheme=kaspire;package=' + LINKS.packageName + ';S.browser_fallback_url=' + encodeURIComponent(link) + ';end';
@@ -3336,7 +3464,6 @@ wcSession = all[all.length - 1];
 await refreshMobile();
 return true;
 }
-/* ------------------------------------------------ shared state */
 function finish(transport, address, pubkey, network) {
 var net = network === 'mainnet' ? 'mainnet' : String(network || 'unknown');
 if (net !== 'mainnet') return set({ status: 'wrongnet', transport: transport, address: address, pubkey: pubkey, network: net, message: 'Reliks runs on Kaspa mainnet. Switch Kaspire to Mainnet.' });
@@ -3353,7 +3480,7 @@ var t = s.transport;
 try {
 if (t === 'extension' && provider) await provider.request({ method: 'disconnect' });
 if (t === 'mobile' && signClient && wcSession) await signClient.disconnect({ topic: wcSession.topic, reason: { code: 6000, message: 'User disconnected' } });
-} catch (e) { /* the local state is cleared regardless */ }
+} catch (e) {  }
 drop('');
 }
 async function restore() {
@@ -3364,7 +3491,6 @@ else if (t === 'mobile') { if (!(await restoreMobile())) drop(''); }
 } catch (e) { drop(''); }
 return snapshot();
 }
-/* ------------------------------------------------ signing and broadcasting */
 function requireConnected() {
 if (s.status !== 'connected') { var e = new Error(s.status === 'wrongnet' ? 'Switch Kaspire to Kaspa mainnet.' : 'Connect Kaspire first.'); e.code = 4100; throw e; }
 }
@@ -3385,7 +3511,7 @@ var last = 'no endpoint answered';
 (function next(k) {
 if (k >= urls.length) return resolve({ txId: null, message: last });
 var ws, done = false, t;
-function fin(v) { if (done) return; done = true; clearTimeout(t); try { ws.close(); } catch (e) { /* closed */ } if (v) resolve(v); else next(k + 1); }
+function fin(v) { if (done) return; done = true; clearTimeout(t); try { ws.close(); } catch (e) {  } if (v) resolve(v); else next(k + 1); }
 try { ws = new wsCtor(urls[k]); } catch (e) { last = String(e.message || e); return next(k + 1); }
 t = setTimeout(function () { last = urls[k] + ' timed out'; fin(null); }, 15000);
 ws.onopen = function () { ws.send(JSON.stringify({ id: 1, method: 'submitTransaction', params: { transaction: Object.assign({}, rpcTx, { mass: rpcTx.mass === undefined ? 0 : rpcTx.mass }), allowOrphan: true } })); };
@@ -3425,21 +3551,13 @@ links: LINKS, wcSdkUrl: WC_SDK, wcMethods: WC_METHODS.slice(), friendly: friendl
 var api = { create: create, LINKS: LINKS, WC_SDK: WC_SDK };
 return api;
 });</script>
-<script>/* Reliks site application. Runs inside docs/index.html (see gen-site.js).
-Everything on the page is recomputed here in the visitor's browser: engine hash,
-image hash, serials, contract scripts and covenant ids are compared with public
-chain data (both JS engines and Reliks-VM RVM\x01 programs), and the art is withheld
-if any comparison fails. Supports 1-click Series Publishing in Studio with Kaspire,
-in-browser Secondary Market trading (List, Buy, Cancel Listing, Transfer), and
-Offline Provenance Bundle verification.
-Globals provided by the page: RELIKS_DATA, ReliksBlake2b, ReliksChain, RVM, RvmAsm, Kaspire. */
-(function () {
+<script>(function () {
 'use strict';
 var D = window.RELIKS_DATA, C = window.ReliksChain.init(D.templates), K = window.Kaspire.create(), RVM = window.RVM, RvmAsm = window.RvmAsm;
 var A = D.anchors, SOMPI = C.SOMPI;
 var io = C.makeIO(A);
 var $ = function (s, r) { return (r || document).querySelector(s); };
-/* ------------------------------------------------------------ tiny DOM helper (text only, never innerHTML with data) */
+var activeFilter = 'all'; // 'all' | 'listed' | 'mine' | 'bids'
 function h(tag, attrs) {
 var el = document.createElement(tag);
 if (attrs) for (var k in attrs) {
@@ -3467,7 +3585,6 @@ else { var ta = h('textarea', { class: 'sr' }); ta.value = text; document.body.a
 }
 function cat(list) { var n = 0; list.forEach(function (x) { n += x.length; }); var o = new Uint8Array(n), p = 0; list.forEach(function (x) { o.set(x, p); p += x.length; }); return o; }
 function bhex(s) { return C.u8hex(ReliksBlake2b.blake2b(typeof s === 'string' ? C.utf8(s) : s, 32)); }
-/* ------------------------------------------------------------ engine kind detection & series template binding */
 function isVmPayload(payload, series) {
 if (series && (series.engineKind === 'vm' || Number(series.engine_lang) === 2)) return true;
 return typeof payload === 'string' && /^[0-9a-fA-F]+$/.test(payload) && payload.length >= 18 && /^52564d01/i.test(payload);
@@ -3484,7 +3601,6 @@ var isDefaultV12 = !isV13 && D.templates.factory.suffixHex.indexOf(C.u8hex(engBy
 s._progBytes = isDefaultV12 ? null : engBytes;
 return { vmMode: vmMode, isV13: isV13, engBytes: engBytes };
 }
-/* ------------------------------------------------------------ localStorage helpers for newly minted editions & published series */
 function loadLocalEditions(seriesId) {
 try { return JSON.parse(localStorage.getItem('reliks.editions.' + seriesId) || '[]'); } catch (e) { return []; }
 }
@@ -3495,7 +3611,7 @@ if (!list.some(function (x) { return x.covenantId === edObj.covenantId; })) {
 list.push(edObj);
 localStorage.setItem('reliks.editions.' + seriesId, JSON.stringify(list));
 }
-} catch (e) { /* ignore */ }
+} catch (e) {  }
 }
 function loadCustomSeries() {
 try { return JSON.parse(localStorage.getItem('reliks.custom.series') || '[]'); } catch (e) { return []; }
@@ -3505,9 +3621,24 @@ try {
 var list = loadCustomSeries().filter(function (x) { return x.laneCovenantId !== sObj.laneCovenantId; });
 list.unshift(sObj);
 localStorage.setItem('reliks.custom.series', JSON.stringify(list.slice(0, 20)));
-} catch (e) { /* ignore */ }
+} catch (e) {  }
 }
-/* ------------------------------------------------------------ deterministic engine runner (JS + Reliks-VM inside Web Worker, 5 s cap) */
+function loadBidsForEdition(edCovId) {
+try { return JSON.parse(localStorage.getItem('reliks.bids.' + edCovId) || '[]'); } catch (e) { return []; }
+}
+function saveBidForEdition(edCovId, bidObj) {
+try {
+var list = loadBidsForEdition(edCovId).filter(function (b) { return b.bidder !== bidObj.bidder || b.offerPrice !== bidObj.offerPrice; });
+list.unshift(bidObj);
+localStorage.setItem('reliks.bids.' + edCovId, JSON.stringify(list.slice(0, 10)));
+} catch (e) {  }
+}
+function removeBidForEdition(edCovId, bidObj) {
+try {
+var list = loadBidsForEdition(edCovId).filter(function (b) { return !(b.bidder === bidObj.bidder && b.offerPrice === bidObj.offerPrice); });
+localStorage.setItem('reliks.bids.' + edCovId, JSON.stringify(list));
+} catch (e) {  }
+}
 function seedLanes(seed) {
 var le = new Uint8Array(8); new DataView(le.buffer).setBigUint64(0, BigInt(seed), true);
 var hh = ReliksBlake2b.blake2b(cat([C.utf8('ReliksSeedV10'), le]), 32), dv = new DataView(hh.buffer, hh.byteOffset, hh.byteLength), out = [];
@@ -3547,7 +3678,6 @@ return '<!doctype html><meta charset="utf-8"><style>html,body{margin:0;height:10
 }
 function artFrame(svg, bg) { return h('iframe', { sandbox: '', title: 'Generative artwork', srcdoc: frameDoc(svg, bg) }); }
 function artImg(svg) { return h('img', { alt: 'Rendered artwork', src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg), style: 'width:100%;height:100%;display:block;object-fit:contain;background:#000' }); }
-/* ------------------------------------------------------------ verification */
 function newCheck(label, how) { return { label: label, how: how, status: 'wait', detail: '' }; }
 function settle(c, ok, detail) { c.status = ok ? 'ok' : 'bad'; c.detail = detail || ''; }
 function fail(c, e) { c.status = 'err'; c.detail = (e && e.message) || String(e); }
@@ -3634,7 +3764,6 @@ await Promise.all([lanePromise].concat(edPromises));
 tick();
 return { checks: checks, ctx: ctx };
 }
-/* ------------------------------------------------------------ wallet dialog + chip */
 var walletDlg = $('#wallet-dlg'), walletBody = $('#wallet-body');
 function walletChip() {
 var st = K.state(), chip = $('#wallet-btn'), lab = $('#wallet-label'), dot = $('#wallet-dot');
@@ -3707,10 +3836,10 @@ K.on(function () {
 walletChip();
 if (walletDlg.open && (K.state().status === 'connected' || K.state().status === 'wrongnet')) renderWalletDialog();
 Object.keys(seriesViews).forEach(function (id) { seriesViews[id].refreshCta(); if (seriesViews[id].refreshEditions) seriesViews[id].refreshEditions(); });
+renderGalleryFilters();
 });
 $('#wallet-btn').addEventListener('click', openWallet);
 walletDlg.addEventListener('click', function (e) { if (e.target === walletDlg) closeWallet(); });
-/* ------------------------------------------------------------ transaction dialog + mint / deploy / secondary market flows */
 var mintDlg = $('#mint-dlg'), mintBody = $('#mint-body'), minting = false;
 var RAIL = ['Read chain', 'Build', 'Review', 'Sign', 'Verify', 'Broadcast', 'Confirm'];
 function rail(step) { return h('div', { class: 'rail' }, RAIL.map(function (n, i) { return h('span', { class: i < step ? 'done' : i === step ? 'now' : '', text: n }); })); }
@@ -3720,10 +3849,15 @@ add(mintBody, [h('button', { class: 'dlg-x', 'aria-label': 'Close', onclick: fun
 if (!mintDlg.open) mintDlg.showModal();
 }
 function savedWrpc() { try { return localStorage.getItem('reliks.wrpc') || ''; } catch (e) { return ''; } }
-function saveWrpc(v) { try { if (v) localStorage.setItem('reliks.wrpc', v); else localStorage.removeItem('reliks.wrpc'); } catch (e) { /* ignore */ } }
+function saveWrpc(v) { try { if (v) localStorage.setItem('reliks.wrpc', v); else localStorage.removeItem('reliks.wrpc'); } catch (e) {  } }
 function askReview(stepTitle, rows, noteText, draft, extraFields) {
 return new Promise(function (resolve) {
-var wr = h('input', { id: 'wrpc', placeholder: 'ws://localhost:17110 (optional)', value: savedWrpc(), autocomplete: 'off', spellcheck: 'false' });
+var wr = h('input', { id: 'wrpc', placeholder: 'wss://... or ws://localhost:17110 (optional)', value: savedWrpc(), autocomplete: 'off', spellcheck: 'false' });
+var presets = h('div', { class: 'row', style: 'margin-top:6px;flex-wrap:wrap;gap:6px' },
+h('span', { style: 'font:11px var(--mono);color:var(--dim)', text: 'Mobile wRPC presets:' }),
+h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = 'wss://wrpc.kaspad.net'; }, text: 'wrpc.kaspad.net' }),
+h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = 'ws://127.0.0.1:17110'; }, text: 'Local 17110' }),
+h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = ''; }, text: 'Clear' }));
 var raw = h('pre', { class: 'code', text: JSON.stringify(JSON.parse(C.toSafeJSON(draft)), null, 2) });
 var rev = h('div', { class: 'review' });
 rows.forEach(function (r) {
@@ -3733,8 +3867,9 @@ var kids = [rev];
 if (extraFields) kids.push(extraFields);
 kids.push(
 h('p', { class: 'note', text: noteText }),
-h('details', {}, h('summary', { class: 'note', text: 'Transaction details' }), raw,
-h('div', { class: 'field', style: 'margin-top:10px' }, h('label', { for: 'wrpc', text: 'Broadcast via your own node (wRPC), optional' }), wr)),
+h('details', { open: K.state().transport === 'mobile' }, h('summary', { class: 'note', text: 'Transaction details & wRPC node (for Kaspire Mobile)' }),
+h('div', { class: 'field', style: 'margin:8px 0' }, h('label', { for: 'wrpc', text: 'Broadcast node (wRPC URL, optional for Extension)' }), wr, presets),
+raw),
 h('div', { class: 'cta' },
 h('button', { class: 'btn primary', onclick: function () { saveWrpc(wr.value.trim()); resolve({ go: true, wrpc: wr.value.trim() }); }, text: 'Sign in Kaspire' }),
 h('button', { class: 'btn ghost', onclick: function () { resolve({ go: false }); }, text: 'Cancel' }))
@@ -3745,7 +3880,7 @@ mintScreen(2, stepTitle, kids);
 async function pollConfirm(txId) {
 var t0 = Date.now();
 while (Date.now() - t0 < 4 * 60 * 1000) {
-try { var tx = await io.tx(txId); if (tx && (tx.is_accepted === true || tx.isAccepted === true)) return 'accepted'; } catch (e) { /* not indexed yet */ }
+try { var tx = await io.tx(txId); if (tx && (tx.is_accepted === true || tx.isAccepted === true)) return 'accepted'; } catch (e) {  }
 await new Promise(function (r) { setTimeout(r, 3000); });
 }
 return 'timeout';
@@ -3759,26 +3894,27 @@ try {
 mintScreen(0, 'Reading the chain…', h('p', { class: 'note', text: 'Rebuilding the live lane state from public data and checking it against the on-chain script.' }));
 var lane = await C.resolveLane(io, s);
 if (lane.state.mints_left <= 0n) throw new Error('This series is sold out.');
-mintScreen(1, 'Building the transaction…', h('p', { class: 'note', text: 'Looking for a single confirmed output in your wallet that can fund the mint.' }));
+mintScreen(1, 'Building the transaction…', h('p', { class: 'note', text: 'Selecting confirmed output(s) in your wallet to fund the mint.' }));
 var list = await io.utxos(st.address);
 var probe = C.buildMint({ lane: lane, buyer: { pubkey: st.pubkey, address: st.address }, funding: { txId: '00'.repeat(32), index: 0, amount: 10n ** 13n }, fee: 1n, hrp: A.hrp });
 var fee = C.estimateFee(probe), price = BigInt(lane.state.price);
 var pick = C.pickFunding(list, price + C.CARRIER + fee + 2000000n);
 if (pick.error) throw new Error(pick.error);
-var draft = C.buildMint({ lane: lane, buyer: { pubkey: st.pubkey, address: st.address }, funding: pick, fee: fee, hrp: A.hrp });
+var draft = C.buildMint({ lane: lane, buyer: { pubkey: st.pubkey, address: st.address }, funding: pick, fee: C.estimateFee(C.buildMint({ lane: lane, buyer: { pubkey: st.pubkey, address: st.address }, funding: pick, fee: fee, hrp: A.hrp })), hrp: A.hrp });
 var m = draft.summary, total = m.price + C.CARRIER + m.fee;
+var utxoNote = pick.inputs && pick.inputs.length > 1 ? ' (' + pick.inputs.length + ' UTXOs combined)' : '';
 var choice = await askReview('Review your mint', [
 { label: 'Series', value: s.title },
 { label: 'Edition serial', value: short(m.serial, 8, 6), title: m.serial },
 { label: 'Paid to the artist (100%)', value: C.fmtKas(m.price) + ' KAS' },
 { label: 'Locked in your edition (carrier)', value: C.fmtKas(m.carrier) + ' KAS' },
-{ label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(m.fee) + ' KAS' },
+{ label: 'Network fee' + utxoNote, value: '≈ ' + C.fmtKas(m.fee) + ' KAS' },
 { label: 'Resale royalty to artist', value: (Number(m.royaltyBips) / 100) + '%' },
 { label: 'Leaves your wallet', value: '≈ ' + C.fmtKas(total) + ' KAS', total: true }
 ], 'The carrier stays inside the edition contract and belongs to whoever owns the edition. Kaspire will show its own review of this exact transaction before you approve.', draft);
 if (!choice.go) { mintDlg.close(); return; }
 mintScreen(3, 'Approve in Kaspire', h('p', { class: 'note', text: 'Kaspire opens its own window (or your phone) with the full transaction. Check the outputs, then approve.' }));
-var signed = await K.signPskt(C.toSafeJSON(draft), [1]);
+var signed = await K.signPskt(C.toSafeJSON(draft), C.walletSignIndices(draft));
 mintScreen(4, 'Checking what Kaspire signed…', h('p', { class: 'note', text: 'Every input, output and covenant binding must still match what you reviewed.' }));
 var v = C.verifySigned(draft, signed);
 mintScreen(5, 'Broadcasting…', h('p', { class: 'note', text: st.transport === 'extension' ? 'Kaspire submits the transaction to its node.' : 'Submitting through your node.' }));
@@ -3786,7 +3922,7 @@ var res = await K.broadcast(signed, v.rpcTx, { wrpc: choice.wrpc ? [choice.wrpc]
 if (!res.txId) {
 mintScreen(5, 'Signed, not broadcast', [
 h('p', { class: 'note warn', text: 'Kaspire signed the transaction but it could not be submitted from the browser: ' + (res.message || 'no broadcast path') + '. Nothing has been spent.' }),
-h('p', { class: 'note', text: st.transport === 'mobile' ? 'Covenant transactions need a node that keeps the compute budget. Use Kaspire Extension, or paste your own node (wRPC) address in the review step.' : 'Retry, or paste your own node (wRPC) address in the review step.' }),
+h('p', { class: 'note', text: st.transport === 'mobile' ? 'Covenant transactions need a node that keeps the compute budget. Pick a wRPC preset in the review step, or use Kaspire Extension.' : 'Retry, or pick a wRPC endpoint in the review step.' }),
 h('div', { class: 'cta' }, h('button', { class: 'btn', onclick: function () { copy(typeof signed === 'string' ? signed : JSON.stringify(signed), 'Signed transaction'); }, text: 'Copy signed transaction' }), h('button', { class: 'btn ghost', onclick: function () { mintDlg.close(); }, text: 'Close' }))]);
 return;
 }
@@ -3814,19 +3950,20 @@ if (fe.userCancelled) { mintDlg.close(); toast('Cancelled. Nothing was spent.');
 else mintScreen(0, 'Could not mint', [h('p', { class: 'note bad', text: fe.message }), h('p', { class: 'note', text: 'Nothing was broadcast, so no funds moved.' }), h('div', { class: 'cta' }, h('button', { class: 'btn', onclick: function () { mintDlg.close(); }, text: 'Close' }))]);
 } finally { minting = false; }
 }
-/* ------------------------------------------------------------ secondary market flows (buy, list, unlist, transfer) */
 function promptTradeInputs(action, s, edInfo) {
 return new Promise(function (resolve) {
 var st = edInfo.state;
 var priceIn = h('input', { id: 'trade-price', inputmode: 'decimal', value: st.price > 0n ? C.fmtKas(st.price) : '5', placeholder: 'e.g. 5' });
 var toIn = h('input', { id: 'trade-to', placeholder: 'kaspa:qp... or 64-hex public key', autocomplete: 'off', spellcheck: 'false' });
 var errEl = h('p', { class: 'note bad', hidden: true });
-var title = action === 'list' ? 'List Edition #' + edInfo.index + ' for Sale' : 'Transfer Edition #' + edInfo.index;
+var title = action === 'list' ? 'List Edition #' + edInfo.index + ' for Sale' : action === 'bid' ? 'Place Bid / Offer on Edition #' + edInfo.index : 'Transfer Edition #' + edInfo.index;
 var desc = action === 'list'
 ? 'Set a fixed price in KAS (minimum 1 KAS). Anyone can buy the edition on chain, paying ' + (100 - Number(st.royalty_bips) / 100) + '% to you and ' + (Number(st.royalty_bips) / 100) + '% royalty to the artist.'
+: action === 'bid'
+? 'Create a signed atomic bid in KAS (minimum 1 KAS) using ReliksEdition.sell. Your funds stay in your wallet until the edition owner co-signs and accepts your bid.'
 : 'Transfer this edition to another Kaspa wallet (royalty-free). In v13, transferring advances provenance lineage (patina) without incrementing sales wear.';
-var fieldBox = action === 'list'
-? h('div', { class: 'field', style: 'margin:12px 0' }, h('label', { for: 'trade-price', text: 'Listing price (KAS, min 1)' }), priceIn)
+var fieldBox = (action === 'list' || action === 'bid')
+? h('div', { class: 'field', style: 'margin:12px 0' }, h('label', { for: 'trade-price', text: (action === 'bid' ? 'Bid / Offer amount' : 'Listing price') + ' (KAS, min 1)' }), priceIn)
 : h('div', { class: 'field', style: 'margin:12px 0' }, h('label', { for: 'trade-to', text: 'Recipient address (kaspa:qp...) or 64-hex pubkey' }), toIn);
 clear(mintBody);
 add(mintBody, [
@@ -3837,9 +3974,9 @@ fieldBox, errEl,
 h('div', { class: 'cta' },
 h('button', { class: 'btn primary', onclick: function () {
 errEl.hidden = true;
-if (action === 'list') {
+if (action === 'list' || action === 'bid') {
 var num = Number(priceIn.value.trim());
-if (!(num >= 1)) { errEl.textContent = 'Listing price must be at least 1 KAS.'; errEl.hidden = false; return; }
+if (!(num >= 1)) { errEl.textContent = 'Amount must be at least 1 KAS.'; errEl.hidden = false; return; }
 resolve({ newPrice: BigInt(Math.round(num * 1e8)) });
 } else {
 try {
@@ -3855,6 +3992,59 @@ h('button', { class: 'btn ghost', onclick: function () { mintDlg.close(); resolv
 if (!mintDlg.open) mintDlg.showModal();
 });
 }
+async function startAcceptBid(s, view, ed, bidObj) {
+if (minting) return;
+var w = K.state();
+if (w.status !== 'connected') { openWallet(); return; }
+minting = true;
+try {
+var draft = bidObj.draft;
+draft.inputs.forEach(function (inp) {
+inp.sequence = BigInt(inp.sequence || 0);
+inp.utxo.amount = BigInt(inp.utxo.amount);
+inp.utxo.daa = BigInt(inp.utxo.daa || 0);
+});
+draft.outputs.forEach(function (o) { o.value = BigInt(o.value); });
+draft.lockTime = BigInt(draft.lockTime || 0);
+draft.gas = BigInt(draft.gas || 0);
+draft.fee = BigInt(draft.fee || 0);
+if (draft.inputs[0].ownerCovenant) draft.inputs[0].ownerCovenant.salePrice = BigInt(draft.inputs[0].ownerCovenant.salePrice);
+var price = BigInt(bidObj.offerPrice);
+var roy = (price * BigInt(s.royalty_bips || 500)) / 10000n;
+var net = price - roy;
+var choice = await askReview('Accept Bid on Edition #' + ed.index, [
+{ label: 'Series / Edition', value: s.title + ' #' + ed.index },
+{ label: 'Bidder', value: short(C.p2pkAddress(A.hrp, bidObj.bidder), 14, 8) },
+{ label: 'Offer price', value: C.fmtKas(price) + ' KAS' },
+{ label: 'You receive (net after royalty)', value: C.fmtKas(net) + ' KAS', total: true },
+{ label: 'Artist royalty', value: C.fmtKas(roy) + ' KAS' }
+], 'Co-signing Input 0 completes the atomic swap: you receive ' + C.fmtKas(net) + ' KAS and the edition transfers to the bidder.', draft);
+if (!choice.go) { mintDlg.close(); return; }
+mintScreen(3, 'Approve in Kaspire', h('p', { class: 'note', text: 'Sign Input 0 in Kaspire to accept the bid and complete the sale.' }));
+var ownerSigned = await K.signPskt(bidObj.signedTxJson, [0]);
+mintScreen(4, 'Verifying atomic swap…', h('p', { class: 'note', text: 'Wrapping your signature into the ReliksEdition.sell covenant script and verifying all outputs.' }));
+var fin = C.finalizeOwnerCovenantTx(draft, ownerSigned);
+mintScreen(5, 'Broadcasting…', h('p', { class: 'note', text: 'Submitting completed atomic sale to the network.' }));
+var res = await K.broadcast(fin.signedJson, fin.rpcTx, { wrpc: choice.wrpc ? [choice.wrpc] : A.wrpc || [] });
+if (!res.txId) {
+mintScreen(5, 'Signed, not broadcast', [
+h('p', { class: 'note warn', text: 'Sale co-signed, but could not be broadcast: ' + (res.message || 'no broadcast path') + '.' }),
+h('div', { class: 'cta' }, h('button', { class: 'btn', onclick: function () { copy(fin.signedJson, 'Completed sale transaction'); }, text: 'Copy signed transaction' }), h('button', { class: 'btn ghost', onclick: function () { mintDlg.close(); }, text: 'Close' }))]);
+return;
+}
+removeBidForEdition(ed.covenantId, bidObj);
+var link = A.explorer + res.txId;
+mintScreen(6, 'Bid Accepted!', [
+h('p', { class: 'note' }, 'Atomic sale submitted in ', h('a', { href: link, target: '_blank', rel: 'noopener', text: short(res.txId, 10, 8) }), '.'),
+h('div', { class: 'cta' }, h('button', { class: 'btn primary', onclick: function () { mintDlg.close(); }, text: 'Done' }))]);
+toast('Bid accepted! Sale submitted.', 'ok');
+if (view && view.reload) view.reload();
+} catch (e) {
+var fe = K.friendly(e);
+if (fe.userCancelled) { mintDlg.close(); toast('Cancelled.'); }
+else mintScreen(0, 'Could not accept bid', [h('p', { class: 'note bad', text: fe.message }), h('div', { class: 'cta' }, h('button', { class: 'btn', onclick: function () { mintDlg.close(); }, text: 'Close' }))]);
+} finally { minting = false; }
+}
 async function startTrade(s, view, ed, action) {
 if (minting) return;
 var w = K.state();
@@ -3864,17 +4054,62 @@ try {
 mintScreen(0, 'Reading edition state…', h('p', { class: 'note', text: 'Resolving the live edition UTXO and verifying its covenant script.' }));
 var liveEd = await C.resolveEdition(io, s, ed, s._editionTemplate);
 var params = {};
-if (action === 'list' || action === 'transfer') {
+if (action === 'list' || action === 'transfer' || action === 'bid') {
 minting = false;
 var inp = await promptTradeInputs(action, s, liveEd);
 if (!inp) return;
 params = inp;
 minting = true;
 }
-mintScreen(1, 'Building the transaction…', h('p', { class: 'note', text: 'Selecting a confirmed UTXO in your wallet to fund the transaction.' }));
+mintScreen(1, 'Building the transaction…', h('p', { class: 'note', text: 'Selecting confirmed UTXO(s) in your wallet to fund the transaction.' }));
 var list = await io.utxos(w.address);
 var dummyFund = { txId: '00'.repeat(32), index: 0, amount: 10n ** 13n };
-var probe, draft, rows, noteText, signIndices;
+var probe, draft, rows, noteText;
+if (action === 'bid') {
+probe = C.buildMakeBid({ edition: liveEd, bidder: { pubkey: w.pubkey, address: w.address }, offerPrice: params.newPrice, funding: dummyFund, fee: 1n, hrp: A.hrp, editionTemplate: s._editionTemplate });
+var feeBid = C.estimateFee(probe);
+var pickBid = C.pickFunding(list, params.newPrice + feeBid + 2000000n);
+if (pickBid.error) throw new Error(pickBid.error);
+draft = C.buildMakeBid({ edition: liveEd, bidder: { pubkey: w.pubkey, address: w.address }, offerPrice: params.newPrice, funding: pickBid, fee: feeBid, hrp: A.hrp, editionTemplate: s._editionTemplate });
+var sbid = draft.summary;
+rows = [
+{ label: 'Series / Edition', value: s.title + ' #' + ed.index },
+{ label: 'Bid / Offer amount', value: C.fmtKas(sbid.price) + ' KAS' },
+{ label: 'Paid to owner on accept', value: C.fmtKas(sbid.ownerNet) + ' KAS' },
+{ label: 'Paid to artist (royalty)', value: C.fmtKas(sbid.royalty) + ' KAS' },
+{ label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(sbid.fee) + ' KAS', total: true }
+];
+noteText = 'Signing creates a partially-signed atomic swap (PSKT). No funds leave your wallet unless the current edition owner co-signs and accepts your bid.';
+var choiceBid = await askReview('Review your Bid / Offer', rows, noteText, draft);
+if (!choiceBid.go) { mintDlg.close(); return; }
+mintScreen(3, 'Sign Bid in Kaspire', h('p', { class: 'note', text: 'Approve signing your wallet input(s) in Kaspire.' }));
+var bidderSigned = await K.signPskt(C.toSafeJSON(draft), C.walletSignIndices(draft));
+C.verifySigned(draft, bidderSigned);
+var serializableDraft = JSON.parse(JSON.stringify(draft, function (_, v) { return typeof v === 'bigint' ? v.toString() : v; }));
+var bidBundle = {
+reliks_bid: 1,
+seriesId: s.id,
+editionIndex: ed.index,
+editionCovenantId: ed.covenantId,
+serial: String(ed.serial),
+offerPrice: params.newPrice.toString(),
+bidder: w.pubkey,
+seller: String(liveEd.state.ownerIdentifier).toLowerCase(),
+createdAt: new Date().toISOString().slice(0, 10),
+draft: serializableDraft,
+signedTxJson: bidderSigned
+};
+saveBidForEdition(ed.covenantId, bidBundle);
+if (view && view.refreshEditions) view.refreshEditions();
+renderGalleryFilters();
+mintScreen(6, 'Bid Signed & Saved!', [
+h('p', { class: 'note', text: 'Your ' + C.fmtKas(params.newPrice) + ' KAS bid is active on Edition #' + ed.index + '. Copy the Signed Bid JSON below to send to the owner, or post it on GitHub so the owner can accept in 1 click.' }),
+h('div', { class: 'cta' },
+h('button', { class: 'btn primary', onclick: function () { copy(JSON.stringify(bidBundle), 'Signed Bid JSON'); }, text: 'Copy Signed Bid JSON' }),
+h('button', { class: 'btn', onclick: function () { mintDlg.close(); }, text: 'Done' }))]);
+toast('Bid of ' + C.fmtKas(params.newPrice) + ' KAS created!', 'ok');
+return;
+}
 if (action === 'buy') {
 probe = C.buildBuyEdition({ edition: liveEd, buyer: { pubkey: w.pubkey, address: w.address }, funding: dummyFund, fee: 1n, hrp: A.hrp, editionTemplate: s._editionTemplate });
 var feeBuy = C.estimateFee(probe), priceBuy = BigInt(liveEd.state.price);
@@ -3891,7 +4126,6 @@ rows = [
 { label: 'Leaves your wallet', value: '≈ ' + C.fmtKas(sb.price + sb.fee) + ' KAS', total: true }
 ];
 noteText = 'Buying transfers the 1 KAS edition carrier UTXO to your wallet address and advances the v13 provenance lineage and sales wear.';
-signIndices = [1];
 } else if (action === 'list') {
 probe = C.buildListEdition({ edition: liveEd, owner: { pubkey: w.pubkey, address: w.address }, newPrice: params.newPrice, funding: dummyFund, fee: 1n, hrp: A.hrp, editionTemplate: s._editionTemplate });
 var feeList = C.estimateFee(probe);
@@ -3906,7 +4140,6 @@ rows = [
 { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(draft.fee) + ' KAS', total: true }
 ];
 noteText = 'Your edition stays in its covenant UTXO under your ownership until someone buys it or you cancel the listing.';
-signIndices = [0, 1];
 } else if (action === 'unlist') {
 probe = C.buildUnlistEdition({ edition: liveEd, owner: { pubkey: w.pubkey, address: w.address }, funding: dummyFund, fee: 1n, hrp: A.hrp, editionTemplate: s._editionTemplate });
 var feeUn = C.estimateFee(probe);
@@ -3919,7 +4152,6 @@ rows = [
 { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(draft.fee) + ' KAS', total: true }
 ];
 noteText = 'Cancelling sets the edition price back to 0 so it cannot be bought.';
-signIndices = [0, 1];
 } else if (action === 'transfer') {
 probe = C.buildTransferEdition({ edition: liveEd, owner: { pubkey: w.pubkey, address: w.address }, newOwner: params.newOwner, funding: dummyFund, fee: 1n, hrp: A.hrp, editionTemplate: s._editionTemplate });
 var feeXf = C.estimateFee(probe);
@@ -3933,14 +4165,14 @@ rows = [
 { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(draft.fee) + ' KAS', total: true }
 ];
 noteText = 'Transfers the edition covenant and its 1 KAS carrier to the recipient address.';
-signIndices = [0, 1];
 }
 var choice = await askReview('Review ' + action, rows, noteText, draft);
 if (!choice.go) { mintDlg.close(); return; }
 mintScreen(3, 'Approve in Kaspire', h('p', { class: 'note', text: 'Approve the transaction in Kaspire.' }));
+var signIndices = C.walletSignIndices(draft);
 var signed = await K.signPskt(C.toSafeJSON(draft), signIndices);
 mintScreen(4, 'Verifying signed covenant…', h('p', { class: 'note', text: 'Verifying signatures and covenant bindings before broadcast.' }));
-var verified = signIndices.length === 2 ? C.finalizeOwnerCovenantTx(draft, signed) : C.verifySigned(draft, signed);
+var verified = draft.inputs[0].ownerCovenant ? C.finalizeOwnerCovenantTx(draft, signed) : C.verifySigned(draft, signed);
 var finalSignedJson = verified.signedJson || signed;
 mintScreen(5, 'Broadcasting…', h('p', { class: 'note', text: 'Submitting transaction to the network.' }));
 var res = await K.broadcast(finalSignedJson, verified.rpcTx, { wrpc: choice.wrpc ? [choice.wrpc] : A.wrpc || [] });
@@ -3964,9 +4196,45 @@ if (fe.userCancelled) { mintDlg.close(); toast('Cancelled. Nothing was spent.');
 else mintScreen(0, 'Transaction failed', [h('p', { class: 'note bad', text: fe.message }), h('div', { class: 'cta' }, h('button', { class: 'btn', onclick: function () { mintDlg.close(); }, text: 'Close' }))]);
 } finally { minting = false; }
 }
-/* ------------------------------------------------------------ gallery */
 var seriesViews = {};
 var STATUS_TXT = { ok: 'Verified in your browser', bad: 'Mismatch: art withheld', wait: 'Verifying…', err: 'Chain unreachable: not fully verified' };
+function renderGalleryFilters() {
+var bar = $('#gallery-filters');
+if (!bar) return;
+clear(bar);
+var w = K.state(), myPk = w.status === 'connected' ? String(w.pubkey).toLowerCase() : '';
+var counts = { all: 0, listed: 0, mine: 0, bids: 0 };
+Object.keys(seriesViews).forEach(function (id) {
+var v = seriesViews[id], s = v.series;
+var liveMap = (v.result && v.result.ctx && v.result.ctx.liveEditions) || {};
+(s.editions || []).forEach(function (ed) {
+counts.all++;
+var st = (liveMap[ed.index] && liveMap[ed.index].state) || { ownerIdentifier: ed.ownerAtMint, price: 0n };
+if (BigInt(st.price || 0) >= SOMPI) counts.listed++;
+if (myPk && String(st.ownerIdentifier || '').toLowerCase() === myPk) counts.mine++;
+if (loadBidsForEdition(ed.covenantId).length > 0) counts.bids++;
+});
+});
+var items = [
+{ id: 'all', label: 'All Editions (' + counts.all + ')' },
+{ id: 'listed', label: 'Listed for Sale (' + counts.listed + ')' },
+{ id: 'mine', label: 'My Collection (' + counts.mine + ')' },
+{ id: 'bids', label: 'Active Bids (' + counts.bids + ')' }
+];
+items.forEach(function (it) {
+bar.appendChild(h('button', {
+class: 'btn' + (activeFilter === it.id ? ' primary' : ''),
+onclick: function () {
+activeFilter = it.id;
+renderGalleryFilters();
+Object.keys(seriesViews).forEach(function (sid) {
+if (seriesViews[sid].refreshEditions) seriesViews[sid].refreshEditions();
+});
+},
+text: it.label
+}));
+});
+}
 function renderSeries(s) {
 var localEds = loadLocalEditions(s.id);
 localEds.forEach(function (le) {
@@ -3985,7 +4253,7 @@ var proof = h('details', { class: 'proof' }, h('summary', {}, meter, sum), list)
 var facts = { price: h('dd', { text: '…' }), roy: h('dd', { text: '…' }), left: h('dd', { text: '…' }) };
 var cta = h('div', { class: 'cta' }), ctaNote = h('p', { class: 'note' });
 var edHost = h('div', { style: 'margin-top:14px;display:grid;gap:10px' });
-var view = { lane: null, result: null, artShown: false };
+var view = { series: s, lane: null, result: null, artShown: false };
 function previewEdition(edState, indexLabel) {
 runEngine(engineSrc, edState.serial, { series: s, lineage: edState.lineage, sales: edState.sales }).then(function (svg) {
 var oldFr = art.querySelector('iframe');
@@ -4005,6 +4273,7 @@ return;
 }
 var w = K.state(), myPk = w.status === 'connected' ? String(w.pubkey).toLowerCase() : '';
 var liveMap = (view.result && view.result.ctx && view.result.ctx.liveEditions) || {};
+var shownCount = 0;
 eds.forEach(function (ed) {
 var live = liveMap[ed.index];
 var st = (live && live.state) || {
@@ -4017,10 +4286,16 @@ var ownerAddr = /^[0-9a-f]{64}$/.test(ownerPk) ? C.p2pkAddress(A.hrp, ownerPk) :
 var isMine = myPk && ownerPk === myPk;
 var price = BigInt(st.price || 0);
 var listed = price >= SOMPI;
+var bids = loadBidsForEdition(ed.covenantId);
+if (activeFilter === 'listed' && !listed) return;
+if (activeFilter === 'mine' && !isMine) return;
+if (activeFilter === 'bids' && !bids.length) return;
+shownCount++;
 var tags = [
 h('span', { class: 'tag ' + (listed ? 'v' : 'd'), text: listed ? 'Listed · ' + C.fmtKas(price) + ' KAS' : 'Unlisted' })
 ];
 if (isMine) tags.push(h('span', { class: 'tag v', style: 'margin-left:6px', text: 'Owned by you' }));
+if (bids.length) tags.push(h('span', { class: 'tag d', style: 'margin-left:6px', text: bids.length + ' Bid(s)' }));
 var metaText = 'Serial ' + short(ed.serial, 8, 6) + ' · Owner ' + short(ownerAddr, 12, 6);
 if (st.lineage !== undefined) {
 var hi = RVM.hostInputs(ReliksBlake2b.blake2b, String(ed.serial), C.hex2u8(st.lineage), Number(st.sales || 0));
@@ -4031,18 +4306,36 @@ h('button', { class: 'btn', onclick: function () { previewEdition(st, ed.index);
 if (listed && !isMine) {
 btns.appendChild(h('button', { class: 'btn primary', onclick: function () { startTrade(s, view, ed, 'buy'); }, text: 'Buy for ' + C.fmtKas(price) + ' KAS' }));
 }
+if (!isMine) {
+btns.appendChild(h('button', { class: 'btn', onclick: function () { startTrade(s, view, ed, 'bid'); }, text: 'Place Bid / Offer' }));
+}
 if (isMine || w.status !== 'connected') {
 btns.appendChild(h('button', { class: 'btn', onclick: function () { startTrade(s, view, ed, 'list'); }, text: listed ? 'Update price' : 'List for sale' }));
 if (listed) btns.appendChild(h('button', { class: 'btn', onclick: function () { startTrade(s, view, ed, 'unlist'); }, text: 'Cancel listing' }));
 btns.appendChild(h('button', { class: 'btn ghost', onclick: function () { startTrade(s, view, ed, 'transfer'); }, text: 'Transfer' }));
 }
+var bidBox = h('div', { style: 'margin-top:8px;display:grid;gap:6px' });
+bids.forEach(function (b) {
+var bAddr = /^[0-9a-f]{64}$/.test(b.bidder) ? C.p2pkAddress(A.hrp, b.bidder) : b.bidder;
+var bRow = h('div', { style: 'display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 10px;border-radius:8px;background:rgba(73,197,177,.08)' },
+h('span', { style: 'font:12px var(--mono)', text: 'Bid: ' + C.fmtKas(b.offerPrice) + ' KAS from ' + short(bAddr, 10, 6) }),
+h('div', { class: 'row', style: 'gap:6px' },
+h('button', { class: 'btn primary', style: 'padding:4px 10px;font-size:12px', onclick: function () { startAcceptBid(s, view, ed, b); }, text: 'Accept Bid (' + C.fmtKas(b.offerPrice) + ' KAS)' }),
+h('button', { class: 'btn ghost', style: 'padding:4px 8px;font-size:12px', onclick: function () { copy(JSON.stringify(b), 'Signed Bid JSON'); }, text: 'Copy' }),
+h('button', { class: 'btn ghost', style: 'padding:4px 8px;font-size:12px', onclick: function () { removeBidForEdition(ed.covenantId, b); refreshEditions(); renderGalleryFilters(); }, text: '×' })));
+bidBox.appendChild(bRow);
+});
 edHost.appendChild(h('div', { class: 'card', style: 'padding:14px' },
 h('div', { style: 'display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap' },
 h('b', { text: 'Edition #' + ed.index }),
 h('div', {}, tags)),
 h('p', { class: 'note', style: 'margin:6px 0 0', text: metaText }),
-btns));
+btns,
+bidBox));
 });
+if (!shownCount) {
+edHost.appendChild(h('p', { class: 'note', text: 'No editions in this series match the active "' + activeFilter + '" filter.' }));
+}
 }
 view.refreshEditions = refreshEditions;
 function refreshCta() {
@@ -4050,7 +4343,7 @@ clear(cta); ctaNote.className = 'note'; ctaNote.textContent = '';
 var lane = view.lane, w = K.state();
 if (!lane) { cta.appendChild(h('button', { class: 'btn', disabled: true, text: 'Mint' })); ctaNote.textContent = view.laneError ? 'Could not read the lane from the chain: ' + view.laneError : 'Reading the lane…'; if (view.laneError) ctaNote.classList.add('warn'); return; }
 var left = lane.state.mints_left, price = lane.state.price;
-if (left <= 0n) { cta.appendChild(h('button', { class: 'btn', disabled: true, text: 'Primary sold out' })); ctaNote.textContent = 'All primary editions have been minted. You can buy, list, cancel listings, or transfer editions below with Kaspire.'; return; }
+if (left <= 0n) { cta.appendChild(h('button', { class: 'btn', disabled: true, text: 'Primary sold out' })); ctaNote.textContent = 'All primary editions have been minted. You can buy, bid, list, cancel listings, or transfer editions below with Kaspire.'; return; }
 if (view.result && overall(view.result.checks) === 'bad') { cta.appendChild(h('button', { class: 'btn', disabled: true, text: 'Minting disabled' })); ctaNote.textContent = 'Verification failed, so this page will not build a mint for this series.'; ctaNote.classList.add('bad'); return; }
 if (w.status === 'connected') cta.appendChild(h('button', { class: 'btn primary', onclick: function () { startMint(s, view); }, text: 'Mint for ' + C.fmtKas(price) + ' KAS' }));
 else cta.appendChild(h('button', { class: 'btn primary', onclick: openWallet, text: w.status === 'wrongnet' ? 'Switch Kaspire to mainnet' : 'Connect Kaspire to mint' }));
@@ -4084,8 +4377,8 @@ refreshCta();
 }
 function load() {
 view.lane = null; view.laneError = null; view.artShown = false; refreshCta(); refreshEditions();
-verifySeries(s, engineSrc, function (checks, ctx) { view.result = { checks: checks, ctx: ctx }; if (ctx.lane) { view.lane = ctx.lane; applyLane(); } paint(checks); refreshCta(); refreshEditions(); })
-.then(function (r) { if (!r.ctx.lane) { view.laneError = (r.checks.filter(function (c) { return /Live lane/.test(c.label); })[0] || {}).detail; refreshCta(); } refreshEditions(); });
+verifySeries(s, engineSrc, function (checks, ctx) { view.result = { checks: checks, ctx: ctx }; if (ctx.lane) { view.lane = ctx.lane; applyLane(); } paint(checks); refreshCta(); refreshEditions(); renderGalleryFilters(); })
+.then(function (r) { if (!r.ctx.lane) { view.laneError = (r.checks.filter(function (c) { return /Live lane/.test(c.label); })[0] || {}).detail; refreshCta(); } refreshEditions(); renderGalleryFilters(); });
 }
 view.reload = load;
 var serialIn = h('input', { id: 'ex-serial-' + s.id, inputmode: 'numeric', value: '1', 'aria-label': 'Serial number' });
@@ -4110,7 +4403,7 @@ h('button', { class: 'btn ghost', onclick: function () { copy(engineSrc, vmMode 
 exNote, exHash))));
 ex.addEventListener('toggle', function () { if (ex.open && !frame.firstChild) explore(); });
 var marketBox = h('details', { class: 'proof', open: true, style: 'margin-top:14px' },
-h('summary', {}, h('span', { text: 'Editions & Secondary Market (' + (s.editions || []).length + ' minted) · List, Buy, Cancel, Transfer with Kaspire' })),
+h('summary', {}, h('span', { text: 'Editions & Secondary Market (' + (s.editions || []).length + ' minted) · List, Buy, Bid, Cancel, Transfer with Kaspire' })),
 h('div', { style: 'padding:4px 18px 18px' }, edHost));
 var el = h('article', { class: 'series', 'aria-label': s.title }, art,
 h('div', { class: 'series-body' },
@@ -4121,23 +4414,30 @@ seriesViews[s.id] = view;
 load();
 return h('div', { id: 'series-card-' + s.id, style: 'margin-bottom:28px' }, el, marketBox, ex);
 }
-/* ------------------------------------------------------------ custom / newly published series loader */
 function initCustomSeriesLoader() {
 var host = $('#custom-series-host');
 if (!host) return;
-var ta = h('textarea', { class: 'editor', style: 'min-height:90px;font-size:12px', spellcheck: 'false', placeholder: 'Paste a Series Anchor JSON (from Studio "Publish on Chain" or another artist) to view, verify, mint, and trade immediately…' });
+var ta = h('textarea', { class: 'editor', style: 'min-height:90px;font-size:12px', spellcheck: 'false', placeholder: 'Paste a Series Anchor JSON (from Studio "Publish on Chain") OR a Signed Bid JSON (reliks_bid: 1) to load it into the Gallery…' });
 var btnLoad = h('button', { class: 'btn', onclick: function () {
 try {
-var sObj = JSON.parse(ta.value.trim());
-if (!sObj || !sObj.laneCovenantId || !sObj.programHash) throw new Error('JSON must include laneCovenantId, genesisTxId, programHash, renderHash, and programHex/engineSrc.');
-saveCustomSeries(sObj);
-mountCustomSeries(sObj, true);
+var obj = JSON.parse(ta.value.trim());
+if (obj && obj.reliks_bid === 1 && obj.editionCovenantId) {
+saveBidForEdition(obj.editionCovenantId, obj);
+Object.keys(seriesViews).forEach(function (sid) { if (seriesViews[sid].refreshEditions) seriesViews[sid].refreshEditions(); });
+renderGalleryFilters();
 ta.value = '';
-toast('Loaded series: ' + (sObj.title || sObj.id), 'ok');
-} catch (e) { toast('Invalid Series JSON: ' + e.message, 'bad'); }
-}, text: 'Load Series into Gallery' });
+toast('Loaded signed bid (' + C.fmtKas(obj.offerPrice) + ' KAS) on Edition #' + obj.editionIndex, 'ok');
+return;
+}
+if (!obj || !obj.laneCovenantId || !obj.programHash) throw new Error('JSON must be a Series Anchor JSON or Signed Bid JSON (reliks_bid: 1).');
+saveCustomSeries(obj);
+mountCustomSeries(obj, true);
+ta.value = '';
+toast('Loaded series: ' + (obj.title || obj.id), 'ok');
+} catch (e) { toast('Invalid JSON: ' + e.message, 'bad'); }
+}, text: 'Import Series or Signed Bid JSON' });
 host.appendChild(h('details', { class: 'proof' },
-h('summary', {}, h('span', { text: 'Load a Newly Published Series Anchor JSON (before it is added to mainnet-anchors.json)' })),
+h('summary', {}, h('span', { text: 'Import a Newly Published Series Anchor JSON or Signed Bid JSON' })),
 h('div', { style: 'padding:8px 18px 18px;display:grid;gap:10px' }, ta, h('div', { class: 'row' }, btnLoad))));
 loadCustomSeries().forEach(function (cs) { mountCustomSeries(cs, false); });
 }
@@ -4148,9 +4448,9 @@ var existing = document.getElementById('series-card-' + sObj.id);
 if (existing) existing.remove();
 var card = renderSeries(sObj);
 mainHost.insertBefore(card, mainHost.firstChild);
+renderGalleryFilters();
 if (scrollToIt) card.scrollIntoView({ behavior: 'smooth' });
 }
-/* ------------------------------------------------------------ offline & air-gapped verifier (Provenance Bundle + RVM/JS) */
 function initOfflineVerifier() {
 var host = $('#offline-host');
 if (!host) return;
@@ -4227,7 +4527,6 @@ btns.appendChild(h('button', { class: 'btn', onclick: function () { ta.value = J
 }
 host.appendChild(h('div', { class: 'card', style: 'padding:18px' }, statusLine, ta, btns, outBox));
 }
-/* ------------------------------------------------------------ studio (Reliks-VM v13 default + 1-click Publish on Chain) */
 function initStudio() {
 var ed = $('#ed'), ser = $('#ser'), lin = $('#lin'), wr = $('#wr'), wv = $('#wv'), wearOn = $('#wear-on'), gatesEl = $('#gates-out'), stat = $('#studio-status'), hashes = $('#hashes'), prevBox = $('#prev-box'), tpl = $('#tpl');
 var vmCtrl = $('#vm-controls'), vmWear = $('#vm-wear-row'), exeBtn = $('#exe'), exsrcBtn = $('#exsrc'), pubBtn = $('#pub-kaspire'), pubOut = $('#pub-out');
@@ -4403,7 +4702,7 @@ engine_lang: vmMode ? 2n : 1n, render_hash: renHash
 };
 minting = true;
 try {
-mintScreen(1, 'Building SeriesFactory genesis…', h('p', { class: 'note', text: 'Synthesizing the SeriesFactory-' + (vmMode ? 'v13' : 'v12') + ' covenant script and selecting a wallet UTXO.' }));
+mintScreen(1, 'Building SeriesFactory genesis…', h('p', { class: 'note', text: 'Synthesizing the SeriesFactory-' + (vmMode ? 'v13' : 'v12') + ' covenant script and selecting wallet UTXO(s).' }));
 var list = await io.utxos(w.address);
 var probe = C.buildDeploySeries({ state: depState, progBytes: progBytes, editionTemplate: edTpl, artist: { pubkey: w.pubkey, address: w.address }, funding: { txId: '00'.repeat(32), index: 0, amount: 10n ** 13n }, fee: 1n, hrp: A.hrp });
 var fee = C.estimateFee(probe);
@@ -4424,7 +4723,7 @@ var choice = await askReview('Review Series Deployment', [
 ], 'This deploys your immutable SeriesFactory covenant on Kaspa. Once confirmed, anyone can mint editions directly from it.', draft);
 if (!choice.go) { mintDlg.close(); return; }
 mintScreen(3, 'Approve in Kaspire', h('p', { class: 'note', text: 'Approve the genesis transaction in Kaspire.' }));
-var signed = await K.signPskt(C.toSafeJSON(draft), [0]);
+var signed = await K.signPskt(C.toSafeJSON(draft), C.walletSignIndices(draft));
 mintScreen(4, 'Verifying signed genesis…', h('p', { class: 'note', text: 'Checking signature and KIP-20 lane covenant binding.' }));
 var v = C.verifySigned(draft, signed);
 mintScreen(5, 'Broadcasting…', h('p', { class: 'note', text: 'Submitting SeriesFactory genesis transaction.' }));
@@ -4463,11 +4762,11 @@ clear(pubOut);
 pubOut.appendChild(h('div', { class: 'review', style: 'margin-top:8px' },
 h('div', {}, h('span', { text: 'Genesis TxID' }), h('b', { text: short(res.txId, 12, 8), title: res.txId })),
 h('div', {}, h('span', { text: 'Lane Covenant ID' }), h('b', { text: short(ds.laneCovenantId, 12, 8), title: ds.laneCovenantId })),
-h('div', { class: 'row', style: 'margin-top:8px' },
+h('div', { class: 'row', style: 'margin-top:8px;flex-wrap:wrap' },
 h('button', { class: 'btn primary', onclick: function () { showTab('gallery'); var el = document.getElementById('series-card-' + seriesAnchor.id); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, text: 'Open in Gallery & Mint' }),
 h('button', { class: 'btn', onclick: function () { copy(JSON.stringify(seriesAnchor, null, 2), 'Series Anchor JSON'); }, text: 'Copy Anchor JSON' }),
 h('button', { class: 'btn ghost', onclick: function () { download('anchor-' + seriesAnchor.id + '.json', JSON.stringify(seriesAnchor, null, 2) + '\n'); }, text: 'Download Anchor (.json)' }),
-h('button', { class: 'btn', onclick: function () { copy(JSON.stringify(seriesAnchor, null, 2), 'Anchor JSON'); window.open('https://github.com/weirdtualguy/Reliks/issues/new?template=submit-series.yml&title= + encodeURIComponent('[Series] ' + seriesAnchor.title), '_blank', 'noopener'); }, text: 'Submit to Marketplace (GitHub)' })))));
+h('button', { class: 'btn', onclick: function () { copy(JSON.stringify(seriesAnchor, null, 2), 'Anchor JSON'); window.open('https://github.com/weirdtualguy/Reliks/issues/new?template=submit-series.yml&title=' + encodeURIComponent('[Series] ' + seriesAnchor.title), '_blank', 'noopener'); }, text: 'Submit to Marketplace (GitHub)' }))));
 }
 var link = A.explorer + res.txId;
 mintScreen(6, 'Published!', [
@@ -4523,7 +4822,6 @@ K.on(function (st) { var a = $('#artist'); if (st.status === 'connected' && !a.v
 ed.value = D.studio.templates.iso || D.studio.templates.dagcity;
 return { show: show };
 }
-/* ------------------------------------------------------------ tabs */
 var studio = null;
 function showTab(name) {
 if (['gallery', 'studio', 'protocol'].indexOf(name) < 0) name = 'gallery';
@@ -4538,6 +4836,7 @@ window.addEventListener('hashchange', function () { showTab(location.hash.slice(
 var host = $('#series-host');
 A.series.forEach(function (s) { host.appendChild(renderSeries(s)); });
 initCustomSeriesLoader();
+renderGalleryFilters();
 initOfflineVerifier();
 walletChip();
 K.restore().then(walletChip);

@@ -1,17 +1,17 @@
 // Builds docs/index.html: one self-contained page (GitHub Pages serves docs/).
 // No external scripts, styles or fonts. Everything the page verifies is recomputed in the browser.
 // Supports both v13 Reliks-VM (RVM\x01, engine_lang = 2) programs and legacy v12 JavaScript engines,
-// 1-click Series Publishing in Studio with Kaspire, in-browser Secondary Market trading
-// (List, Buy, Cancel Listing, Transfer), and offline provenance bundle verification.
-// The only optional third-party code is the pinned WalletConnect SDK, fetched at runtime
-// when a visitor explicitly picks "Kaspire Mobile" (see web/kaspire.js).
+// High-Level Reliks-Script DSL in Studio, 1-click Series Publishing with Kaspire, multi-UTXO funding,
+// in-browser Secondary Market trading (List, Buy, Cancel Listing, Transfer, and 2-party Atomic Bids),
+// collector portfolio filters, and offline provenance bundle verification.
 'use strict';
 const fs = require('fs');
 const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const read = (...p) => fs.readFileSync(path.join(ROOT, ...p), 'utf8');
 const scriptSafe = (s) => s.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--');
-const compactJs = (s) => scriptSafe(s.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('//')).join('\n'));
+const compactJs = (s) => scriptSafe(s.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('//')).join('\n'));
+const compactCss = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map(l => l.trim()).filter(Boolean).join('\n');
 const json = (o) => scriptSafe(JSON.stringify(o)).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 
 const { blake2b } = require(path.join(ROOT, 'web', 'blake2b.js'));
@@ -25,6 +25,7 @@ const templates = makeTemplates();
 const templatesV13 = makeTemplates({ editionAbi: 'edition-abi-v13.json' });
 const studioTemplates = Object.assign({}, require('../web/studio-templates.js'), {
   iso: read('web', 'vm-templates', 'iso.txt'),
+  dsl_rings: read('web', 'vm-templates', 'dsl_rings.txt'),
   vm_circles: read('web', 'vm-templates', 'starter.txt'),
   vm_dagcity: read('v13', 'vm', 'asm-corpus', 'dagcity_clean.txt')
 });
@@ -119,6 +120,7 @@ const gallery = `
   <p>Reliks anchors a small deterministic engine (Reliks-VM bytecode or JavaScript) inside a Kaspa covenant. Anyone can re-render every edition from public chain data or an offline provenance bundle. This page does exactly that in your browser, and withholds the art if any check fails.</p>
 </div>
 <div class="section-h"><h2>Series &amp; Secondary Market</h2><span>every number below is read from the chain, not from this page</span></div>
+<div class="row" id="gallery-filters" style="margin:0 0 16px;flex-wrap:wrap;gap:8px" role="group" aria-label="Filter editions"></div>
 <div id="series-host"></div>
 <div id="custom-series-host" style="margin-top:18px"></div>
 <div class="section-h"><h2>Offline &amp; Air-Gapped Verifier</h2><span>verify and render any provenance bundle or claim with zero network access</span></div>
@@ -132,12 +134,13 @@ const gallery = `
 </div>`;
 
 const studio = `
-<div class="hero" style="padding-bottom:8px"><span class="eyebrow">Studio · Reliks-VM (v13) &amp; JS</span><h1>Design a program. <em>Gate</em> it. Publish it.</h1>
-<p>Write a Reliks-VM assembly program (or legacy v12 JS engine) in the browser, preview patina and optional sales wear across lineages and sales, run the determinism gates, and publish your SeriesFactory covenant on chain in one click with Kaspire. Standalone offline VM studio: <a href="studio.html">studio.html</a>.</p></div>
-<div class="row" style="margin:20px 0 14px">
+<div class="hero" style="padding-bottom:8px"><span class="eyebrow">Studio · Reliks-VM (v13) &amp; High-Level DSL</span><h1>Design a program. <em>Gate</em> it. Publish it.</h1>
+<p>Write high-level Reliks-Script (<code>.vars</code>, <code>seedrng</code>, <code>bg</code>, <code>for/endfor</code>, <code>if/else/endif</code>, <code>rand</code>) or raw Reliks-VM assembly in the browser, preview patina and optional sales wear, run the determinism gates, and publish your SeriesFactory covenant on chain in one click with Kaspire. Standalone offline VM studio: <a href="studio.html">studio.html</a>.</p></div>
+<div class="row" style="margin:20px 0 14px;flex-wrap:wrap">
   <input id="name" value="my-program" aria-label="Series name" style="max-width:220px" />
-  <select id="tpl" aria-label="Template" style="max-width:240px">
+  <select id="tpl" aria-label="Template" style="max-width:280px">
     <option value="iso" selected>Isometric city (Reliks-VM)</option>
+    <option value="dsl_rings">Celestial rings (High-Level DSL)</option>
     <option value="vm_circles">40 circles (Reliks-VM)</option>
     <option value="vm_dagcity">DAG-City (Reliks-VM)</option>
     <option value="dagcity">DAG City (v12 JS, deprecated)</option>
@@ -147,6 +150,10 @@ const studio = `
   </select>
   <button class="btn" id="load">Load template</button>
 </div>
+<details class="proof" style="margin-bottom:14px"><summary><span>High-Level Reliks-Script DSL Quick Reference (compiles directly to RVM\\x01 bytecode)</span></summary>
+<div style="padding:8px 18px 14px;font:12px/1.6 var(--mono);color:var(--dim)">
+<code>.canvas 1000 1000</code> · <code>.vars I X Y R WR</code> (auto-allocates variable slots) · <code>seedrng</code> (initializes PRNG from serial &amp; lineage) · <code>bg 0x090d16</code> (fills canvas) · <code>set X 100</code> · <code>inc X 5</code> · <code>rand 20 800 st X</code> (random int in [min,max]) · <code>for I 0 40 ... endfor</code> (nestable counted loop) · <code>ld X push 500 lt if ... else ... endif</code> (structured branches without manual labels).
+</div></details>
 <div class="studio">
   <div><label class="sr" for="ed">Program / Engine code</label><textarea id="ed" class="editor" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off"></textarea></div>
   <div style="display:grid;gap:14px;align-content:start">
@@ -188,22 +195,22 @@ const protocol = `
 <tr><td>The engine cannot be swapped after mint</td><td><span class="tag d">Contract</span></td><td>program_hash is part of covenant state and of every successor's script.</td></tr>
 <tr><td>Serials never collide across parallel lanes</td><td><span class="tag d">Contract</span></td><td>Serial is derived from the consumed lane outpoint; the page recomputes it.</td></tr>
 <tr><td>No protocol fee</td><td><span class="tag d">Contract</span></td><td>Primary sale pays the artist exactly the price. Network fees (about 0.04 KAS per mint) still apply.</td></tr>
-<tr><td>Royalties on resale</td><td><span class="tag d">Contract, partly</span></td><td>Enforced on covenant-priced sales (list/buy, escrow accept). <code>transfer</code> and zero-price <code>sell</code> are royalty-free by design.</td></tr>
+<tr><td>Royalties on resale</td><td><span class="tag d">Contract, partly</span></td><td>Enforced on covenant-priced sales (list/buy, atomic bid/sell, escrow accept). <code>transfer</code> is royalty-free by design.</td></tr>
 <tr><td>The art survives pruning</td><td><span class="tag n">Not claimed</span></td><td>The hash is anchored on chain and the engine bytes ship in the contract script, but pruned nodes may drop old transactions. Keep a copy of the engine or provenance bundle (this repository has both).</td></tr>
 <tr><td>Audited</td><td><span class="tag n">No</span></td><td>Automated review passes only. See <code>docs/AUDIT-SUMMARY.md</code>.</td></tr>
-<tr><td>Publish, mint, list, buy and transfer in the browser</td><td><span class="tag v">In browser + CLI</span></td><td>1-click series publishing, primary minting, and secondary trading (list, buy, cancel listing, transfer) run directly in the browser with Kaspire and verify every covenant script before broadcast.</td></tr>
+<tr><td>Publish, mint, list, buy, bid and transfer in the browser</td><td><span class="tag v">In browser + CLI</span></td><td>1-click series publishing, multi-UTXO minting, fixed-price listings, 2-party atomic bids/offers, and transfers run directly in the browser with Kaspire.</td></tr>
 </tbody></table>
 <div class="section-h"><h2>Wallet</h2></div>
 <div class="cards">
-  <div class="card"><span class="tag d">Recommended</span><h3>Kaspire Extension</h3><p>Injected <code>window.kaspire</code> provider. No relay, no QR, no third-party script. It signs the mint's wallet input and broadcasts with <code>pushTx</code>.</p></div>
-  <div class="card"><span class="tag d">Android</span><h3>Kaspire Mobile</h3><p>WalletConnect v2, loaded only when you choose it. It can connect and sign. Covenant transactions cannot be broadcast through public REST, so paste your own node address, or use the extension.</p></div>
+  <div class="card"><span class="tag d">Recommended</span><h3>Kaspire Extension</h3><p>Injected <code>window.kaspire</code> provider. No relay, no QR, no third-party script. It signs wallet inputs (automatically combining up to 4 UTXOs when needed) and broadcasts with <code>pushTx</code>.</p></div>
+  <div class="card"><span class="tag d">Android</span><h3>Kaspire Mobile</h3><p>WalletConnect v2, loaded only when you choose it. Connect, sign, and pick one of the one-click wRPC presets in the review step (or your own node) to broadcast.</p></div>
   <div class="card"><span class="tag n">Honest limit</span><h3>Test small</h3><p>The wallet flow follows Kaspire's published API and is tested against mocks. Try it first on a series with editions left, with a low-value wallet.</p></div>
 </div>
 <div class="section-h"><h2>How a mint works</h2></div>
 <ol class="steps">
 <li><span>The page rebuilds the live lane state from public chain data and proves it recomputes to the on-chain script.</span></li>
 <li><span>It builds one transaction: the lane advances by one, a new edition covenant is created with a 1 KAS carrier, and the artist is paid the price.</span></li>
-<li><span>Kaspire shows its own review of that exact transaction and signs only your funding input.</span></li>
+<li><span>Kaspire shows its own review of that exact transaction and signs only your funding input(s).</span></li>
 <li><span>The page checks that the signed transaction still matches what you reviewed, and only then broadcasts.</span></li>
 </ol>
 <p class="note" style="margin-top:28px">Source, contracts and tests: <a href="https://github.com/weirdtualguy/Reliks" target="_blank" rel="noopener">github.com/weirdtualguy/Reliks</a>. MIT licensed.</p>`;
@@ -217,7 +224,7 @@ const html = `<!doctype html>
 <meta name="description" content="Reliks anchors a deterministic generative engine inside a Kaspa covenant. Re-render and verify every edition in your browser.">
 <meta name="theme-color" content="#06080b">
 <link rel="icon" href="${favicon}">
-<style>${read('web', 'site.css')}</style>
+<style>${compactCss(read('web', 'site.css'))}</style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>

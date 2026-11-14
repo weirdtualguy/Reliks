@@ -150,7 +150,7 @@ const PK = 'aa'.repeat(32), PK2 = 'bb'.repeat(32);
     eq(dep.outputs[0].covenant.covenantId, expectedCov);
   });
 
-  // ---- Secondary Market Builders (list, unlist, buy, transfer)
+  // ---- Secondary Market Builders (list, unlist, buy, transfer, bid/sell)
   const edState13 = {
     ownerIdentifier: seller.pubkey, identifierType: 0, price: 0n,
     artist: S.artist, royalty_bips: 500n, program_hash: S.programHash,
@@ -171,7 +171,7 @@ const PK = 'aa'.repeat(32), PK2 = 'bb'.repeat(32);
     sj.inputs[1].signatureScript = sig;
     const fin = C.finalizeOwnerCovenantTx(listDraft, sj);
     eq(fin.rpcTx.outputs[0].value, 100000000);
-    const decodedNext = C.applyEditionTransition ? null : C.decodeEditionState(Buffer.from(C.editionRedeem(listDraft.summary.nextState, t13.edition)).toString('hex'), t13.edition);
+    const decodedNext = C.decodeEditionState(Buffer.from(C.editionRedeem(listDraft.summary.nextState, t13.edition)).toString('hex'), t13.edition);
     eq(decodedNext.price, 1000000000n);
   });
 
@@ -180,13 +180,31 @@ const PK = 'aa'.repeat(32), PK2 = 'bb'.repeat(32);
     const listedEd = { ...edObj, state: listedState, spk: C.p2shSpk(C.editionRedeem(listedState, t13.edition)) };
     const buyFunding = { txId: '09'.repeat(32), index: 0, amount: 2000000000n, daa: 10n };
     const buyDraft = C.buildBuyEdition({ edition: listedEd, buyer, funding: buyFunding, fee: 500000n, hrp: 'kaspa', editionTemplate: t13.edition });
-    eq(buyDraft.outputs[0].value, 100000000n); // carrier preserved
-    eq(buyDraft.outputs[1].value, 950000000n); // 9.5 KAS to seller
-    eq(buyDraft.outputs[2].value, 50000000n);  // 0.5 KAS royalty to artist
+    eq(buyDraft.outputs[0].value, 100000000n);
+    eq(buyDraft.outputs[1].value, 950000000n);
+    eq(buyDraft.outputs[2].value, 50000000n);
     eq(buyDraft.summary.nextState.ownerIdentifier, buyer.pubkey);
     eq(buyDraft.summary.nextState.price, 0n);
     eq(buyDraft.summary.nextState.sales, 2n);
     eq(buyDraft.summary.nextState.lineage, C.advanceLineage(edState13.lineage, buyer.pubkey));
+  });
+
+  await t('buildMakeBid + finalizeOwnerCovenantTx (sell 89cfc99a): 2-party atomic bid on unlisted edition', () => {
+    const bidFunding = { txId: '0a'.repeat(32), index: 0, amount: 1500000000n, daa: 12n };
+    const bidDraft = C.buildMakeBid({ edition: edObj, bidder: buyer, offerPrice: 800000000n, funding: bidFunding, fee: 500000n, hrp: 'kaspa', editionTemplate: t13.edition });
+    eq(C.walletSignIndices(bidDraft).join(','), '1');
+    // Step 1: Bidder signs input 1
+    const bidderSigned = JSON.parse(C.toSafeJSON(bidDraft));
+    bidderSigned.inputs[1].signatureScript = sig;
+    C.verifySigned(bidDraft, bidderSigned);
+    // Step 2: Owner co-signs input 0 and finalizes sell (89cfc99a) covenant script
+    bidderSigned.inputs[0].signatureScript = sig;
+    const fin = C.finalizeOwnerCovenantTx(bidDraft, bidderSigned);
+    eq(fin.rpcTx.outputs[0].value, 100000000); // edition carrier to buyer
+    eq(fin.rpcTx.outputs[1].value, 760000000); // 7.6 KAS (95%) to seller
+    eq(fin.rpcTx.outputs[2].value, 40000000);  // 0.4 KAS (5%) royalty to artist
+    eq(bidDraft.summary.nextState.ownerIdentifier, buyer.pubkey);
+    eq(bidDraft.summary.nextState.sales, 2n);
   });
 
   await t('buildTransferEdition: accepts a kaspa: address, advances lineage, keeps sales unchanged', () => {
@@ -196,9 +214,20 @@ const PK = 'aa'.repeat(32), PK2 = 'bb'.repeat(32);
     eq(xferDraft.summary.nextState.lineage, C.advanceLineage(edState13.lineage, buyer.pubkey));
   });
 
-  await t('pickFunding: picks the largest confirmed output and refuses when it is too small', () => {
-    const list = [{ outpoint: { transactionId: 'aa'.repeat(32), index: 0 }, utxoEntry: { amount: '300000000', blockDaaScore: '5' } }, { outpoint: { transactionId: 'bb'.repeat(32), index: 1 }, utxoEntry: { amount: '900000000', blockDaaScore: '6' } }, { outpoint: { transactionId: 'cc'.repeat(32), index: 1 }, utxoEntry: { amount: '9000000000', isCoinbase: true, blockDaaScore: '6' } }];
-    const p = C.pickFunding(list, 500000000n); eq(p.txId, 'bb'.repeat(32));
+  await t('pickFunding: prefers single output when large enough, automatically combines multiple outputs when fragmented, and refuses when total is insufficient', () => {
+    const list = [
+      { outpoint: { transactionId: 'aa'.repeat(32), index: 0 }, utxoEntry: { amount: '300000000', blockDaaScore: '5' } },
+      { outpoint: { transactionId: 'bb'.repeat(32), index: 1 }, utxoEntry: { amount: '900000000', blockDaaScore: '6' } },
+      { outpoint: { transactionId: 'cc'.repeat(32), index: 1 }, utxoEntry: { amount: '9000000000', isCoinbase: true, blockDaaScore: '6' } }
+    ];
+    const p1 = C.pickFunding(list, 500000000n);
+    eq(p1.txId, 'bb'.repeat(32)); eq(p1.inputs.length, 1);
+    const p2 = C.pickFunding(list, 1100000000n);
+    eq(p2.inputs.length, 2); eq(p2.amount, 1200000000n);
+    // Verify buildMint with 2-UTXO funding
+    const m2 = C.buildMint({ lane, buyer, funding: p2, fee, hrp: 'kaspa' });
+    eq(m2.inputs.length, 3);
+    eq(C.walletSignIndices(m2).join(','), '1,2');
     if (!C.pickFunding(list, 5000000000n).error) throw new Error('should refuse');
   });
   await t('fmtKas formats exactly', () => { eq(C.fmtKas(100000000n), '1'); eq(C.fmtKas(150000000n), '1.5'); eq(C.fmtKas(3500000n), '0.035'); });

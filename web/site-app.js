@@ -2,8 +2,10 @@
    Everything on the page is recomputed here in the visitor's browser: engine hash,
    image hash, serials, contract scripts and covenant ids are compared with public
    chain data (both JS engines and Reliks-VM RVM\x01 programs), and the art is withheld
-   if any comparison fails. Supports 1-click Series Publishing in Studio with Kaspire,
-   in-browser Secondary Market trading (List, Buy, Cancel Listing, Transfer), and
+   if any comparison fails. Supports High-Level Reliks-Script DSL, 1-click Series
+   Publishing in Studio with Kaspire, automatic multi-UTXO funding, one-click mobile
+   wRPC presets, in-browser Secondary Market trading (List, Buy, Cancel Listing,
+   Transfer, and 2-party Atomic Bids/Offers), collector portfolio filters, and
    Offline Provenance Bundle verification.
 
    Globals provided by the page: RELIKS_DATA, ReliksBlake2b, ReliksChain, RVM, RvmAsm, Kaspire. */
@@ -13,6 +15,7 @@
   var A = D.anchors, SOMPI = C.SOMPI;
   var io = C.makeIO(A);
   var $ = function (s, r) { return (r || document).querySelector(s); };
+  var activeFilter = 'all'; // 'all' | 'listed' | 'mine' | 'bids'
 
   /* ------------------------------------------------------------ tiny DOM helper (text only, never innerHTML with data) */
   function h(tag, attrs) {
@@ -61,7 +64,7 @@
     return { vmMode: vmMode, isV13: isV13, engBytes: engBytes };
   }
 
-  /* ------------------------------------------------------------ localStorage helpers for newly minted editions & published series */
+  /* ------------------------------------------------------------ localStorage helpers for newly minted editions, series & bids */
   function loadLocalEditions(seriesId) {
     try { return JSON.parse(localStorage.getItem('reliks.editions.' + seriesId) || '[]'); } catch (e) { return []; }
   }
@@ -82,6 +85,22 @@
       var list = loadCustomSeries().filter(function (x) { return x.laneCovenantId !== sObj.laneCovenantId; });
       list.unshift(sObj);
       localStorage.setItem('reliks.custom.series', JSON.stringify(list.slice(0, 20)));
+    } catch (e) { /* ignore */ }
+  }
+  function loadBidsForEdition(edCovId) {
+    try { return JSON.parse(localStorage.getItem('reliks.bids.' + edCovId) || '[]'); } catch (e) { return []; }
+  }
+  function saveBidForEdition(edCovId, bidObj) {
+    try {
+      var list = loadBidsForEdition(edCovId).filter(function (b) { return b.bidder !== bidObj.bidder || b.offerPrice !== bidObj.offerPrice; });
+      list.unshift(bidObj);
+      localStorage.setItem('reliks.bids.' + edCovId, JSON.stringify(list.slice(0, 10)));
+    } catch (e) { /* ignore */ }
+  }
+  function removeBidForEdition(edCovId, bidObj) {
+    try {
+      var list = loadBidsForEdition(edCovId).filter(function (b) { return !(b.bidder === bidObj.bidder && b.offerPrice === bidObj.offerPrice); });
+      localStorage.setItem('reliks.bids.' + edCovId, JSON.stringify(list));
     } catch (e) { /* ignore */ }
   }
 
@@ -293,6 +312,7 @@
     walletChip();
     if (walletDlg.open && (K.state().status === 'connected' || K.state().status === 'wrongnet')) renderWalletDialog();
     Object.keys(seriesViews).forEach(function (id) { seriesViews[id].refreshCta(); if (seriesViews[id].refreshEditions) seriesViews[id].refreshEditions(); });
+    renderGalleryFilters();
   });
   $('#wallet-btn').addEventListener('click', openWallet);
   walletDlg.addEventListener('click', function (e) { if (e.target === walletDlg) closeWallet(); });
@@ -311,7 +331,12 @@
 
   function askReview(stepTitle, rows, noteText, draft, extraFields) {
     return new Promise(function (resolve) {
-      var wr = h('input', { id: 'wrpc', placeholder: 'ws://localhost:17110 (optional)', value: savedWrpc(), autocomplete: 'off', spellcheck: 'false' });
+      var wr = h('input', { id: 'wrpc', placeholder: 'wss://... or ws://localhost:17110 (optional)', value: savedWrpc(), autocomplete: 'off', spellcheck: 'false' });
+      var presets = h('div', { class: 'row', style: 'margin-top:6px;flex-wrap:wrap;gap:6px' },
+        h('span', { style: 'font:11px var(--mono);color:var(--dim)', text: 'Mobile wRPC presets:' }),
+        h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = 'wss://wrpc.kaspad.net'; }, text: 'wrpc.kaspad.net' }),
+        h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = 'ws://127.0.0.1:17110'; }, text: 'Local 17110' }),
+        h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = ''; }, text: 'Clear' }));
       var raw = h('pre', { class: 'code', text: JSON.stringify(JSON.parse(C.toSafeJSON(draft)), null, 2) });
       var rev = h('div', { class: 'review' });
       rows.forEach(function (r) {
@@ -321,8 +346,9 @@
       if (extraFields) kids.push(extraFields);
       kids.push(
         h('p', { class: 'note', text: noteText }),
-        h('details', {}, h('summary', { class: 'note', text: 'Transaction details' }), raw,
-          h('div', { class: 'field', style: 'margin-top:10px' }, h('label', { for: 'wrpc', text: 'Broadcast via your own node (wRPC), optional' }), wr)),
+        h('details', { open: K.state().transport === 'mobile' }, h('summary', { class: 'note', text: 'Transaction details & wRPC node (for Kaspire Mobile)' }),
+          h('div', { class: 'field', style: 'margin:8px 0' }, h('label', { for: 'wrpc', text: 'Broadcast node (wRPC URL, optional for Extension)' }), wr, presets),
+          raw),
         h('div', { class: 'cta' },
           h('button', { class: 'btn primary', onclick: function () { saveWrpc(wr.value.trim()); resolve({ go: true, wrpc: wr.value.trim() }); }, text: 'Sign in Kaspire' }),
           h('button', { class: 'btn ghost', onclick: function () { resolve({ go: false }); }, text: 'Cancel' }))
@@ -349,26 +375,27 @@
       mintScreen(0, 'Reading the chain…', h('p', { class: 'note', text: 'Rebuilding the live lane state from public data and checking it against the on-chain script.' }));
       var lane = await C.resolveLane(io, s);
       if (lane.state.mints_left <= 0n) throw new Error('This series is sold out.');
-      mintScreen(1, 'Building the transaction…', h('p', { class: 'note', text: 'Looking for a single confirmed output in your wallet that can fund the mint.' }));
+      mintScreen(1, 'Building the transaction…', h('p', { class: 'note', text: 'Selecting confirmed output(s) in your wallet to fund the mint.' }));
       var list = await io.utxos(st.address);
       var probe = C.buildMint({ lane: lane, buyer: { pubkey: st.pubkey, address: st.address }, funding: { txId: '00'.repeat(32), index: 0, amount: 10n ** 13n }, fee: 1n, hrp: A.hrp });
       var fee = C.estimateFee(probe), price = BigInt(lane.state.price);
       var pick = C.pickFunding(list, price + C.CARRIER + fee + 2000000n);
       if (pick.error) throw new Error(pick.error);
-      var draft = C.buildMint({ lane: lane, buyer: { pubkey: st.pubkey, address: st.address }, funding: pick, fee: fee, hrp: A.hrp });
+      var draft = C.buildMint({ lane: lane, buyer: { pubkey: st.pubkey, address: st.address }, funding: pick, fee: C.estimateFee(C.buildMint({ lane: lane, buyer: { pubkey: st.pubkey, address: st.address }, funding: pick, fee: fee, hrp: A.hrp })), hrp: A.hrp });
       var m = draft.summary, total = m.price + C.CARRIER + m.fee;
+      var utxoNote = pick.inputs && pick.inputs.length > 1 ? ' (' + pick.inputs.length + ' UTXOs combined)' : '';
       var choice = await askReview('Review your mint', [
         { label: 'Series', value: s.title },
         { label: 'Edition serial', value: short(m.serial, 8, 6), title: m.serial },
         { label: 'Paid to the artist (100%)', value: C.fmtKas(m.price) + ' KAS' },
         { label: 'Locked in your edition (carrier)', value: C.fmtKas(m.carrier) + ' KAS' },
-        { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(m.fee) + ' KAS' },
+        { label: 'Network fee' + utxoNote, value: '≈ ' + C.fmtKas(m.fee) + ' KAS' },
         { label: 'Resale royalty to artist', value: (Number(m.royaltyBips) / 100) + '%' },
         { label: 'Leaves your wallet', value: '≈ ' + C.fmtKas(total) + ' KAS', total: true }
       ], 'The carrier stays inside the edition contract and belongs to whoever owns the edition. Kaspire will show its own review of this exact transaction before you approve.', draft);
       if (!choice.go) { mintDlg.close(); return; }
       mintScreen(3, 'Approve in Kaspire', h('p', { class: 'note', text: 'Kaspire opens its own window (or your phone) with the full transaction. Check the outputs, then approve.' }));
-      var signed = await K.signPskt(C.toSafeJSON(draft), [1]);
+      var signed = await K.signPskt(C.toSafeJSON(draft), C.walletSignIndices(draft));
       mintScreen(4, 'Checking what Kaspire signed…', h('p', { class: 'note', text: 'Every input, output and covenant binding must still match what you reviewed.' }));
       var v = C.verifySigned(draft, signed);
       mintScreen(5, 'Broadcasting…', h('p', { class: 'note', text: st.transport === 'extension' ? 'Kaspire submits the transaction to its node.' : 'Submitting through your node.' }));
@@ -376,7 +403,7 @@
       if (!res.txId) {
         mintScreen(5, 'Signed, not broadcast', [
           h('p', { class: 'note warn', text: 'Kaspire signed the transaction but it could not be submitted from the browser: ' + (res.message || 'no broadcast path') + '. Nothing has been spent.' }),
-          h('p', { class: 'note', text: st.transport === 'mobile' ? 'Covenant transactions need a node that keeps the compute budget. Use Kaspire Extension, or paste your own node (wRPC) address in the review step.' : 'Retry, or paste your own node (wRPC) address in the review step.' }),
+          h('p', { class: 'note', text: st.transport === 'mobile' ? 'Covenant transactions need a node that keeps the compute budget. Pick a wRPC preset in the review step, or use Kaspire Extension.' : 'Retry, or pick a wRPC endpoint in the review step.' }),
           h('div', { class: 'cta' }, h('button', { class: 'btn', onclick: function () { copy(typeof signed === 'string' ? signed : JSON.stringify(signed), 'Signed transaction'); }, text: 'Copy signed transaction' }), h('button', { class: 'btn ghost', onclick: function () { mintDlg.close(); }, text: 'Close' }))]);
         return;
       }
@@ -405,19 +432,21 @@
     } finally { minting = false; }
   }
 
-  /* ------------------------------------------------------------ secondary market flows (buy, list, unlist, transfer) */
+  /* ------------------------------------------------------------ secondary market flows (buy, list, unlist, transfer, bid/accept-bid) */
   function promptTradeInputs(action, s, edInfo) {
     return new Promise(function (resolve) {
       var st = edInfo.state;
       var priceIn = h('input', { id: 'trade-price', inputmode: 'decimal', value: st.price > 0n ? C.fmtKas(st.price) : '5', placeholder: 'e.g. 5' });
       var toIn = h('input', { id: 'trade-to', placeholder: 'kaspa:qp... or 64-hex public key', autocomplete: 'off', spellcheck: 'false' });
       var errEl = h('p', { class: 'note bad', hidden: true });
-      var title = action === 'list' ? 'List Edition #' + edInfo.index + ' for Sale' : 'Transfer Edition #' + edInfo.index;
+      var title = action === 'list' ? 'List Edition #' + edInfo.index + ' for Sale' : action === 'bid' ? 'Place Bid / Offer on Edition #' + edInfo.index : 'Transfer Edition #' + edInfo.index;
       var desc = action === 'list'
         ? 'Set a fixed price in KAS (minimum 1 KAS). Anyone can buy the edition on chain, paying ' + (100 - Number(st.royalty_bips) / 100) + '% to you and ' + (Number(st.royalty_bips) / 100) + '% royalty to the artist.'
-        : 'Transfer this edition to another Kaspa wallet (royalty-free). In v13, transferring advances provenance lineage (patina) without incrementing sales wear.';
-      var fieldBox = action === 'list'
-        ? h('div', { class: 'field', style: 'margin:12px 0' }, h('label', { for: 'trade-price', text: 'Listing price (KAS, min 1)' }), priceIn)
+        : action === 'bid'
+          ? 'Create a signed atomic bid in KAS (minimum 1 KAS) using ReliksEdition.sell. Your funds stay in your wallet until the edition owner co-signs and accepts your bid.'
+          : 'Transfer this edition to another Kaspa wallet (royalty-free). In v13, transferring advances provenance lineage (patina) without incrementing sales wear.';
+      var fieldBox = (action === 'list' || action === 'bid')
+        ? h('div', { class: 'field', style: 'margin:12px 0' }, h('label', { for: 'trade-price', text: (action === 'bid' ? 'Bid / Offer amount' : 'Listing price') + ' (KAS, min 1)' }), priceIn)
         : h('div', { class: 'field', style: 'margin:12px 0' }, h('label', { for: 'trade-to', text: 'Recipient address (kaspa:qp...) or 64-hex pubkey' }), toIn);
       clear(mintBody);
       add(mintBody, [
@@ -428,9 +457,9 @@
         h('div', { class: 'cta' },
           h('button', { class: 'btn primary', onclick: function () {
             errEl.hidden = true;
-            if (action === 'list') {
+            if (action === 'list' || action === 'bid') {
               var num = Number(priceIn.value.trim());
-              if (!(num >= 1)) { errEl.textContent = 'Listing price must be at least 1 KAS.'; errEl.hidden = false; return; }
+              if (!(num >= 1)) { errEl.textContent = 'Amount must be at least 1 KAS.'; errEl.hidden = false; return; }
               resolve({ newPrice: BigInt(Math.round(num * 1e8)) });
             } else {
               try {
@@ -447,6 +476,61 @@
     });
   }
 
+  async function startAcceptBid(s, view, ed, bidObj) {
+    if (minting) return;
+    var w = K.state();
+    if (w.status !== 'connected') { openWallet(); return; }
+    minting = true;
+    try {
+      var draft = bidObj.draft;
+      // Deserialize BigInts inside draft
+      draft.inputs.forEach(function (inp) {
+        inp.sequence = BigInt(inp.sequence || 0);
+        inp.utxo.amount = BigInt(inp.utxo.amount);
+        inp.utxo.daa = BigInt(inp.utxo.daa || 0);
+      });
+      draft.outputs.forEach(function (o) { o.value = BigInt(o.value); });
+      draft.lockTime = BigInt(draft.lockTime || 0);
+      draft.gas = BigInt(draft.gas || 0);
+      draft.fee = BigInt(draft.fee || 0);
+      if (draft.inputs[0].ownerCovenant) draft.inputs[0].ownerCovenant.salePrice = BigInt(draft.inputs[0].ownerCovenant.salePrice);
+      var price = BigInt(bidObj.offerPrice);
+      var roy = (price * BigInt(s.royalty_bips || 500)) / 10000n;
+      var net = price - roy;
+      var choice = await askReview('Accept Bid on Edition #' + ed.index, [
+        { label: 'Series / Edition', value: s.title + ' #' + ed.index },
+        { label: 'Bidder', value: short(C.p2pkAddress(A.hrp, bidObj.bidder), 14, 8) },
+        { label: 'Offer price', value: C.fmtKas(price) + ' KAS' },
+        { label: 'You receive (net after royalty)', value: C.fmtKas(net) + ' KAS', total: true },
+        { label: 'Artist royalty', value: C.fmtKas(roy) + ' KAS' }
+      ], 'Co-signing Input 0 completes the atomic swap: you receive ' + C.fmtKas(net) + ' KAS and the edition transfers to the bidder.', draft);
+      if (!choice.go) { mintDlg.close(); return; }
+      mintScreen(3, 'Approve in Kaspire', h('p', { class: 'note', text: 'Sign Input 0 in Kaspire to accept the bid and complete the sale.' }));
+      var ownerSigned = await K.signPskt(bidObj.signedTxJson, [0]);
+      mintScreen(4, 'Verifying atomic swap…', h('p', { class: 'note', text: 'Wrapping your signature into the ReliksEdition.sell covenant script and verifying all outputs.' }));
+      var fin = C.finalizeOwnerCovenantTx(draft, ownerSigned);
+      mintScreen(5, 'Broadcasting…', h('p', { class: 'note', text: 'Submitting completed atomic sale to the network.' }));
+      var res = await K.broadcast(fin.signedJson, fin.rpcTx, { wrpc: choice.wrpc ? [choice.wrpc] : A.wrpc || [] });
+      if (!res.txId) {
+        mintScreen(5, 'Signed, not broadcast', [
+          h('p', { class: 'note warn', text: 'Sale co-signed, but could not be broadcast: ' + (res.message || 'no broadcast path') + '.' }),
+          h('div', { class: 'cta' }, h('button', { class: 'btn', onclick: function () { copy(fin.signedJson, 'Completed sale transaction'); }, text: 'Copy signed transaction' }), h('button', { class: 'btn ghost', onclick: function () { mintDlg.close(); }, text: 'Close' }))]);
+        return;
+      }
+      removeBidForEdition(ed.covenantId, bidObj);
+      var link = A.explorer + res.txId;
+      mintScreen(6, 'Bid Accepted!', [
+        h('p', { class: 'note' }, 'Atomic sale submitted in ', h('a', { href: link, target: '_blank', rel: 'noopener', text: short(res.txId, 10, 8) }), '.'),
+        h('div', { class: 'cta' }, h('button', { class: 'btn primary', onclick: function () { mintDlg.close(); }, text: 'Done' }))]);
+      toast('Bid accepted! Sale submitted.', 'ok');
+      if (view && view.reload) view.reload();
+    } catch (e) {
+      var fe = K.friendly(e);
+      if (fe.userCancelled) { mintDlg.close(); toast('Cancelled.'); }
+      else mintScreen(0, 'Could not accept bid', [h('p', { class: 'note bad', text: fe.message }), h('div', { class: 'cta' }, h('button', { class: 'btn', onclick: function () { mintDlg.close(); }, text: 'Close' }))]);
+    } finally { minting = false; }
+  }
+
   async function startTrade(s, view, ed, action) {
     if (minting) return;
     var w = K.state();
@@ -456,17 +540,64 @@
       mintScreen(0, 'Reading edition state…', h('p', { class: 'note', text: 'Resolving the live edition UTXO and verifying its covenant script.' }));
       var liveEd = await C.resolveEdition(io, s, ed, s._editionTemplate);
       var params = {};
-      if (action === 'list' || action === 'transfer') {
+      if (action === 'list' || action === 'transfer' || action === 'bid') {
         minting = false;
         var inp = await promptTradeInputs(action, s, liveEd);
         if (!inp) return;
         params = inp;
         minting = true;
       }
-      mintScreen(1, 'Building the transaction…', h('p', { class: 'note', text: 'Selecting a confirmed UTXO in your wallet to fund the transaction.' }));
+      mintScreen(1, 'Building the transaction…', h('p', { class: 'note', text: 'Selecting confirmed UTXO(s) in your wallet to fund the transaction.' }));
       var list = await io.utxos(w.address);
       var dummyFund = { txId: '00'.repeat(32), index: 0, amount: 10n ** 13n };
-      var probe, draft, rows, noteText, signIndices;
+      var probe, draft, rows, noteText;
+
+      if (action === 'bid') {
+        probe = C.buildMakeBid({ edition: liveEd, bidder: { pubkey: w.pubkey, address: w.address }, offerPrice: params.newPrice, funding: dummyFund, fee: 1n, hrp: A.hrp, editionTemplate: s._editionTemplate });
+        var feeBid = C.estimateFee(probe);
+        var pickBid = C.pickFunding(list, params.newPrice + feeBid + 2000000n);
+        if (pickBid.error) throw new Error(pickBid.error);
+        draft = C.buildMakeBid({ edition: liveEd, bidder: { pubkey: w.pubkey, address: w.address }, offerPrice: params.newPrice, funding: pickBid, fee: feeBid, hrp: A.hrp, editionTemplate: s._editionTemplate });
+        var sbid = draft.summary;
+        rows = [
+          { label: 'Series / Edition', value: s.title + ' #' + ed.index },
+          { label: 'Bid / Offer amount', value: C.fmtKas(sbid.price) + ' KAS' },
+          { label: 'Paid to owner on accept', value: C.fmtKas(sbid.ownerNet) + ' KAS' },
+          { label: 'Paid to artist (royalty)', value: C.fmtKas(sbid.royalty) + ' KAS' },
+          { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(sbid.fee) + ' KAS', total: true }
+        ];
+        noteText = 'Signing creates a partially-signed atomic swap (PSKT). No funds leave your wallet unless the current edition owner co-signs and accepts your bid.';
+        var choiceBid = await askReview('Review your Bid / Offer', rows, noteText, draft);
+        if (!choiceBid.go) { mintDlg.close(); return; }
+        mintScreen(3, 'Sign Bid in Kaspire', h('p', { class: 'note', text: 'Approve signing your wallet input(s) in Kaspire.' }));
+        var bidderSigned = await K.signPskt(C.toSafeJSON(draft), C.walletSignIndices(draft));
+        C.verifySigned(draft, bidderSigned);
+        var serializableDraft = JSON.parse(JSON.stringify(draft, function (_, v) { return typeof v === 'bigint' ? v.toString() : v; }));
+        var bidBundle = {
+          reliks_bid: 1,
+          seriesId: s.id,
+          editionIndex: ed.index,
+          editionCovenantId: ed.covenantId,
+          serial: String(ed.serial),
+          offerPrice: params.newPrice.toString(),
+          bidder: w.pubkey,
+          seller: String(liveEd.state.ownerIdentifier).toLowerCase(),
+          createdAt: new Date().toISOString().slice(0, 10),
+          draft: serializableDraft,
+          signedTxJson: bidderSigned
+        };
+        saveBidForEdition(ed.covenantId, bidBundle);
+        if (view && view.refreshEditions) view.refreshEditions();
+        renderGalleryFilters();
+        mintScreen(6, 'Bid Signed & Saved!', [
+          h('p', { class: 'note', text: 'Your ' + C.fmtKas(params.newPrice) + ' KAS bid is active on Edition #' + ed.index + '. Copy the Signed Bid JSON below to send to the owner, or post it on GitHub so the owner can accept in 1 click.' }),
+          h('div', { class: 'cta' },
+            h('button', { class: 'btn primary', onclick: function () { copy(JSON.stringify(bidBundle), 'Signed Bid JSON'); }, text: 'Copy Signed Bid JSON' }),
+            h('button', { class: 'btn', onclick: function () { mintDlg.close(); }, text: 'Done' }))]);
+        toast('Bid of ' + C.fmtKas(params.newPrice) + ' KAS created!', 'ok');
+        return;
+      }
+
       if (action === 'buy') {
         probe = C.buildBuyEdition({ edition: liveEd, buyer: { pubkey: w.pubkey, address: w.address }, funding: dummyFund, fee: 1n, hrp: A.hrp, editionTemplate: s._editionTemplate });
         var feeBuy = C.estimateFee(probe), priceBuy = BigInt(liveEd.state.price);
@@ -483,7 +614,6 @@
           { label: 'Leaves your wallet', value: '≈ ' + C.fmtKas(sb.price + sb.fee) + ' KAS', total: true }
         ];
         noteText = 'Buying transfers the 1 KAS edition carrier UTXO to your wallet address and advances the v13 provenance lineage and sales wear.';
-        signIndices = [1];
       } else if (action === 'list') {
         probe = C.buildListEdition({ edition: liveEd, owner: { pubkey: w.pubkey, address: w.address }, newPrice: params.newPrice, funding: dummyFund, fee: 1n, hrp: A.hrp, editionTemplate: s._editionTemplate });
         var feeList = C.estimateFee(probe);
@@ -498,7 +628,6 @@
           { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(draft.fee) + ' KAS', total: true }
         ];
         noteText = 'Your edition stays in its covenant UTXO under your ownership until someone buys it or you cancel the listing.';
-        signIndices = [0, 1];
       } else if (action === 'unlist') {
         probe = C.buildUnlistEdition({ edition: liveEd, owner: { pubkey: w.pubkey, address: w.address }, funding: dummyFund, fee: 1n, hrp: A.hrp, editionTemplate: s._editionTemplate });
         var feeUn = C.estimateFee(probe);
@@ -511,7 +640,6 @@
           { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(draft.fee) + ' KAS', total: true }
         ];
         noteText = 'Cancelling sets the edition price back to 0 so it cannot be bought.';
-        signIndices = [0, 1];
       } else if (action === 'transfer') {
         probe = C.buildTransferEdition({ edition: liveEd, owner: { pubkey: w.pubkey, address: w.address }, newOwner: params.newOwner, funding: dummyFund, fee: 1n, hrp: A.hrp, editionTemplate: s._editionTemplate });
         var feeXf = C.estimateFee(probe);
@@ -525,14 +653,14 @@
           { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(draft.fee) + ' KAS', total: true }
         ];
         noteText = 'Transfers the edition covenant and its 1 KAS carrier to the recipient address.';
-        signIndices = [0, 1];
       }
       var choice = await askReview('Review ' + action, rows, noteText, draft);
       if (!choice.go) { mintDlg.close(); return; }
       mintScreen(3, 'Approve in Kaspire', h('p', { class: 'note', text: 'Approve the transaction in Kaspire.' }));
+      var signIndices = C.walletSignIndices(draft);
       var signed = await K.signPskt(C.toSafeJSON(draft), signIndices);
       mintScreen(4, 'Verifying signed covenant…', h('p', { class: 'note', text: 'Verifying signatures and covenant bindings before broadcast.' }));
-      var verified = signIndices.length === 2 ? C.finalizeOwnerCovenantTx(draft, signed) : C.verifySigned(draft, signed);
+      var verified = draft.inputs[0].ownerCovenant ? C.finalizeOwnerCovenantTx(draft, signed) : C.verifySigned(draft, signed);
       var finalSignedJson = verified.signedJson || signed;
       mintScreen(5, 'Broadcasting…', h('p', { class: 'note', text: 'Submitting transaction to the network.' }));
       var res = await K.broadcast(finalSignedJson, verified.rpcTx, { wrpc: choice.wrpc ? [choice.wrpc] : A.wrpc || [] });
@@ -557,9 +685,48 @@
     } finally { minting = false; }
   }
 
-  /* ------------------------------------------------------------ gallery */
+  /* ------------------------------------------------------------ gallery & portfolio filters */
   var seriesViews = {};
   var STATUS_TXT = { ok: 'Verified in your browser', bad: 'Mismatch: art withheld', wait: 'Verifying…', err: 'Chain unreachable: not fully verified' };
+
+  function renderGalleryFilters() {
+    var bar = $('#gallery-filters');
+    if (!bar) return;
+    clear(bar);
+    var w = K.state(), myPk = w.status === 'connected' ? String(w.pubkey).toLowerCase() : '';
+    var counts = { all: 0, listed: 0, mine: 0, bids: 0 };
+    Object.keys(seriesViews).forEach(function (id) {
+      var v = seriesViews[id], s = v.series;
+      var liveMap = (v.result && v.result.ctx && v.result.ctx.liveEditions) || {};
+      (s.editions || []).forEach(function (ed) {
+        counts.all++;
+        var st = (liveMap[ed.index] && liveMap[ed.index].state) || { ownerIdentifier: ed.ownerAtMint, price: 0n };
+        if (BigInt(st.price || 0) >= SOMPI) counts.listed++;
+        if (myPk && String(st.ownerIdentifier || '').toLowerCase() === myPk) counts.mine++;
+        if (loadBidsForEdition(ed.covenantId).length > 0) counts.bids++;
+      });
+    });
+    var items = [
+      { id: 'all', label: 'All Editions (' + counts.all + ')' },
+      { id: 'listed', label: 'Listed for Sale (' + counts.listed + ')' },
+      { id: 'mine', label: 'My Collection (' + counts.mine + ')' },
+      { id: 'bids', label: 'Active Bids (' + counts.bids + ')' }
+    ];
+    items.forEach(function (it) {
+      bar.appendChild(h('button', {
+        class: 'btn' + (activeFilter === it.id ? ' primary' : ''),
+        onclick: function () {
+          activeFilter = it.id;
+          renderGalleryFilters();
+          Object.keys(seriesViews).forEach(function (sid) {
+            if (seriesViews[sid].refreshEditions) seriesViews[sid].refreshEditions();
+          });
+        },
+        text: it.label
+      }));
+    });
+  }
+
   function renderSeries(s) {
     var localEds = loadLocalEditions(s.id);
     localEds.forEach(function (le) {
@@ -578,7 +745,7 @@
     var facts = { price: h('dd', { text: '…' }), roy: h('dd', { text: '…' }), left: h('dd', { text: '…' }) };
     var cta = h('div', { class: 'cta' }), ctaNote = h('p', { class: 'note' });
     var edHost = h('div', { style: 'margin-top:14px;display:grid;gap:10px' });
-    var view = { lane: null, result: null, artShown: false };
+    var view = { series: s, lane: null, result: null, artShown: false };
 
     function previewEdition(edState, indexLabel) {
       runEngine(engineSrc, edState.serial, { series: s, lineage: edState.lineage, sales: edState.sales }).then(function (svg) {
@@ -600,6 +767,7 @@
       }
       var w = K.state(), myPk = w.status === 'connected' ? String(w.pubkey).toLowerCase() : '';
       var liveMap = (view.result && view.result.ctx && view.result.ctx.liveEditions) || {};
+      var shownCount = 0;
       eds.forEach(function (ed) {
         var live = liveMap[ed.index];
         var st = (live && live.state) || {
@@ -612,10 +780,17 @@
         var isMine = myPk && ownerPk === myPk;
         var price = BigInt(st.price || 0);
         var listed = price >= SOMPI;
+        var bids = loadBidsForEdition(ed.covenantId);
+        if (activeFilter === 'listed' && !listed) return;
+        if (activeFilter === 'mine' && !isMine) return;
+        if (activeFilter === 'bids' && !bids.length) return;
+        shownCount++;
+
         var tags = [
           h('span', { class: 'tag ' + (listed ? 'v' : 'd'), text: listed ? 'Listed · ' + C.fmtKas(price) + ' KAS' : 'Unlisted' })
         ];
         if (isMine) tags.push(h('span', { class: 'tag v', style: 'margin-left:6px', text: 'Owned by you' }));
+        if (bids.length) tags.push(h('span', { class: 'tag d', style: 'margin-left:6px', text: bids.length + ' Bid(s)' }));
         var metaText = 'Serial ' + short(ed.serial, 8, 6) + ' · Owner ' + short(ownerAddr, 12, 6);
         if (st.lineage !== undefined) {
           var hi = RVM.hostInputs(ReliksBlake2b.blake2b, String(ed.serial), C.hex2u8(st.lineage), Number(st.sales || 0));
@@ -626,18 +801,36 @@
         if (listed && !isMine) {
           btns.appendChild(h('button', { class: 'btn primary', onclick: function () { startTrade(s, view, ed, 'buy'); }, text: 'Buy for ' + C.fmtKas(price) + ' KAS' }));
         }
+        if (!isMine) {
+          btns.appendChild(h('button', { class: 'btn', onclick: function () { startTrade(s, view, ed, 'bid'); }, text: 'Place Bid / Offer' }));
+        }
         if (isMine || w.status !== 'connected') {
           btns.appendChild(h('button', { class: 'btn', onclick: function () { startTrade(s, view, ed, 'list'); }, text: listed ? 'Update price' : 'List for sale' }));
           if (listed) btns.appendChild(h('button', { class: 'btn', onclick: function () { startTrade(s, view, ed, 'unlist'); }, text: 'Cancel listing' }));
           btns.appendChild(h('button', { class: 'btn ghost', onclick: function () { startTrade(s, view, ed, 'transfer'); }, text: 'Transfer' }));
         }
+        var bidBox = h('div', { style: 'margin-top:8px;display:grid;gap:6px' });
+        bids.forEach(function (b) {
+          var bAddr = /^[0-9a-f]{64}$/.test(b.bidder) ? C.p2pkAddress(A.hrp, b.bidder) : b.bidder;
+          var bRow = h('div', { style: 'display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 10px;border-radius:8px;background:rgba(73,197,177,.08)' },
+            h('span', { style: 'font:12px var(--mono)', text: 'Bid: ' + C.fmtKas(b.offerPrice) + ' KAS from ' + short(bAddr, 10, 6) }),
+            h('div', { class: 'row', style: 'gap:6px' },
+              h('button', { class: 'btn primary', style: 'padding:4px 10px;font-size:12px', onclick: function () { startAcceptBid(s, view, ed, b); }, text: 'Accept Bid (' + C.fmtKas(b.offerPrice) + ' KAS)' }),
+              h('button', { class: 'btn ghost', style: 'padding:4px 8px;font-size:12px', onclick: function () { copy(JSON.stringify(b), 'Signed Bid JSON'); }, text: 'Copy' }),
+              h('button', { class: 'btn ghost', style: 'padding:4px 8px;font-size:12px', onclick: function () { removeBidForEdition(ed.covenantId, b); refreshEditions(); renderGalleryFilters(); }, text: '×' })));
+          bidBox.appendChild(bRow);
+        });
         edHost.appendChild(h('div', { class: 'card', style: 'padding:14px' },
           h('div', { style: 'display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap' },
             h('b', { text: 'Edition #' + ed.index }),
             h('div', {}, tags)),
           h('p', { class: 'note', style: 'margin:6px 0 0', text: metaText }),
-          btns));
+          btns,
+          bidBox));
       });
+      if (!shownCount) {
+        edHost.appendChild(h('p', { class: 'note', text: 'No editions in this series match the active "' + activeFilter + '" filter.' }));
+      }
     }
     view.refreshEditions = refreshEditions;
 
@@ -646,7 +839,7 @@
       var lane = view.lane, w = K.state();
       if (!lane) { cta.appendChild(h('button', { class: 'btn', disabled: true, text: 'Mint' })); ctaNote.textContent = view.laneError ? 'Could not read the lane from the chain: ' + view.laneError : 'Reading the lane…'; if (view.laneError) ctaNote.classList.add('warn'); return; }
       var left = lane.state.mints_left, price = lane.state.price;
-      if (left <= 0n) { cta.appendChild(h('button', { class: 'btn', disabled: true, text: 'Primary sold out' })); ctaNote.textContent = 'All primary editions have been minted. You can buy, list, cancel listings, or transfer editions below with Kaspire.'; return; }
+      if (left <= 0n) { cta.appendChild(h('button', { class: 'btn', disabled: true, text: 'Primary sold out' })); ctaNote.textContent = 'All primary editions have been minted. You can buy, bid, list, cancel listings, or transfer editions below with Kaspire.'; return; }
       if (view.result && overall(view.result.checks) === 'bad') { cta.appendChild(h('button', { class: 'btn', disabled: true, text: 'Minting disabled' })); ctaNote.textContent = 'Verification failed, so this page will not build a mint for this series.'; ctaNote.classList.add('bad'); return; }
       if (w.status === 'connected') cta.appendChild(h('button', { class: 'btn primary', onclick: function () { startMint(s, view); }, text: 'Mint for ' + C.fmtKas(price) + ' KAS' }));
       else cta.appendChild(h('button', { class: 'btn primary', onclick: openWallet, text: w.status === 'wrongnet' ? 'Switch Kaspire to mainnet' : 'Connect Kaspire to mint' }));
@@ -682,8 +875,8 @@
     }
     function load() {
       view.lane = null; view.laneError = null; view.artShown = false; refreshCta(); refreshEditions();
-      verifySeries(s, engineSrc, function (checks, ctx) { view.result = { checks: checks, ctx: ctx }; if (ctx.lane) { view.lane = ctx.lane; applyLane(); } paint(checks); refreshCta(); refreshEditions(); })
-        .then(function (r) { if (!r.ctx.lane) { view.laneError = (r.checks.filter(function (c) { return /Live lane/.test(c.label); })[0] || {}).detail; refreshCta(); } refreshEditions(); });
+      verifySeries(s, engineSrc, function (checks, ctx) { view.result = { checks: checks, ctx: ctx }; if (ctx.lane) { view.lane = ctx.lane; applyLane(); } paint(checks); refreshCta(); refreshEditions(); renderGalleryFilters(); })
+        .then(function (r) { if (!r.ctx.lane) { view.laneError = (r.checks.filter(function (c) { return /Live lane/.test(c.label); })[0] || {}).detail; refreshCta(); } refreshEditions(); renderGalleryFilters(); });
     }
     view.reload = load;
 
@@ -711,7 +904,7 @@
     ex.addEventListener('toggle', function () { if (ex.open && !frame.firstChild) explore(); });
 
     var marketBox = h('details', { class: 'proof', open: true, style: 'margin-top:14px' },
-      h('summary', {}, h('span', { text: 'Editions & Secondary Market (' + (s.editions || []).length + ' minted) · List, Buy, Cancel, Transfer with Kaspire' })),
+      h('summary', {}, h('span', { text: 'Editions & Secondary Market (' + (s.editions || []).length + ' minted) · List, Buy, Bid, Cancel, Transfer with Kaspire' })),
       h('div', { style: 'padding:4px 18px 18px' }, edHost));
 
     var el = h('article', { class: 'series', 'aria-label': s.title }, art,
@@ -724,23 +917,31 @@
     return h('div', { id: 'series-card-' + s.id, style: 'margin-bottom:28px' }, el, marketBox, ex);
   }
 
-  /* ------------------------------------------------------------ custom / newly published series loader */
+  /* ------------------------------------------------------------ custom series & signed bid loader */
   function initCustomSeriesLoader() {
     var host = $('#custom-series-host');
     if (!host) return;
-    var ta = h('textarea', { class: 'editor', style: 'min-height:90px;font-size:12px', spellcheck: 'false', placeholder: 'Paste a Series Anchor JSON (from Studio "Publish on Chain" or another artist) to view, verify, mint, and trade immediately…' });
+    var ta = h('textarea', { class: 'editor', style: 'min-height:90px;font-size:12px', spellcheck: 'false', placeholder: 'Paste a Series Anchor JSON (from Studio "Publish on Chain") OR a Signed Bid JSON (reliks_bid: 1) to load it into the Gallery…' });
     var btnLoad = h('button', { class: 'btn', onclick: function () {
       try {
-        var sObj = JSON.parse(ta.value.trim());
-        if (!sObj || !sObj.laneCovenantId || !sObj.programHash) throw new Error('JSON must include laneCovenantId, genesisTxId, programHash, renderHash, and programHex/engineSrc.');
-        saveCustomSeries(sObj);
-        mountCustomSeries(sObj, true);
+        var obj = JSON.parse(ta.value.trim());
+        if (obj && obj.reliks_bid === 1 && obj.editionCovenantId) {
+          saveBidForEdition(obj.editionCovenantId, obj);
+          Object.keys(seriesViews).forEach(function (sid) { if (seriesViews[sid].refreshEditions) seriesViews[sid].refreshEditions(); });
+          renderGalleryFilters();
+          ta.value = '';
+          toast('Loaded signed bid (' + C.fmtKas(obj.offerPrice) + ' KAS) on Edition #' + obj.editionIndex, 'ok');
+          return;
+        }
+        if (!obj || !obj.laneCovenantId || !obj.programHash) throw new Error('JSON must be a Series Anchor JSON or Signed Bid JSON (reliks_bid: 1).');
+        saveCustomSeries(obj);
+        mountCustomSeries(obj, true);
         ta.value = '';
-        toast('Loaded series: ' + (sObj.title || sObj.id), 'ok');
-      } catch (e) { toast('Invalid Series JSON: ' + e.message, 'bad'); }
-    }, text: 'Load Series into Gallery' });
+        toast('Loaded series: ' + (obj.title || obj.id), 'ok');
+      } catch (e) { toast('Invalid JSON: ' + e.message, 'bad'); }
+    }, text: 'Import Series or Signed Bid JSON' });
     host.appendChild(h('details', { class: 'proof' },
-      h('summary', {}, h('span', { text: 'Load a Newly Published Series Anchor JSON (before it is added to mainnet-anchors.json)' })),
+      h('summary', {}, h('span', { text: 'Import a Newly Published Series Anchor JSON or Signed Bid JSON' })),
       h('div', { style: 'padding:8px 18px 18px;display:grid;gap:10px' }, ta, h('div', { class: 'row' }, btnLoad))));
     loadCustomSeries().forEach(function (cs) { mountCustomSeries(cs, false); });
   }
@@ -751,6 +952,7 @@
     if (existing) existing.remove();
     var card = renderSeries(sObj);
     mainHost.insertBefore(card, mainHost.firstChild);
+    renderGalleryFilters();
     if (scrollToIt) card.scrollIntoView({ behavior: 'smooth' });
   }
 
@@ -837,7 +1039,7 @@
     host.appendChild(h('div', { class: 'card', style: 'padding:18px' }, statusLine, ta, btns, outBox));
   }
 
-  /* ------------------------------------------------------------ studio (Reliks-VM v13 default + 1-click Publish on Chain) */
+  /* ------------------------------------------------------------ studio (Reliks-VM v13 default + High-Level DSL + 1-click Publish) */
   function initStudio() {
     var ed = $('#ed'), ser = $('#ser'), lin = $('#lin'), wr = $('#wr'), wv = $('#wv'), wearOn = $('#wear-on'), gatesEl = $('#gates-out'), stat = $('#studio-status'), hashes = $('#hashes'), prevBox = $('#prev-box'), tpl = $('#tpl');
     var vmCtrl = $('#vm-controls'), vmWear = $('#vm-wear-row'), exeBtn = $('#exe'), exsrcBtn = $('#exsrc'), pubBtn = $('#pub-kaspire'), pubOut = $('#pub-out');
@@ -1021,7 +1223,7 @@
       };
       minting = true;
       try {
-        mintScreen(1, 'Building SeriesFactory genesis…', h('p', { class: 'note', text: 'Synthesizing the SeriesFactory-' + (vmMode ? 'v13' : 'v12') + ' covenant script and selecting a wallet UTXO.' }));
+        mintScreen(1, 'Building SeriesFactory genesis…', h('p', { class: 'note', text: 'Synthesizing the SeriesFactory-' + (vmMode ? 'v13' : 'v12') + ' covenant script and selecting wallet UTXO(s).' }));
         var list = await io.utxos(w.address);
         var probe = C.buildDeploySeries({ state: depState, progBytes: progBytes, editionTemplate: edTpl, artist: { pubkey: w.pubkey, address: w.address }, funding: { txId: '00'.repeat(32), index: 0, amount: 10n ** 13n }, fee: 1n, hrp: A.hrp });
         var fee = C.estimateFee(probe);
@@ -1042,7 +1244,7 @@
         ], 'This deploys your immutable SeriesFactory covenant on Kaspa. Once confirmed, anyone can mint editions directly from it.', draft);
         if (!choice.go) { mintDlg.close(); return; }
         mintScreen(3, 'Approve in Kaspire', h('p', { class: 'note', text: 'Approve the genesis transaction in Kaspire.' }));
-        var signed = await K.signPskt(C.toSafeJSON(draft), [0]);
+        var signed = await K.signPskt(C.toSafeJSON(draft), C.walletSignIndices(draft));
         mintScreen(4, 'Verifying signed genesis…', h('p', { class: 'note', text: 'Checking signature and KIP-20 lane covenant binding.' }));
         var v = C.verifySigned(draft, signed);
         mintScreen(5, 'Broadcasting…', h('p', { class: 'note', text: 'Submitting SeriesFactory genesis transaction.' }));
@@ -1081,11 +1283,11 @@
           pubOut.appendChild(h('div', { class: 'review', style: 'margin-top:8px' },
             h('div', {}, h('span', { text: 'Genesis TxID' }), h('b', { text: short(res.txId, 12, 8), title: res.txId })),
             h('div', {}, h('span', { text: 'Lane Covenant ID' }), h('b', { text: short(ds.laneCovenantId, 12, 8), title: ds.laneCovenantId })),
-            h('div', { class: 'row', style: 'margin-top:8px' },
+            h('div', { class: 'row', style: 'margin-top:8px;flex-wrap:wrap' },
               h('button', { class: 'btn primary', onclick: function () { showTab('gallery'); var el = document.getElementById('series-card-' + seriesAnchor.id); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, text: 'Open in Gallery & Mint' }),
               h('button', { class: 'btn', onclick: function () { copy(JSON.stringify(seriesAnchor, null, 2), 'Series Anchor JSON'); }, text: 'Copy Anchor JSON' }),
               h('button', { class: 'btn ghost', onclick: function () { download('anchor-' + seriesAnchor.id + '.json', JSON.stringify(seriesAnchor, null, 2) + '\n'); }, text: 'Download Anchor (.json)' }),
-              h('button', { class: 'btn', onclick: function () { copy(JSON.stringify(seriesAnchor, null, 2), 'Anchor JSON'); window.open('https://github.com/weirdtualguy/Reliks/issues/new?template=submit-series.yml&title= + encodeURIComponent('[Series] ' + seriesAnchor.title), '_blank', 'noopener'); }, text: 'Submit to Marketplace (GitHub)' })))));
+              h('button', { class: 'btn', onclick: function () { copy(JSON.stringify(seriesAnchor, null, 2), 'Anchor JSON'); window.open('https://github.com/weirdtualguy/Reliks/issues/new?template=submit-series.yml&title=' + encodeURIComponent('[Series] ' + seriesAnchor.title), '_blank', 'noopener'); }, text: 'Submit to Marketplace (GitHub)' }))));
         }
         var link = A.explorer + res.txId;
         mintScreen(6, 'Published!', [
@@ -1160,6 +1362,7 @@
   var host = $('#series-host');
   A.series.forEach(function (s) { host.appendChild(renderSeries(s)); });
   initCustomSeriesLoader();
+  renderGalleryFilters();
   initOfflineVerifier();
   walletChip();
   K.restore().then(walletChip);

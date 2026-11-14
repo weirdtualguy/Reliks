@@ -1,0 +1,40 @@
+; Celestial Rings — High-Level Reliks-Script DSL example.
+; Uses .vars (auto-numbered), seedrng, bg, set, rand, for/endfor, and if/else/endif.
+.canvas 1000 1000
+.vars I X Y R C WR
+seedrng
+wear push 1 mul st WR ; wear_toggle (1 = enabled, 0 = disabled)
+bg 0x090d16
+
+; Central radial glow
+gradbegin push 0 push 0xffd9a0 push 95 gradstop push 45 push 0x49c5b1 push 35 gradstop push 100 push 0x090d16 push 0 gradstop gradend
+push 0x1000000 fill push 500 push 500 push 360 ld WR add circle
+
+; Concentric orbital rings (structured for loop + if/else)
+push -1 fill push 2 swidth
+for I 1 18
+  ld I push 2 mod if
+    push 0x49c5b1 pat push 4096 mul xor stroke
+    push 55 opacity
+  else
+    push 0xe8923a stroke
+    push 35 opacity
+  endif
+  push 500 push 500 ld I push 24 mul circle
+endfor
+
+; Orbiting moons & starlight motes
+push -1 stroke
+for I 0 48
+  rand 120 880 st X
+  rand 120 880 st Y
+  rand 4 26 st R
+  rand 0 100 push 35 lt if
+    push 0xffd9a0 fill push 85 opacity
+  else
+    push 0x49c5b1 pat push 65536 mul xor fill
+    push 70 ld WR push 6 div add push 95 min opacity
+  endif
+  ld X ld Y ld R circle
+endfor
+halt

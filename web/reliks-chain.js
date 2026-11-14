@@ -1,6 +1,6 @@
 /* Reliks chain library: everything the browser (and the tests) need to read
    Reliks state from Kaspa and to build series deployment, mint, and secondary
-   market (list, unlist, buy, transfer) transactions.
+   market (list, unlist, buy, transfer, and 2-party atomic bids/offers) transactions.
 
    Zero dependencies. Depends only on ReliksBlake2b (web/blake2b.js).
    Nothing here talks to a wallet; see web/kaspire.js for that.
@@ -170,17 +170,14 @@
   function p2pkSpk(pubkeyHex) { return '20' + pubkeyHex + 'ac'; }
 
   /* ------------------------------------------------------------ serial and covenant id */
-  // ReliksSerialV10: 63-bit LE polynomial of blake2b(domain || txid || le32(index)).
   function serialFromOutpoint(txId, index) {
     var h = hash(cat([utf8('ReliksSerialV10'), hex2u8(txId), le32(index)]));
     var s = 0n;
     for (var i = 0; i < 7; i++) s += BigInt(h[i]) * (256n ** BigInt(i));
     return (s + BigInt(h[7] % 128) * 72057594037927936n).toString();
   }
-  // v13 provenance chain: genesis = blake2b('ReliksGenesisV2' || lane txid || le32(lane index)); each ownership change = blake2b('ReliksLineageV2' || prev || newOwner).
   function genesisLineage(txId, index) { return u8hex(hash(cat([utf8('ReliksGenesisV2'), hex2u8(txId), le32(index)]))); }
   function advanceLineage(prevHex, ownerHex) { return u8hex(hash(cat([utf8('ReliksLineageV2'), hex2u8(prevHex), hex2u8(ownerHex)]))); }
-  // KIP-20 genesis covenant id: keyed blake2b("CovenantID") over the authorizing outpoint and the bound outputs.
   function covenantIdGenesis(authTxId, authIndex, outs) {
     var parts = [hex2u8(authTxId), le32(authIndex), le64(outs.length)];
     for (var i = 0; i < outs.length; i++) {
@@ -432,7 +429,6 @@
     var utxos = (kj && kj.utxos) || [];
     var live = utxos.filter(function (u) { return u.live === true; });
     if (!live.length) {
-      // Fallback to mint output if kascov has not indexed secondary events or is unreachable
       var mintSpk = p2shSpk(editionRedeem(mintState, edTpl));
       return {
         index: ed.index, serial: String(ed.serial), covenantId: ed.covenantId,
@@ -476,6 +472,22 @@
     };
   }
 
+  /* ------------------------------------------------------------ multi-UTXO wallet input helper */
+  function buildWalletInputs(funding, wallet) {
+    var list = (funding && Array.isArray(funding.inputs) && funding.inputs.length) ? funding.inputs : [funding];
+    return list.map(function (u) {
+      return {
+        txId: u.txId, index: Number(u.index), sequence: 0n, sigScript: '', computeBudget: P2PK_BUDGET,
+        utxo: { amount: BigInt(u.amount), spk: p2pkSpk(wallet.pubkey), address: wallet.address, daa: BigInt(u.daa || 0), sign: true }
+      };
+    });
+  }
+  function walletSignIndices(draft) {
+    var out = [];
+    (draft.inputs || []).forEach(function (inp, idx) { if (inp.utxo && inp.utxo.sign) out.push(idx); });
+    return out;
+  }
+
   /* ------------------------------------------------------------ 1-click series deploy draft (Studio -> Kaspire) */
   function buildDeploySeries(p) {
     var st = p.state, funding = p.funding, artist = p.artist, edTpl = p.editionTemplate || tpl().edition;
@@ -508,10 +520,7 @@
     if (change > 0n) outputs.push({ value: change, spk: p2pkSpk(artist.pubkey), role: 'change' });
     return {
       version: 1, hrp: p.hrp,
-      inputs: [
-        { txId: funding.txId, index: funding.index, sequence: 0n, sigScript: '', computeBudget: P2PK_BUDGET,
-          utxo: { amount: BigInt(funding.amount), spk: p2pkSpk(artist.pubkey), address: artist.address, daa: BigInt(funding.daa || 0), sign: true } }
-      ],
+      inputs: buildWalletInputs(funding, artist),
       outputs: outputs, lockTime: 0n, gas: 0n, payload: '', fee: fee,
       summary: {
         kind: 'deploy', laneCovenantId: laneCov, factorySpk: factorySpk, redeemBytesLen: redeemBytes.length,
@@ -555,14 +564,13 @@
     var tag = tpl().factory.entries.mint;
     var sigScript = cat([pushMin(hex2u8(buyer.pubkey)), pushMin(new Uint8Array([0])), pushMinInt(1), pushMinInt(2), pushMin(hex2u8(tag)),
       pushMin(curRedeem)]);
+    var covInput = {
+      txId: p.lane.outpoint.txId, index: p.lane.outpoint.index, sequence: 0n, sigScript: u8hex(sigScript), computeBudget: LANE_BUDGET,
+      utxo: { amount: p.lane.value, spk: curSpk, address: p2shAddress(p.hrp, curSpk), daa: p.lane.daa || 0n, sign: false }
+    };
     return {
       version: 1, hrp: p.hrp,
-      inputs: [
-        { txId: p.lane.outpoint.txId, index: p.lane.outpoint.index, sequence: 0n, sigScript: u8hex(sigScript), computeBudget: LANE_BUDGET,
-          utxo: { amount: p.lane.value, spk: curSpk, address: p2shAddress(p.hrp, curSpk), daa: p.lane.daa || 0n, sign: false } },
-        { txId: funding.txId, index: funding.index, sequence: 0n, sigScript: '', computeBudget: P2PK_BUDGET,
-          utxo: { amount: BigInt(funding.amount), spk: p2pkSpk(buyer.pubkey), address: buyer.address, daa: BigInt(funding.daa || 0), sign: true } }
-      ],
+      inputs: [covInput].concat(buildWalletInputs(funding, buyer)),
       outputs: outputs, lockTime: 0n, gas: 0n, payload: '', fee: fee,
       summary: {
         serial: serial, editionCovenantId: edCov, price: price, carrier: CARRIER, fee: fee, change: change,
@@ -571,7 +579,7 @@
     };
   }
 
-  /* ------------------------------------------------------------ secondary market builders (buy, list, unlist, transfer) */
+  /* ------------------------------------------------------------ secondary market builders (buy, list, unlist, transfer, bid/sell) */
   function buildBuyEdition(p) {
     var ed = p.edition, st = ed.state, funding = p.funding, buyer = p.buyer;
     var edTpl = p.editionTemplate || ed.editionTemplate || tpl().edition;
@@ -607,19 +615,75 @@
     if (change > 0n) outputs.push({ value: change, spk: p2pkSpk(buyer.pubkey), role: 'change' });
     var tag = (edTpl.entries && edTpl.entries.buy) || '1cd4096a';
     var sigScript = cat([pushMin(hex2u8(buyer.pubkey)), pushMinInt(1), pushMinInt(2), pushMin(hex2u8(tag)), pushMin(curRedeem)]);
+    var covInput = {
+      txId: ed.outpoint.txId, index: ed.outpoint.index, sequence: 0n, sigScript: u8hex(sigScript), computeBudget: LANE_BUDGET,
+      utxo: { amount: ed.value, spk: curSpk, address: p2shAddress(p.hrp, curSpk), daa: ed.daa || 0n, sign: false }
+    };
     return {
       version: 1, hrp: p.hrp,
-      inputs: [
-        { txId: ed.outpoint.txId, index: ed.outpoint.index, sequence: 0n, sigScript: u8hex(sigScript), computeBudget: LANE_BUDGET,
-          utxo: { amount: ed.value, spk: curSpk, address: p2shAddress(p.hrp, curSpk), daa: ed.daa || 0n, sign: false } },
-        { txId: funding.txId, index: funding.index, sequence: 0n, sigScript: '', computeBudget: P2PK_BUDGET,
-          utxo: { amount: BigInt(funding.amount), spk: p2pkSpk(buyer.pubkey), address: buyer.address, daa: BigInt(funding.daa || 0), sign: true } }
-      ],
+      inputs: [covInput].concat(buildWalletInputs(funding, buyer)),
       outputs: outputs, lockTime: 0n, gas: 0n, payload: '', fee: fee,
       summary: {
         kind: 'buy', serial: String(st.serial), editionCovenantId: ed.covenantId,
         price: price, ownerNet: ownerNet, royalty: roy, fee: fee, change: change,
         seller: st.ownerIdentifier, buyer: buyer.pubkey, artist: st.artist, nextState: nextState
+      }
+    };
+  }
+
+  // 2-party atomic Bid / Offer using ReliksEdition.sell (89cfc99a).
+  // Works on ANY edition (listed or unlisted) at ANY offerPrice >= 1 KAS:
+  // 1) Bidder signs their wallet input(s) [1..N] via Kaspire, creating a partially-signed PSKT bid.
+  // 2) Edition owner co-signs input [0] via Kaspire, and finalizeOwnerCovenantTx wraps ownerSig into sell (89cfc99a).
+  function buildMakeBid(p) {
+    var ed = p.edition, st = ed.state, funding = p.funding, bidder = p.bidder;
+    var edTpl = p.editionTemplate || ed.editionTemplate || tpl().edition;
+    if (!/^[0-9a-f]{64}$/.test(bidder.pubkey)) throw new Error('bidder key must be 32 bytes of lowercase hex');
+    if (p2pkAddress(p.hrp, bidder.pubkey) !== bidder.address) throw new Error('wallet public key does not belong to the connected address');
+    var offerPrice = BigInt(p.offerPrice);
+    if (offerPrice < SOMPI || offerPrice > MAX_PRICE) throw new Error('bid / offer must be at least 1 KAS');
+    var roy = (offerPrice * BigInt(st.royalty_bips)) / 10000n;
+    var ownerNet = offerPrice - roy;
+    var fee = BigInt(p.fee);
+    var need = offerPrice + fee;
+    if (BigInt(funding.amount) < need) throw new Error('funding output too small');
+    var change = BigInt(funding.amount) - need;
+    if (change < MIN_CHANGE) { fee += change; change = 0n; }
+    var curRedeem = editionRedeem(st, edTpl);
+    var curSpk = p2shSpk(curRedeem);
+    if (ed.spk && curSpk !== ed.spk) throw new Error('edition spk drift');
+    var nextState = {
+      ownerIdentifier: bidder.pubkey, identifierType: 0, price: 0n,
+      artist: st.artist, royalty_bips: BigInt(st.royalty_bips),
+      program_hash: st.program_hash, factory_covid: st.factory_covid, serial: String(st.serial)
+    };
+    if (editionHasLineage(edTpl)) {
+      nextState.lineage = advanceLineage(st.lineage, bidder.pubkey);
+      nextState.sales = BigInt(st.sales || 0) + 1n;
+    }
+    var nextSpk = p2shSpk(editionRedeem(nextState, edTpl));
+    var outputs = [
+      { value: ed.value, spk: nextSpk, covenant: { authorizingInput: 0, covenantId: ed.covenantId }, role: 'edition' },
+      { value: ownerNet, spk: p2pkSpk(st.ownerIdentifier), role: 'seller' },
+      { value: roy, spk: p2pkSpk(st.artist), role: 'artist' }
+    ];
+    if (change > 0n) outputs.push({ value: change, spk: p2pkSpk(bidder.pubkey), role: 'change' });
+    var tag = (edTpl.entries && edTpl.entries.sell) || '89cfc99a';
+    var sellerAddr = p2pkAddress(p.hrp, String(st.ownerIdentifier).toLowerCase());
+    var covInput = {
+      txId: ed.outpoint.txId, index: ed.outpoint.index, sequence: 0n, sigScript: '', computeBudget: LANE_BUDGET,
+      ownerCovenant: { kind: 'sell', buyer: bidder.pubkey, salePrice: offerPrice, redeemHex: u8hex(curRedeem), tag: tag },
+      // sign: false during the bidder's signing step; switched to sign: true when the edition owner accepts the bid
+      utxo: { amount: ed.value, spk: curSpk, address: sellerAddr, daa: ed.daa || 0n, sign: false }
+    };
+    return {
+      version: 1, hrp: p.hrp,
+      inputs: [covInput].concat(buildWalletInputs(funding, bidder)),
+      outputs: outputs, lockTime: 0n, gas: 0n, payload: '', fee: fee,
+      summary: {
+        kind: 'bid', serial: String(st.serial), editionCovenantId: ed.covenantId,
+        price: offerPrice, ownerNet: ownerNet, royalty: roy, fee: fee, change: change,
+        seller: st.ownerIdentifier, buyer: bidder.pubkey, artist: st.artist, nextState: nextState
       }
     };
   }
@@ -670,16 +734,14 @@
       { value: ed.value, spk: nextSpk, covenant: { authorizingInput: 0, covenantId: ed.covenantId }, role: 'edition' }
     ];
     if (change > 0n) outputs.push({ value: change, spk: p2pkSpk(owner.pubkey), role: 'change' });
+    var covInput = {
+      txId: ed.outpoint.txId, index: ed.outpoint.index, sequence: 0n, sigScript: '', computeBudget: LANE_BUDGET,
+      ownerCovenant: covMeta,
+      utxo: { amount: ed.value, spk: curSpk, address: owner.address, daa: ed.daa || 0n, sign: true }
+    };
     return {
       version: 1, hrp: p.hrp,
-      inputs: [
-        { txId: ed.outpoint.txId, index: ed.outpoint.index, sequence: 0n, sigScript: '', computeBudget: LANE_BUDGET,
-          ownerCovenant: covMeta,
-          // Passing owner.address in SafeJSON allows Kaspire to sign input 0 with the owner's Schnorr key over input 0's exact sighash (which commits to curSpk and ed.value).
-          utxo: { amount: ed.value, spk: curSpk, address: owner.address, daa: ed.daa || 0n, sign: true } },
-        { txId: funding.txId, index: funding.index, sequence: 0n, sigScript: '', computeBudget: P2PK_BUDGET,
-          utxo: { amount: BigInt(funding.amount), spk: p2pkSpk(owner.pubkey), address: owner.address, daa: BigInt(funding.daa || 0), sign: true } }
-      ],
+      inputs: [covInput].concat(buildWalletInputs(funding, owner)),
       outputs: outputs, lockTime: 0n, gas: 0n, payload: '', fee: fee,
       summary: {
         kind: mode, serial: String(st.serial), editionCovenantId: ed.covenantId,
@@ -692,9 +754,9 @@
   function buildUnlistEdition(p) { return buildOwnerEditionTx(p, 'unlist'); }
   function buildTransferEdition(p) { return buildOwnerEditionTx(p, 'transfer'); }
 
-  // After Kaspire signs inputs [0, 1] on a list/unlist/transfer draft, wrap input 0's 65-byte Schnorr signature
+  // After Kaspire signs inputs on a list/unlist/transfer/sell(accept-bid) draft, wrap input 0's 65-byte Schnorr signature
   // into the ReliksEdition covenant signatureScript. Since Kaspa sighash never hashes input signatureScripts,
-  // both input 0's ownerSig and input 1's wallet signature remain 100% valid.
+  // both input 0's ownerSig and input 1..N's wallet signature(s) remain 100% valid.
   function finalizeOwnerCovenantTx(draft, signedJson) {
     var t = typeof signedJson === 'string' ? JSON.parse(signedJson) : JSON.parse(JSON.stringify(signedJson));
     var inp0 = draft.inputs[0], meta = inp0 && inp0.ownerCovenant;
@@ -708,6 +770,7 @@
     if (meta.kind === 'list') parts = [pushMinInt(meta.newPrice), pushMin(ownerSig65), pushMin(tagBytes), pushMin(curRedeem)];
     else if (meta.kind === 'unlist') parts = [pushMin(ownerSig65), pushMin(tagBytes), pushMin(curRedeem)];
     else if (meta.kind === 'transfer') parts = [pushMin(hex2u8(meta.newOwner)), pushMin(ownerSig65), pushMin(tagBytes), pushMin(curRedeem)];
+    else if (meta.kind === 'sell') parts = [pushMin(hex2u8(meta.buyer)), pushMinInt(meta.salePrice), pushMinInt(1), pushMinInt(2), pushMin(ownerSig65), pushMin(tagBytes), pushMin(curRedeem)];
     else throw new Error('unknown owner covenant kind: ' + meta.kind);
     var fullSigHex = u8hex(cat(parts));
     t.inputs[0].signatureScript = fullSigHex;
@@ -814,17 +877,39 @@
     return { sigScripts: sigs, rpcTx: toRpcTx(draft, sigs) };
   }
 
-  /* ------------------------------------------------------------ wallet funding selection */
+  /* ------------------------------------------------------------ wallet funding selection (single + automatic multi-UTXO) */
   function utxoEntry(x) { return x.utxoEntry || x; }
-  function pickFunding(list, needAtLeast) {
+  function toUtxoObj(x) {
+    var e = utxoEntry(x), op = x.outpoint || e.outpoint;
+    return {
+      txId: pick(op, ['transactionId', 'transaction_id']),
+      index: Number(op.index),
+      amount: BigInt(e.amount),
+      daa: BigInt(pick(e, ['blockDaaScore', 'block_daa_score']))
+    };
+  }
+  // Prefers a single confirmed output when large enough (minimum mass); automatically combines up to maxInputs (default 4)
+  // confirmed outputs when the wallet is fragmented, eliminating "compound your UTXOs first" errors.
+  function pickFunding(list, needAtLeast, maxInputs) {
+    var cap = maxInputs == null ? 4 : Number(maxInputs);
     var conf = (list || []).filter(function (x) { var e = utxoEntry(x); return pick(e, ['blockDaaScore', 'block_daa_score']) != null && !pick(e, ['isCoinbase', 'is_coinbase']); });
     conf.sort(function (a, b) { var d = BigInt(utxoEntry(b).amount) - BigInt(utxoEntry(a).amount); return d > 0n ? 1 : d < 0n ? -1 : 0; });
-    var best = conf[0];
-    if (!best) return { error: 'no confirmed, spendable output in this wallet' };
-    var amt = BigInt(utxoEntry(best).amount);
-    if (amt < needAtLeast) return { error: 'largest output holds ' + fmtKas(amt) + ' KAS; this transaction needs a single output of at least ' + fmtKas(needAtLeast) + ' KAS (compound your UTXOs in Kaspire first)', largest: amt };
-    var op = best.outpoint || utxoEntry(best).outpoint;
-    return { txId: pick(op, ['transactionId', 'transaction_id']), index: Number(op.index), amount: amt, daa: BigInt(pick(utxoEntry(best), ['blockDaaScore', 'block_daa_score'])) };
+    if (!conf.length) return { error: 'no confirmed, spendable output in this wallet' };
+    var first = toUtxoObj(conf[0]);
+    if (first.amount >= needAtLeast) {
+      first.inputs = [ { txId: first.txId, index: first.index, amount: first.amount, daa: first.daa } ];
+      return first;
+    }
+    var chosen = [], sum = 0n;
+    for (var i = 0; i < conf.length && i < cap; i++) {
+      var u = toUtxoObj(conf[i]);
+      chosen.push(u);
+      sum += u.amount;
+      if (sum >= needAtLeast) {
+        return { txId: chosen[0].txId, index: chosen[0].index, amount: sum, daa: chosen[0].daa, inputs: chosen };
+      }
+    }
+    return { error: 'top ' + chosen.length + ' wallet outputs hold ' + fmtKas(sum) + ' KAS total; this transaction needs at least ' + fmtKas(needAtLeast) + ' KAS', largest: first.amount, total: sum };
   }
 
   function fmtKas(sompi) {
@@ -848,8 +933,9 @@
     spkOfOutput: spkOfOutput, outputValue: outputValue, inputOutpoint: inputOutpoint, covenantOf: covenantOf,
     makeIO: makeIO, resolveLane: resolveLane, resolveEdition: resolveEdition,
     buildDeploySeries: buildDeploySeries, buildMint: buildMint,
-    buildBuyEdition: buildBuyEdition, buildListEdition: buildListEdition, buildUnlistEdition: buildUnlistEdition, buildTransferEdition: buildTransferEdition,
-    finalizeOwnerCovenantTx: finalizeOwnerCovenantTx,
+    buildBuyEdition: buildBuyEdition, buildMakeBid: buildMakeBid,
+    buildListEdition: buildListEdition, buildUnlistEdition: buildUnlistEdition, buildTransferEdition: buildTransferEdition,
+    finalizeOwnerCovenantTx: finalizeOwnerCovenantTx, walletSignIndices: walletSignIndices,
     estimateSize: estimateSize, estimateFee: estimateFee,
     toSafeJSON: toSafeJSON, toRpcTx: toRpcTx, verifySigned: verifySigned, pickFunding: pickFunding, fmtKas: fmtKas,
     pick: pick, stripVersion: stripVersion

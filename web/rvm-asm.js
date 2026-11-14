@@ -1,5 +1,12 @@
-// Reliks-VM assembler (JS port of assemble() in v13/vm/rvm.py). Reference output: rvm.py. Works in Node and browsers.
-// Preserves source line numbers on tokens so errors report the offending line.
+// Reliks-VM assembler + High-Level Reliks-Script macro compiler (works in Node and browsers).
+// 100% backward-compatible with raw Reliks-VM assembly, plus structured high-level DSL:
+//   .vars X Y I J R C        (auto-assigns variable slots 0..254)
+//   seedrng                  (lane 0 serial xor lane 1 lane 2 lane 3 rnginit)
+//   bg 0x0b0f14              (fills canvas background)
+//   set X 100 / inc X 5      (assign / increment variable by literal or variable)
+//   rand 20 380              (push/load min & max, then rndr)
+//   for I 0 40 ... endfor    (structured counted loop, nestable)
+//   if ... else ... endif    (structured conditional branch, nestable)
 (function (g) {
   'use strict';
   var OPS = {
@@ -19,6 +26,7 @@
   };
   var has = function (o, k) { return Object.prototype.hasOwnProperty.call(o, k); };
   function errAt(msg, ln) { return new Error(ln ? msg + ' (line ' + ln + ')' : msg); }
+  function isIntTok(s) { return typeof s === 'string' && /^([+-]?)(?:0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|(?:0+|[1-9][0-9]*))$/.test(s); }
   function int0(s, ln) {
     if (s === undefined) throw errAt('missing operand', ln);
     var m = /^([+-]?)(?:0[xX]([0-9a-fA-F]+)|0[bB]([01]+)|0[oO]([0-7]+)|(0+|[1-9][0-9]*))$/.exec(s);
@@ -42,12 +50,124 @@
       for (j = 0; j < p.length; j++) if (p[j]) { toks.push(p[j]); tlines.push(i + 1); }
     }
     var at = function (a, lns, k, refLn) { if (k >= a.length) throw errAt('missing operand', refLn || (lns && lns[a.length - 1])); return a[k]; };
-    var exp = [], elines = [], names = new Map();
+    var exp = [], elines = [], names = new Map(), usedSlots = new Set(), nextSlot = 0;
+    function allocSlot(ln) {
+      while (usedSlots.has(nextSlot)) nextSlot++;
+      if (nextSlot > 254) throw errAt('too many .vars (max 255)', ln);
+      usedSlots.add(nextSlot);
+      return BigInt(nextSlot++);
+    }
+    // First pass: collect explicit .var slots so auto-allocated .vars never collide with explicit ones
+    for (i = 0; i < toks.length; i++) {
+      if (toks[i].toLowerCase() === '.var' && i + 2 < toks.length && isIntTok(toks[i + 2])) {
+        var sv = int0(toks[i + 2], tlines[i + 2]);
+        if (sv >= 0n && sv <= 255n) usedSlots.add(Number(sv));
+        i += 2;
+      }
+    }
     function pushE(ln) { for (var k = 1; k < arguments.length; k++) { exp.push(arguments[k]); elines.push(ln); } }
+    function pushValOrVar(ln, tok) {
+      if (names.has(tok)) pushE(ln, 'load', tok);
+      else pushE(ln, 'push', tok);
+    }
+    var canvasW = '64', canvasH = '64', macroSeq = 0, forStack = [], ifStack = [];
     i = 0;
     while (i < toks.length) {
       var t = toks[i], tl = t.toLowerCase(), ln = tlines[i];
-      if (tl === '.var') { names.set(at(toks, tlines, i + 1, ln), int0(at(toks, tlines, i + 2, ln), tlines[i + 2] || ln)); i += 3; continue; }
+      if (tl === '.canvas' && i + 2 < toks.length) {
+        canvasW = toks[i + 1]; canvasH = toks[i + 2];
+        pushE(ln, '.canvas', canvasW, canvasH);
+        i += 3; continue;
+      }
+      if (tl === '.var') {
+        var vname = at(toks, tlines, i + 1, ln);
+        if (i + 2 < toks.length && isIntTok(toks[i + 2])) {
+          names.set(vname, int0(toks[i + 2], tlines[i + 2] || ln));
+          i += 3;
+        } else {
+          names.set(vname, allocSlot(ln));
+          i += 2;
+        }
+        continue;
+      }
+      if (tl === '.vars') {
+        var vln = ln; i += 1;
+        while (i < toks.length && tlines[i] === vln && toks[i].charAt(0) !== '.' && !has(OPS, toks[i].toLowerCase())) {
+          names.set(toks[i], allocSlot(vln));
+          i += 1;
+        }
+        continue;
+      }
+      if (tl === 'seedrng') {
+        pushE(ln, 'lane', '0', 'serial', 'xor', 'lane', '1', 'lane', '2', 'lane', '3', 'rnginit');
+        i += 1; continue;
+      }
+      if (tl === 'bg') {
+        var bgCol = at(toks, tlines, i + 1, ln);
+        pushE(ln, 'push', '-1', 'stroke', 'push', '100', 'opacity');
+        pushValOrVar(ln, bgCol);
+        pushE(ln, 'fill', 'push', '0', 'push', '0', 'push', canvasW, 'push', canvasH, 'rect');
+        i += 2; continue;
+      }
+      if (tl === 'set') {
+        var dstV = at(toks, tlines, i + 1, ln), valV = at(toks, tlines, i + 2, ln);
+        pushValOrVar(ln, valV);
+        pushE(ln, 'store', dstV);
+        i += 3; continue;
+      }
+      if (tl === 'inc') {
+        var incV = at(toks, tlines, i + 1, ln), stepV = at(toks, tlines, i + 2, ln);
+        pushE(ln, 'load', incV);
+        pushValOrVar(ln, stepV);
+        pushE(ln, 'add', 'store', incV);
+        i += 3; continue;
+      }
+      if (tl === 'rand') {
+        var rMin = at(toks, tlines, i + 1, ln), rMax = at(toks, tlines, i + 2, ln);
+        pushValOrVar(ln, rMin);
+        pushValOrVar(ln, rMax);
+        pushE(ln, 'rndr');
+        i += 3; continue;
+      }
+      if (tl === 'for' || tl === 'forle') {
+        var fv = at(toks, tlines, i + 1, ln), fStart = at(toks, tlines, i + 2, ln), fLim = at(toks, tlines, i + 3, ln);
+        if (!names.has(fv) && !isIntTok(fv)) names.set(fv, allocSlot(ln));
+        var flbl = '__for_' + (++macroSeq);
+        pushValOrVar(ln, fStart);
+        pushE(ln, 'store', fv, flbl + ':');
+        forStack.push({ v: fv, lim: fLim, lbl: flbl, le: tl === 'forle', ln: ln });
+        i += 4; continue;
+      }
+      if (tl === 'endfor') {
+        if (!forStack.length) throw errAt('endfor without matching for', ln);
+        var ftop = forStack.pop();
+        pushE(ln, 'load', ftop.v, 'push', '1', 'add', 'dup', 'store', ftop.v);
+        pushValOrVar(ln, ftop.lim);
+        pushE(ln, ftop.le ? 'le' : 'lt', 'jnz', ftop.lbl);
+        i += 1; continue;
+      }
+      if (tl === 'if' || tl === 'ifz') {
+        var id = ++macroSeq;
+        var elseL = '__else_' + id, endL = '__endif_' + id;
+        pushE(ln, tl === 'if' ? 'jz' : 'jnz', elseL);
+        ifStack.push({ elseLbl: elseL, endLbl: endL, hasElse: false, ln: ln });
+        i += 1; continue;
+      }
+      if (tl === 'else') {
+        if (!ifStack.length) throw errAt('else without matching if', ln);
+        var itop = ifStack[ifStack.length - 1];
+        if (itop.hasElse) throw errAt('duplicate else in if block', ln);
+        itop.hasElse = true;
+        pushE(ln, 'jmp', itop.endLbl, itop.elseLbl + ':');
+        i += 1; continue;
+      }
+      if (tl === 'endif') {
+        if (!ifStack.length) throw errAt('endif without matching if', ln);
+        var idone = ifStack.pop();
+        if (!idone.hasElse) pushE(ln, idone.elseLbl + ':');
+        else pushE(ln, idone.endLbl + ':');
+        i += 1; continue;
+      }
       if (tl === 'show') pushE(ln, 'store', '255', 'load', '255', 'push', '0', 'push', '1', 'push', '1', 'rect');
       else if (tl === 'next' || tl === 'nextle') {
         var v = at(toks, tlines, i + 1, ln), lim = at(toks, tlines, i + 2, ln), lab = at(toks, tlines, i + 3, ln);
@@ -59,6 +179,8 @@
       else pushE(ln, t);
       i += 1;
     }
+    if (forStack.length) throw errAt('unclosed for loop', forStack[forStack.length - 1].ln);
+    if (ifStack.length) throw errAt('unclosed if block', ifStack[ifStack.length - 1].ln);
     var W = 64n, H = 64n, canvasLn = 1, items = [];
     i = 0;
     while (i < exp.length) {
