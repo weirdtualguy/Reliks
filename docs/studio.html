@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'"><title>Reliks-VM Studio</title><style>:root{color-scheme:dark;--ink:#06080b;--panel:#10151c;--line:#212a35;--text:#e9e6df;--dim:#98a2ad;--teal:#49c5b1;--red:#ff6b6b}
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reliks-VM Studio</title><style>:root{color-scheme:dark;--ink:#06080b;--panel:#10151c;--line:#212a35;--text:#e9e6df;--dim:#98a2ad;--teal:#49c5b1;--red:#ff6b6b}
 *{box-sizing:border-box}
 body{margin:0;background:var(--ink);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 main{max-width:720px;margin:0 auto;padding:16px}
@@ -14,6 +14,7 @@ textarea{min-height:260px;resize:vertical;white-space:pre;overflow:auto;tab-size
 .btn.ghost{background:var(--line);color:var(--text)}
 #img{width:100%;aspect-ratio:1;background:#000;border-radius:10px;display:block;border:1px solid var(--line)}
 pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;overflow-x:auto;font-size:13px;white-space:pre-wrap;word-break:break-all}
+pre:empty{display:none}
 </style></head><body><main>
 <h1>Reliks-VM Studio</h1>
 <p class="small">Write a Reliks-VM program, preview it, run the multi-serial &amp; patina/wear corner gates, and download the bytecode. Everything runs in your browser; nothing is sent anywhere.</p>
@@ -444,7 +445,7 @@ return module.exports;})();</script><script>var RvmAsm=(function(){var module={e
       else if (x.charAt(x.length - 1) === ':') { items.push({ k: 'label', n: x.slice(0, -1), ln: xln }); i += 1; }
       else {
         var name = x.toLowerCase();
-        if (!has(OPS, name)) throw errAt('unknown mnemonic: ' + x, xln);
+        if (!has(OPS, name)) throw errAt('unknown opcode: ' + x, xln);
         var o = OPS[name];
         if (o[1] === null) { items.push({ k: 'op', op: o[0], kind: null, ln: xln }); i += 1; }
         else { items.push({ k: 'op', op: o[0], kind: o[1], arg: at(exp, elines, i + 1, xln), ln: xln }); i += 2; }
@@ -482,12 +483,19 @@ return module.exports;})();</script><script>/* Reliks-VM Studio: assemble, rende
   function hex(u) { var s = ''; for (var i = 0; i < u.length; i++) s += ('0' + u[i].toString(16)).slice(-2); return s; }
   function unhex(h) { var o = new Uint8Array(h.length / 2); for (var i = 0; i < o.length; i++) o[i] = parseInt(h.substr(i * 2, 2), 16); return o; }
   function say(msg, bad) { st.textContent = msg; st.className = bad ? 'bad' : 'ok'; }
+  function parseSourceOrHex(raw) {
+    var trimmed = String(raw || '').trim(), compact = trimmed.replace(/\s+/g, '');
+    if (compact.length >= 18 && compact.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(compact) && /^52564d01/i.test(compact)) {
+      return unhex(compact.toLowerCase());
+    }
+    return RvmAsm.assemble(raw);
+  }
   function run() {
     var s = ser.value.trim() || '1', l = lin.value.trim().toLowerCase();
     wv.textContent = wr.value;
     if (!/^\d{1,19}$/.test(s) || BigInt(s) >= BigInt('9223372036854775808')) { say('Serial must be a whole number below 2^63.', true); return; }
     if (!/^[0-9a-f]{64}$/.test(l)) { say('Lineage must be 64 hex characters.', true); return; }
-    try { prog = RvmAsm.assemble(ed.value); } catch (e) { prog = null; say('Assemble error: ' + e.message, true); return; }
+    try { prog = parseSourceOrHex(ed.value); } catch (e) { prog = null; say('Assemble error: ' + e.message, true); return; }
     try {
       var hi = RVM.hostInputs(B, s, unhex(l), Number(wr.value)), stats = {};
       var svg = RVM.render(prog, hi.lanes, hi.serial32, hi.pat, hi.wear, stats);
@@ -550,7 +558,7 @@ return module.exports;})();</script><script>/* Reliks-VM Studio: assemble, rende
   function later() { clearTimeout(timer); timer = setTimeout(run, 600); }
   function download(fn, text) { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' })); a.download = fn; document.body.appendChild(a); a.click(); a.remove(); }
   function slug() { return (nm.value || 'my-program').replace(/[^a-z0-9-]/gi, '').slice(0, 40) || 'my-program'; }
-  $('load').addEventListener('click', function () { ed.value = D.templates[tpl.value] || D.templates.starter; run(); });
+  $('load').addEventListener('click', function () { ed.value = D.templates[tpl.value] || D.templates.starter; if (gatesOut) gatesOut.textContent = ''; run(); });
   $('rs').addEventListener('click', function () { ser.value = String(Math.floor(Math.random() * 4294967296)); run(); });
   $('rl').addEventListener('click', function () { var o = new Uint8Array(32); crypto.getRandomValues(o); lin.value = hex(o); run(); });
   $('go').addEventListener('click', run);

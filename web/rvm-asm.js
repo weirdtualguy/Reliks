@@ -68,7 +68,7 @@
       else if (x.charAt(x.length - 1) === ':') { items.push({ k: 'label', n: x.slice(0, -1), ln: xln }); i += 1; }
       else {
         var name = x.toLowerCase();
-        if (!has(OPS, name)) throw errAt('unknown mnemonic: ' + x, xln);
+        if (!has(OPS, name)) throw errAt('unknown opcode: ' + x, xln);
         var o = OPS[name];
         if (o[1] === null) { items.push({ k: 'op', op: o[0], kind: null, ln: xln }); i += 1; }
         else { items.push({ k: 'op', op: o[0], kind: o[1], arg: at(exp, elines, i + 1, xln), ln: xln }); i += 2; }

@@ -14,3 +14,4 @@ textarea{min-height:260px;resize:vertical;white-space:pre;overflow:auto;tab-size
 .btn.ghost{background:var(--line);color:var(--text)}
 #img{width:100%;aspect-ratio:1;background:#000;border-radius:10px;display:block;border:1px solid var(--line)}
 pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;overflow-x:auto;font-size:13px;white-space:pre-wrap;word-break:break-all}
+pre:empty{display:none}

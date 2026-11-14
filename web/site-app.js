@@ -4,10 +4,10 @@
    chain data (both JS engines and Reliks-VM RVM\x01 programs), and the art is withheld
    if any comparison fails. Also provides Offline Provenance Bundle verification.
 
-   Globals provided by the page: RELIKS_DATA, ReliksBlake2b, ReliksChain, RVM, Kaspire. */
+   Globals provided by the page: RELIKS_DATA, ReliksBlake2b, ReliksChain, RVM, RvmAsm, Kaspire. */
 (function () {
   'use strict';
-  var D = window.RELIKS_DATA, C = window.ReliksChain.init(D.templates), K = window.Kaspire.create(), RVM = window.RVM;
+  var D = window.RELIKS_DATA, C = window.ReliksChain.init(D.templates), K = window.Kaspire.create(), RVM = window.RVM, RvmAsm = window.RvmAsm;
   var A = D.anchors, SOMPI = C.SOMPI;
   var io = C.makeIO(A);
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -60,7 +60,7 @@
   function seedOf(serial) { return Number(BigInt(serial) & 0xFFFFFFFFn); }
   var RVM_TEXT = (document.getElementById('rvm-src') && document.getElementById('rvm-src').textContent) || '';
   var WORKER_SRC = [
-    'var RVM=(function(){var module={exports:{}};' + RVM_TEXT + '\nreturn module.exports;})();',
+    'var window=self;' + RVM_TEXT,
     'self.onmessage=function(e){try{',
     'if(e.data.kind==="vm"){var st={};var svg=RVM.render(e.data.prog,e.data.lanes,e.data.serial,e.data.pat||0,e.data.wear||0,st);self.postMessage({svg:svg,stats:st});}',
     'else{var fn=new Function("L","serial",e.data.engine+"\\nreturn reliks(L,serial);");self.postMessage({svg:fn(e.data.lanes,e.data.serial)});}',
@@ -89,7 +89,8 @@
   function frameDoc(svg, bg) {
     return '<!doctype html><meta charset="utf-8"><style>html,body{margin:0;height:100%;background:' + (bg || '#e7dfc8') + '}svg{display:block;width:100%;height:100%}</style>' + svg.replace('<svg ', '<svg preserveAspectRatio="xMidYMid meet" ');
   }
-  function artFrame(svg, bg) { return h('iframe', { sandbox: '', title: 'Generative artwork', srcdoc: frameDoc(svg, bg), loading: 'lazy' }); }
+  function artFrame(svg, bg) { return h('iframe', { sandbox: '', title: 'Generative artwork', srcdoc: frameDoc(svg, bg) }); }
+  function artImg(svg) { return h('img', { alt: 'Rendered artwork', src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg), style: 'width:100%;height:100%;display:block;object-fit:contain;background:#000' }); }
 
   /* ------------------------------------------------------------ verification */
   function newCheck(label, how) { return { label: label, how: how, status: 'wait', detail: '' }; }
@@ -521,16 +522,94 @@
     host.appendChild(h('div', { class: 'card', style: 'padding:18px' }, statusLine, ta, btns, outBox));
   }
 
-  /* ------------------------------------------------------------ studio */
+  /* ------------------------------------------------------------ studio (Reliks-VM v13 default + legacy v12 JS fallback) */
   function initStudio() {
-    var ed = $('#ed'), ser = $('#ser'), gatesEl = $('#gates-out'), stat = $('#studio-status'), hashes = $('#hashes'), prevBox = $('#prev-box'), tpl = $('#tpl');
-    var CAP = D.studio.cap, PRELUDE = D.studio.prelude;
+    var ed = $('#ed'), ser = $('#ser'), lin = $('#lin'), wr = $('#wr'), wv = $('#wv'), gatesEl = $('#gates-out'), stat = $('#studio-status'), hashes = $('#hashes'), prevBox = $('#prev-box'), tpl = $('#tpl');
+    var vmCtrl = $('#vm-controls'), vmWear = $('#vm-wear-row'), exeBtn = $('#exe'), exsrcBtn = $('#exsrc');
+    var CAP = D.studio.cap, PRELUDE = D.studio.prelude, B = ReliksBlake2b.blake2b;
     var BANNED = [[/\bMath\s*\.\s*(random|sin|cos|tan|asin|acos|atan2?|pow|sqrt|hypot|exp|log2?|log10)\b/, 'Math transcendental/random'], [/\bDate\b/, 'Date'], [/\bperformance\b/, 'performance'], [/\bfetch\s*\(/, 'fetch'], [/\bXMLHttpRequest\b/, 'XHR'], [/\bWebSocket\b/, 'WebSocket'], [/\brequire\s*\(/, 'require'], [/\bimport\s*[\(\{]/, 'import'], [/\beval\s*\(/, 'eval'], [/new\s+Function/, 'new Function'], [/\bwindow\b/, 'window'], [/\bdocument\b/, 'document'], [/\blocalStorage\b/, 'localStorage'], [/\bsetTimeout\b|\bsetInterval\b/, 'timer'], [/\bprocess\b/, 'process'], [/\bglobalThis\b/, 'globalThis']];
+    var lastProg = null, timer = 0;
+
+    function isJsSource(raw) {
+      return /\bfunction\s+reliks\s*\(/.test(raw);
+    }
+    function parseVmSourceOrHex(raw) {
+      var trimmed = String(raw || '').trim(), compact = trimmed.replace(/\s+/g, '');
+      if (compact.length >= 18 && compact.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(compact) && /^52564d01/i.test(compact)) {
+        return C.hex2u8(compact.toLowerCase());
+      }
+      return RvmAsm.assemble(raw);
+    }
     function src() { return PRELUDE + '\n' + ed.value; }
     function blen(x) { return C.utf8(x).length; }
+    function syncUiMode(vmMode) {
+      if (vmCtrl) vmCtrl.style.display = vmMode ? '' : 'none';
+      if (vmWear) vmWear.style.display = vmMode ? '' : 'none';
+      if (exeBtn) exeBtn.textContent = vmMode ? 'Export bytecode (.hex)' : 'Export engine (.js)';
+      if (exsrcBtn) exsrcBtn.style.display = vmMode ? '' : 'none';
+    }
+
     async function gates() {
-      var s = src(), out = [], ok = true;
-      function chk(name, pass, info) { out.push({ pass: pass, text: name + (info ? '  ' + info : '') }); if (!pass) ok = false; }
+      var raw = ed.value;
+      if (!isJsSource(raw)) {
+        syncUiMode(true);
+        var out = [], ok = true;
+        function chkVm(name, pass, info) { out.push({ pass: pass, text: name + (info ? '  ' + info : '') }); if (!pass) ok = false; }
+        var prog = null;
+        try { prog = parseVmSourceOrHex(raw); lastProg = prog; }
+        catch (e) {
+          lastProg = null;
+          chkVm('V0 assemble', false, e.message);
+          clear(gatesEl); out.forEach(function (o) { gatesEl.appendChild(h('div', {}, h('span', { class: o.pass ? 'p' : 'f', text: o.pass ? 'PASS ' : 'FAIL ' }), o.text)); });
+          stat.textContent = 'Assemble error: ' + e.message;
+          return false;
+        }
+        chkVm('V1 size <= PUSHDATA2 baking cap', prog.length <= CAP, prog.length + ' / ' + CAP + ' B');
+        var anchorOk = false, anchorHash = '';
+        try {
+          var hi1 = RVM.hostInputs(B, '1', new Uint8Array(32), 0);
+          var svg1 = RVM.render(prog, hi1.lanes, hi1.serial32, hi1.pat, hi1.wear);
+          anchorHash = bhex(svg1).slice(0, 16) + '…';
+          anchorOk = svg1.indexOf('<svg') === 0 && /<\/svg>$/.test(svg1);
+        } catch (e) { anchorHash = e.code || e.message; }
+        chkVm('V2 anchor render (serial=1, lineage=0, sales=0)', anchorOk, anchorHash);
+        var detOk = true;
+        try {
+          var hiD = RVM.hostInputs(B, '42', new Uint8Array(32), 0);
+          var a1 = RVM.render(prog, hiD.lanes, hiD.serial32, hiD.pat, hiD.wear);
+          var a2 = RVM.render(prog, hiD.lanes, hiD.serial32, hiD.pat, hiD.wear);
+          detOk = a1 === a2;
+        } catch (e) { detOk = false; }
+        chkVm('V3 determinism (double-render serial 42)', detOk);
+        var sers = ['1', '42', '999', '8675309', '4294967295', '9223372036854775807'];
+        var corners = [[0, 0], [0, 255], [21, 128], [63, 0], [63, 255]];
+        var maxFuel = 0, maxElems = 0, maxSvg = 0, maxSt = 0, faults = 0, firstFault = '';
+        for (var si = 0; si < sers.length; si++) {
+          var hiS = RVM.hostInputs(B, sers[si], new Uint8Array(32), 0);
+          for (var ci = 0; ci < corners.length; ci++) {
+            var stObj = {};
+            try {
+              RVM.render(prog, hiS.lanes, hiS.serial32, corners[ci][0], corners[ci][1], stObj);
+              if (stObj.fuel > maxFuel) maxFuel = stObj.fuel;
+              if (stObj.elems > maxElems) maxElems = stObj.elems;
+              if (stObj.svg_len > maxSvg) maxSvg = stObj.svg_len;
+              if (stObj.max_stack > maxSt) maxSt = stObj.max_stack;
+            } catch (e) {
+              faults++;
+              if (!firstFault) firstFault = 'serial ' + sers[si] + ' pat ' + corners[ci][0] + ' wear ' + corners[ci][1] + ': ' + (e.code || e.message);
+            }
+          }
+        }
+        chkVm('V4 corner sweep (30 renders across serials x pat/wear)', faults === 0, faults ? firstFault : '0 faults');
+        chkVm('V5 worst-case headroom', faults === 0, 'fuel ' + maxFuel + '/' + RVM.limits.FUEL_MAX + ' | elems ' + maxElems + '/' + RVM.limits.MAX_ELEMS + ' | svg ' + maxSvg + '/' + RVM.limits.MAX_SVG + ' B | stack ' + maxSt + '/' + RVM.limits.STACK_MAX);
+        clear(gatesEl); out.forEach(function (o) { gatesEl.appendChild(h('div', {}, h('span', { class: o.pass ? 'p' : 'f', text: o.pass ? 'PASS ' : 'FAIL ' }), o.text)); });
+        stat.textContent = ok ? 'All Reliks-VM gates green: cleared to export .hex bytecode.' : 'VM gates failed: see report above.';
+        return ok;
+      }
+
+      syncUiMode(false);
+      var s = src(), outJs = [], okJs = true;
+      function chk(name, pass, info) { outJs.push({ pass: pass, text: name + (info ? '  ' + info : '') }); if (!pass) okJs = false; }
       chk('L1 size within cap', blen(s) <= CAP, blen(s) + ' / ' + CAP + ' B (prelude ' + PRELUDE.length + ' B included)');
       var bad = BANNED.filter(function (b) { return b[0].test(s); }).map(function (b) { return b[1]; });
       chk('L2 no banned constructs', bad.length === 0, bad.join(', '));
@@ -541,29 +620,64 @@
       chk('L8 svg well-formed', good);
       var conv = false; try { conv = (await runEngine(s, '7')) === (await runEngine(s, '4294967303')); } catch (e) { conv = false; }
       chk('L5 seed = serial mod 2^32', conv);
-      clear(gatesEl); out.forEach(function (o) { gatesEl.appendChild(h('div', {}, h('span', { class: o.pass ? 'p' : 'f', text: o.pass ? 'PASS ' : 'FAIL ' }), o.text)); });
-      stat.textContent = ok ? 'Gates green: cleared to export. Run reliks-lens.js for the full L0 to L10 suite.' : 'Gates failed: fix these before export.';
-      return ok;
+      clear(gatesEl); outJs.forEach(function (o) { gatesEl.appendChild(h('div', {}, h('span', { class: o.pass ? 'p' : 'f', text: o.pass ? 'PASS ' : 'FAIL ' }), o.text)); });
+      stat.textContent = okJs ? 'Gates green: cleared to export. Run reliks-lens.js for the full L0 to L10 suite.' : 'Gates failed: fix these before export.';
+      return okJs;
     }
+
     async function show() {
       var v = ser.value.trim() || '1';
-      if (!/^\d{1,19}$/.test(v)) { stat.textContent = 'Serial must be a whole number.'; return; }
+      if (wv && wr) wv.textContent = wr.value;
+      if (!/^\d{1,19}$/.test(v) || BigInt(v) >= BigInt('9223372036854775808')) { stat.textContent = 'Serial must be a whole number below 2^63.'; return; }
+      var raw = ed.value;
+      if (!isJsSource(raw)) {
+        syncUiMode(true);
+        var l = (lin && lin.value ? lin.value.trim().toLowerCase() : '0'.repeat(64));
+        if (!/^[0-9a-f]{64}$/.test(l)) { stat.textContent = 'Lineage must be 64 hex characters.'; return; }
+        var prog;
+        try { prog = parseVmSourceOrHex(raw); lastProg = prog; }
+        catch (e) { lastProg = null; stat.textContent = 'Assemble error: ' + e.message; return; }
+        try {
+          var hi = RVM.hostInputs(B, v, C.hex2u8(l), Number((wr && wr.value) || 0)), stats = {};
+          var svgVm = RVM.render(prog, hi.lanes, hi.serial32, hi.pat, hi.wear, stats);
+          clear(prevBox); prevBox.appendChild(artImg(svgVm));
+          hashes.textContent = 'program       ' + prog.length + ' / ' + CAP + ' B (PUSHDATA2 bake cap)\nprogram_hash  ' + bhex(prog) + '\nrender_hash   ' + bhex(svgVm) + '\nsvg           ' + svgVm.length + ' / ' + RVM.limits.MAX_SVG + ' B\nfuel          ' + stats.fuel + ' / ' + RVM.limits.FUEL_MAX + '\nelements      ' + stats.elems + ' / ' + RVM.limits.MAX_ELEMS + '\nmax_stack     ' + stats.max_stack + ' / ' + RVM.limits.STACK_MAX + '\nwear          ' + hi.wear + ' / 255\npatina        ' + hi.pat + ' / 63';
+          stat.textContent = 'Rendered Reliks-VM program (' + prog.length + ' B). Click "Run gates" to run the 30-corner verification sweep.';
+        } catch (e) {
+          stat.textContent = 'Render fault: ' + (e.code || e.message);
+        }
+        return;
+      }
+
+      syncUiMode(false);
       var svg; try { svg = await runEngine(src(), v); } catch (e) { stat.textContent = 'Error: ' + e.message; return; }
-      clear(prevBox); prevBox.appendChild(artFrame(svg, '#000'));
+      clear(prevBox); prevBox.appendChild(artImg(svg));
       hashes.textContent = 'engine_hash ' + bhex(src()) + '\nrender_hash ' + bhex(svg) + '\nengine_bytes ' + blen(src()) + ' / ' + CAP;
       await gates();
     }
+
     function download(fn, text) { var a = h('a', { href: URL.createObjectURL(new Blob([text], { type: 'text/plain' })), download: fn }); document.body.appendChild(a); a.click(); a.remove(); }
-    function slug() { return ($('#name').value || 'my-engine').replace(/[^a-z0-9-]/gi, '').slice(0, 40) || 'my-engine'; }
+    function slug() { return ($('#name').value || 'my-program').replace(/[^a-z0-9-]/gi, '').slice(0, 40) || 'my-program'; }
     $('#exe').addEventListener('click', async function () {
       if (!(await gates())) { toast('Fix the failing gates before exporting.', 'bad'); return; }
       var name = slug();
+      if (!isJsSource(ed.value)) {
+        if (!lastProg) return;
+        download(name + '.hex', C.u8hex(lastProg) + '\n');
+        stat.textContent = 'Exported ' + name + '.hex. Next: node cli/reliks-lens-vm.js ' + name + '.hex';
+        return;
+      }
       download(name + '.js', ["const { blake2b: b2 } = require('./web/blake2b.js');", "const blake2b = (m, o) => b2(m, (o && o.dkLen) || 32);", "const B = Buffer;", 'const ENGINE_SRC = ' + JSON.stringify(src()) + ';', 'const TEST_SERIAL = 1;',
         "function seedLanes(serial){const le=B.alloc(8);le.writeBigUInt64LE(BigInt(serial));const h=blake2b(B.concat([B.from('ReliksSeedV10','utf8'),le]),{dkLen:32});const dv=new DataView(h.buffer,h.byteOffset,h.byteLength);const lanes=[];for(let i=0;i<8;i++)lanes.push(dv.getInt32(i*4,true));return lanes;}",
         "const compiled=new Function('L','serial',ENGINE_SRC+'\\nreturn reliks(L,serial);');", 'function render(serial){const s=Number(BigInt(serial)&0xFFFFFFFFn);return compiled(seedLanes(s),s|0);}',
         "const engineHashHex=B.from(blake2b(B.from(ENGINE_SRC,'utf8'),{dkLen:32})).toString('hex');", "const renderHashHex=B.from(blake2b(B.from(render(TEST_SERIAL),'utf8'),{dkLen:32})).toString('hex');", 'module.exports={ENGINE_SRC,seedLanes,render,engineHashHex,renderHashHex,TEST_SERIAL};'].join('\n') + '\n');
       stat.textContent = 'Exported ' + name + '.js. Next: node cli/reliks-lens.js ' + name + '.js';
     });
+    if (exsrcBtn) {
+      exsrcBtn.addEventListener('click', function () {
+        download(slug() + '.rvm.txt', ed.value);
+      });
+    }
     $('#exs').addEventListener('click', function () {
       var w = K.state(), artist = ($('#artist').value.trim() || (w.status === 'connected' ? w.pubkey : '')).toLowerCase();
       var price = $('#price').value.trim(), roy = Number($('#roy').value), n = Number($('#eds').value), err = '';
@@ -573,15 +687,20 @@
       else if (!(roy >= 0.01 && roy <= 20)) err = 'Royalty must be between 0.01% and 20%.';
       else if (!(Number.isInteger(n) && n >= 1)) err = 'Editions must be a whole number of at least 1.';
       if (err) { stat.textContent = err; toast(err, 'bad'); return; }
-      download('series-' + slug() + '.json', JSON.stringify({ artist: artist, price: Number(priceSompi), royalty_bips: Math.round(roy * 100), mints_left: n }, null, 2) + '\n');
+      var seriesObj = { artist: artist, price: Number(priceSompi), royalty_bips: Math.round(roy * 100), mints_left: n, engine_lang: isJsSource(ed.value) ? 1 : 2 };
+      download('series-' + slug() + '.json', JSON.stringify(seriesObj, null, 2) + '\n');
       stat.textContent = 'Exported series-' + slug() + '.json';
     });
-    $('#load').addEventListener('click', function () { ed.value = D.studio.templates[tpl.value] || D.studio.templates.dagcity; show(); });
+    $('#load').addEventListener('click', function () { ed.value = D.studio.templates[tpl.value] || D.studio.templates.iso; clear(gatesEl); show(); });
     $('#go').addEventListener('click', show);
     $('#rnd').addEventListener('click', function () { ser.value = String(Math.floor(Math.random() * 4294967296)); show(); });
+    if ($('#rnd-lin')) $('#rnd-lin').addEventListener('click', function () { var o = new Uint8Array(32); crypto.getRandomValues(o); lin.value = C.u8hex(o); show(); });
+    if (lin) lin.addEventListener('change', show);
+    if (wr) wr.addEventListener('input', show);
+    ed.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(show, 600); });
     $('#run-gates').addEventListener('click', gates);
     K.on(function (st) { var a = $('#artist'); if (st.status === 'connected' && !a.value) a.placeholder = 'from Kaspire: ' + short(st.pubkey, 10, 6); });
-    ed.value = D.studio.templates.dagcity;
+    ed.value = D.studio.templates.iso || D.studio.templates.dagcity;
     return { show: show };
   }
 
@@ -605,5 +724,5 @@
   walletChip();
   K.restore().then(walletChip);
   showTab(location.hash.slice(1) || 'gallery');
-  window.__reliks = { C: C, K: K, RVM: RVM, verifySeries: verifySeries, runEngine: runEngine, views: seriesViews };
+  window.__reliks = { C: C, K: K, RVM: RVM, RvmAsm: RvmAsm, verifySeries: verifySeries, runEngine: runEngine, views: seriesViews };
 })();
