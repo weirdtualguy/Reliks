@@ -4466,7 +4466,8 @@ h('div', {}, h('span', { text: 'Lane Covenant ID' }), h('b', { text: short(ds.la
 h('div', { class: 'row', style: 'margin-top:8px' },
 h('button', { class: 'btn primary', onclick: function () { showTab('gallery'); var el = document.getElementById('series-card-' + seriesAnchor.id); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, text: 'Open in Gallery & Mint' }),
 h('button', { class: 'btn', onclick: function () { copy(JSON.stringify(seriesAnchor, null, 2), 'Series Anchor JSON'); }, text: 'Copy Anchor JSON' }),
-h('button', { class: 'btn ghost', onclick: function () { download('anchor-' + seriesAnchor.id + '.json', JSON.stringify(seriesAnchor, null, 2) + '\n'); }, text: 'Download Anchor (.json)' }))));
+h('button', { class: 'btn ghost', onclick: function () { download('anchor-' + seriesAnchor.id + '.json', JSON.stringify(seriesAnchor, null, 2) + '\n'); }, text: 'Download Anchor (.json)' }),
+h('button', { class: 'btn', onclick: function () { copy(JSON.stringify(seriesAnchor, null, 2), 'Anchor JSON'); window.open('https://github.com/weirdtualguy/Reliks/issues/new?template=submit-series.yml&title= + encodeURIComponent('[Series] ' + seriesAnchor.title), '_blank', 'noopener'); }, text: 'Submit to Marketplace (GitHub)' })))));
 }
 var link = A.explorer + res.txId;
 mintScreen(6, 'Published!', [

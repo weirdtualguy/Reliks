@@ -1,0 +1,38 @@
+name: Sync Marketplace & Index Chain
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Sync new mints and secondary market state from Kaspa
+        run: node tools/sync-marketplace.js
+
+      - name: Rebuild site and run verification tests
+        run: |
+          npm run site
+          npm test
+
+      - name: Commit & push updated anchors and marketplace index
+        run: |
+          git config user.name "reliks-bot"
+          git config user.email "reliks-bot@users.noreply.github.com"
+          if [ -n "$(git status --porcelain data/mainnet-anchors.json docs/index.html docs/marketplace-index.json)" ]; then
+            git add data/mainnet-anchors.json docs/index.html docs/marketplace-index.json
+            git commit -m "chore(market): sync chain editions and marketplace index [skip ci]"
+            git push
+          else
+            echo "No marketplace changes to commit."
+          fi

@@ -1,0 +1,85 @@
+name: Verify & List Submitted Series
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  verify-and-list:
+    if: contains(github.event.issue.labels.*.name, 'submit-series')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verify submission against Reliks-VM and Kaspa mainnet
+        id: verify
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          set +e
+          printf '%s' "$ISSUE_BODY" > /tmp/issue_body.txt
+          OUT=$(node tools/verify-and-add-series.js /tmp/issue_body.txt 2>&1)
+          STATUS=$?
+          echo "$OUT"
+          if [ $STATUS -ne 0 ]; then
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "err=$(echo "$OUT" | tr '\n' ' ' | head -c 400)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+          echo "meta=$(echo "$OUT" | grep VERIFIED_SERIES_JSON= | sed 's/VERIFIED_SERIES_JSON=//')" >> "$GITHUB_OUTPUT"
+
+      - name: Rebuild site, sync, and run tests
+        if: steps.verify.outputs.ok == 'true'
+        run: |
+          node tools/sync-marketplace.js
+          npm run site
+          npm test
+
+      - name: Commit & push new series to main
+        if: steps.verify.outputs.ok == 'true'
+        run: |
+          git config user.name "reliks-bot"
+          git config user.email "reliks-bot@users.noreply.github.com"
+          git add data/mainnet-anchors.json docs/index.html docs/marketplace-index.json
+          git commit -m "feat(market): list verified series from issue #${{ github.event.issue.number }}"
+          git push
+
+      - name: Comment success and close issue
+        if: steps.verify.outputs.ok == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const meta = JSON.parse(`${{ steps.verify.outputs.meta }}`);
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `Verified on Kaspa mainnet and added **${meta.title}** (\`${meta.laneCovenantId}\`) to \`data/mainnet-anchors.json\`.\n\nGitHub Pages is rebuilding — your series will appear in the live Gallery shortly at https://weirdtualguy.github.io/Reliks/#gallery`
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed',
+              state_reason: 'completed'
+            });
+
+      - name: Comment failure
+        if: steps.verify.outputs.ok != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `Verification failed: \`${{ steps.verify.outputs.err }}\`\n\nMake sure your \`genesisTxId\` is confirmed on Kaspa mainnet and paste the exact JSON from Studio's **Copy Anchor JSON** button.`
+            });

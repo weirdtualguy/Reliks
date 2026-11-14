@@ -1,0 +1,32 @@
+name: Submit Reliks Series to Marketplace
+description: List a deployed Reliks-VM (v13) series on the live Reliks Gallery & Secondary Market.
+title: "[Series] "
+labels: ["submit-series"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Paste the **Series Anchor JSON** produced by **Reliks Studio → Publish on Chain (Kaspire) → Copy Anchor JSON**.
+        GitHub Actions will automatically verify your `programHash`, `renderHash`, Reliks-VM determinism gates, KIP-20 `laneCovenantId`, and on-chain `SeriesFactory-v13` script on Kaspa mainnet before adding it to the live site.
+  - type: textarea
+    id: anchor_json
+    attributes:
+      label: Series Anchor JSON
+      description: Paste the full JSON object from Studio.
+      placeholder: |
+        ```json
+        {
+          "id": "my-series-abcdef",
+          "title": "My Series",
+          "laneCovenantId": "...",
+          "genesisTxId": "...",
+          "programHash": "...",
+          "renderHash": "...",
+          "artist": "...",
+          "engine_lang": 2,
+          "programHex": "52564d01...",
+          "genesisState": { ... }
+        }
+        ```
+    validations:
+      required: true
