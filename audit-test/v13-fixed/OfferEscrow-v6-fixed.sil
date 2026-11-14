@@ -1,0 +1,165 @@
+pragma silverscript ^0.1.0;
+
+// OfferEscrow-v6 (FINAL) — Zero-Fee Protocol escrow (trustless atomic swap).
+// Fixes applied 2026-11-14: C1 binding (editionOutIdx == authorized output),
+// H1 (payments immediately after the edition output), M1 royalty floor 5M.
+// M3 NOT fixed: silverc 0.1.0 cannot express `age < expireAge` (see note in accept).
+// The offerer locks (askPrice + FEE_BUFFER) at offer time; the buffer pays
+// the miner fee on the 2-input accept. The owner accepts by co-spending the
+// listed edition and signing. The split is TWO-WAY and exact-equality:
+//   owner  == askPrice - roy
+//   artist == roy
+// There is NO marketplace premium. Marketplaces that want revenue fork this
+// escrow and add their own premium field (KCC20-style composition); the
+// reference protocol stays fee-neutral.
+// The edition's own buy route enforces the same royalty-only split, so both
+// scripts agree on the output vector without the edition knowing about the
+// escrow (keeping the edition template hash stable).
+contract OfferEscrow(
+    byte[32] init_owner,
+    byte init_scheme,
+    byte[32] init_edition_covid,
+    int init_askPrice,
+    int init_expireAge,
+    byte[32] init_artist,
+    int init_royalty_bips,
+    byte[32] init_offerer,
+    int edition_prefix_len,
+    int edition_suffix_len,
+    byte[32] expected_template_hash
+) {
+    byte[32] ownerIdentifier = init_owner;
+    byte identifierType = init_scheme;
+    byte[32] edition_covid = init_edition_covid;
+    int askPrice = init_askPrice;
+    int expireAge = init_expireAge;
+    byte[32] artist = init_artist;
+    int royalty_bips = init_royalty_bips;
+    byte[32] offerer = init_offerer;
+
+    byte constant IDENTIFIER_PUBKEY = 0x00;
+    int constant MIN_PRICE = 100000000;   // 1 KAS floor
+    int constant MAX_PRICE = 922337203685477; // i64 overflow guard, mirrors Edition
+    int constant MIN_ROYALTY_OUT = 5000000; // 0.05 KAS royalty floor (M1 fix 2026-11-14; mainnet cap is 500,000 mass — see Edition note)
+
+    // Mirror of the Edition state (for readInputStateWithTemplate), NOT escrow state.
+    struct EditionState {
+        byte[32] ownerIdentifier;
+        byte identifierType;
+        int price;
+        byte[32] artist;
+        int royalty_bips;
+        byte[32] program_hash;
+        byte[32] factory_covid;
+        int serial;
+        byte[32] lineage;
+        int sales;
+    }
+
+    entry accept(
+        sig ownerSig,
+        int editionOutIdx,
+        int paymentOutIdx,
+        int royaltyOutIdx
+    ) {
+        require(identifierType == IDENTIFIER_PUBKEY);
+        require(checkSig(ownerSig, pubkey(ownerIdentifier)));
+        require(askPrice >= MIN_PRICE);
+        require(askPrice <= MAX_PRICE);
+        // M3 — NOT FIXED (2026-11-14, verified): the audit's one-liner
+        // `require(this.ageDaa < expireAge)` does NOT compile in silverc
+        // 0.1.0. `<`/`<=`/`>` do not apply to `temporal` (only the
+        // `require(this.ageDaa >= int)` lock form exists), and `this.ageDaa`
+        // is only parseable immediately after `require(` — negation,
+        // assignment, `if (...)` and `== false` forms were all rejected.
+        // An upper bound on age is inexpressible in this compiler version;
+        // the fix needs a silverc change or a protocol redesign (e.g. store
+        // the offer's creation DAA and enforce an absolute deadline — which
+        // also needs a `<` form). Accept therefore still fills expired
+        // offers; see the audit report for the corrected test.
+        // M1 fix (2026-11-14): the royalty this accept would pay must clear
+        // the mineability floor.
+        require((askPrice * royalty_bips) / 10000 >= MIN_ROYALTY_OUT);
+
+        int roy = (askPrice * royalty_bips) / 10000;
+        require(tx.inputs[this.activeInputIndex].value >= askPrice);
+
+        require(paymentOutIdx != royaltyOutIdx);
+        require(editionOutIdx != paymentOutIdx && editionOutIdx != royaltyOutIdx);
+        // H1 fix (2026-11-14): payments must sit immediately after the edition
+        // output, matching the Edition rule exactly (buy and accept agree).
+        require(paymentOutIdx == editionOutIdx + 1 && royaltyOutIdx == editionOutIdx + 2);
+
+        byte[36] ownerSpk = new ScriptPubKeyP2PK(pubkey(ownerIdentifier));
+        byte[36] artistSpk = new ScriptPubKeyP2PK(pubkey(artist));
+
+        // Zero-fee split: owner (askPrice - roy), artist (roy). Exact equality.
+        require(tx.outputs[paymentOutIdx].value == askPrice - roy);
+        require(tx.outputs[paymentOutIdx].scriptPubKey == byte[](ownerSpk));
+        require(tx.outputs[royaltyOutIdx].value == roy);
+        require(tx.outputs[royaltyOutIdx].scriptPubKey == byte[](artistSpk));
+
+        // Co-spend the edition and validate its transition.
+        require(OpCovInputCount(edition_covid) == 1);
+        int editionInIdx = OpCovInputIdx(edition_covid, 0);
+        // C1 fix (2026-11-14): the edition output must BE the edition input's
+        // authorized output — no unbound decoy can satisfy the escrow.
+        require(OpAuthOutputCount(editionInIdx) == 1);
+        require(editionOutIdx == OpAuthOutputIdx(editionInIdx, 0));
+        EditionState prevEd = readInputStateWithTemplate(
+            editionInIdx, edition_prefix_len, edition_suffix_len, expected_template_hash
+        );
+        // Carrier conservation: edition output must not lose value.
+        require(tx.outputs[editionOutIdx].value >= tx.inputs[editionInIdx].value);
+
+        // Bait-and-switch guard: edition must be listed at exactly askPrice.
+        require(prevEd.ownerIdentifier == ownerIdentifier);
+        require(prevEd.price == askPrice);
+        require(royalty_bips == prevEd.royalty_bips);   // audit4: bind split to genuine edition state
+        require(artist == prevEd.artist);               // audit4: no self-declared royalty recipient
+
+        byte[] domain = byte[]("ReliksLineageV2");
+        EditionState nextEd = EditionState {
+            ownerIdentifier: offerer,
+            identifierType: IDENTIFIER_PUBKEY,
+            price: 0,
+            artist: prevEd.artist,
+            royalty_bips: prevEd.royalty_bips,
+            program_hash: prevEd.program_hash,
+            factory_covid: prevEd.factory_covid,
+            serial: prevEd.serial,
+            lineage: blake2b(domain + prevEd.lineage + offerer),
+            sales: prevEd.sales + 1
+        };
+        validateOutputStateWithInputTemplate(
+            editionOutIdx, nextEd, editionInIdx,
+            edition_prefix_len, edition_suffix_len, expected_template_hash
+        );
+
+        // Escrow terminates: no continuation outputs.
+        require(OpAuthOutputCount(this.activeInputIndex) == 0);
+    }
+
+    // Permissionless liveness escape: after the age lock anyone may refund
+    // the offerer in full. Exits are accept, expire, and cancel (offerer only).
+    entry expire() {
+        require(this.ageDaa >= expireAge);
+        byte[36] offererSpk = new ScriptPubKeyP2PK(pubkey(offerer));
+        require(tx.outputs[0].value == tx.inputs[this.activeInputIndex].value);
+        require(tx.outputs[0].scriptPubKey == byte[](offererSpk));
+        require(OpAuthOutputCount(this.activeInputIndex) == 0);
+    }
+
+    // Offerer cancel (M3 replacement, 2026-11-14): silverc 0.1.0 cannot
+    // express an age upper bound in accept, so expiry is enforced by
+    // letting the offerer withdraw a stale offer at any time. This also
+    // closes the "no early cancel" low. Residual risk is the normal
+    // order-book race: the owner can accept until the offerer cancels.
+    // NOTE: no output is pinned here — the offerer signs, so only they can
+    // invoke it, and the refund destination is their choice; a careless
+    // builder could burn the funds by omitting the refund output.
+    entry cancel(sig offererSig) {
+        require(checkSig(offererSig, pubkey(offerer)));
+        require(OpAuthOutputCount(this.activeInputIndex) == 0);
+    }
+}
