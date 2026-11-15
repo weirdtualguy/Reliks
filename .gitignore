@@ -52,3 +52,6 @@ v13/wash-preview.html
 v13/program-preview.html
 v13/marks-preview.html
 v13/history-vm-v13.json
+
+# WASM SDK (Resolver/Borsh submit path, not committed — run tools/setup-sdk.sh)
+vendor/

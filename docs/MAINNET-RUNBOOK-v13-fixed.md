@@ -36,13 +36,27 @@ template hash and a new genesis. This runbook is the exact sequence.
    The file holds `PC_NET=mainnet`, `PC_PRIV=<64-hex>`,
    `PC_WALLET=<kaspa: address of that key>`. The builders check
    `PC_WALLET` against `PC_PRIV` at startup and refuse on mismatch.
-3. **A mainnet wRPC endpoint.** The lib ships no hardcoded mainnet wRPC
-   hosts on purpose. Supply your own trusted/full-node endpoint(s):
+3. **A mainnet wRPC endpoint — use the SDK/Resolver path (2026-11-15).**
+   The public JSON wRPC endpoints are gone: the resolver fleet serves
+   Borsh only (mainnet `.../wrpc/json` returns 404), and the kaspa-ng
+   proxies (`us-1`/`eu-1.kaspa-ng.org`) are retired (commented out of the
+   SDK's `Resolvers.toml`). Do NOT set `PC_MAINNET_WRPC` to a public JSON
+   host — none works. Instead:
    ```bash
-   export PC_MAINNET_WRPC="ws://localhost:17110"   # comma-separate multiples
+   sh tools/setup-sdk.sh          # once: downloads the WASM SDK v2.1.0 (~57 MB) into vendor/kaspa-wasm/
+   export PC_USE_SDK=1            # builders submit via the SDK's Borsh RpcClient
    ```
-   Covenant spends cannot use REST (it drops `computeBudget`). Without
-   `PC_MAINNET_WRPC` the scripts refuse to start.
+   With `PC_USE_SDK=1`, each covenant spend resolves a live public Borsh
+   node through the Resolver protocol (16 resolver services, 8s timeout
+   each), connects with a 20s timeout, retries with a freshly resolved
+   node up to 3 times, and converts the built tx to the SDK's SafeJSON
+   (REST lookup of each input's funding tx for the `utxo` entries).
+   `PC_MAINNET_WRPC` is no longer required (only needed if you run your
+   own node — `ws://localhost:17110` — as a fallback). Covenant spends
+   still cannot use REST (it drops `computeBudget`).
+   Proven on testnet-10 2026-11-15: offer tx `133526d8…` submitted via
+   this path and accepted (first resolved node timed out on connect;
+   the retry resolved vector-10 and it went through).
 4. Node + `ws`. Try the real `ws` package first. If wRPC fails with
    `SSL routines: wrong version number`, use the shim instead: copy
    `audit-test/node_modules/ws/` (package `ws@9.9.9-shim`, a wrapper
