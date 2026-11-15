@@ -5,6 +5,13 @@ node_modules/
 data/*-ledger*.json
 data/*-args*.json
 data/series-*.json
+# Testnet ledgers and series state (local only, never commit — testnet-10 only)
+audit-test/**/ledger*.json
+audit-test/**/escrow-ledger*.json
+audit-test/**/escrow-in01-*.json
+audit-test/**/escrow-in03-*.json
+audit-test/**/series-fixed*.json
+audit-test/**/factory-args-499.json
 # Fixed, zero-value template-compile args (not per-deployment state — safe to track)
 !data/edition-args.json
 !data/escrow-args.json

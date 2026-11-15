@@ -5,7 +5,7 @@ const fs = require('fs');
 const N = require('../lib/network.js'), CH = require('../web/reliks-chain.js'), T = require('./templates.js'), plan = require('./plan.js');
 const [lp, fa, ea] = process.argv.slice(2);
 if (!lp || !fa) { console.log('usage: node sdk/replay-mint.js <ledger.json> <factory-abi.json> [<edition-abi.json>]'); process.exit(2); }
-CH.init(T.templatesFor({ factoryAbi: fa, editionAbi: ea || 'data/edition-abi-v13.json' }));
+CH.init(T.templatesFor({ factoryAbi: fa, editionAbi: ea || 'contracts/edition.json' }));
 const L = JSON.parse(fs.readFileSync(lp, 'utf8')), S = L.series, nm = lp.split('/').pop().replace('.json', '');
 const bare = (s) => CH.stripVersion(String(s || '')).toLowerCase();
 const get = async (id) => { const r = await fetch(N.kascov + '/c/' + id + '.json'); if (!r.ok) throw new Error('kascov ' + r.status); return r.json(); };

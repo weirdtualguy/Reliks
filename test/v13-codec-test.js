@@ -7,7 +7,7 @@ const tplFn = require(path.join(root, 'lib', 'reliks-templates.js'));
 let pass = 0, fail = 0;
 const t = async (name, fn) => { try { await fn(); pass++; console.log('PASS ' + name); } catch (e) { fail++; console.log('FAIL ' + name + ' | ' + e.message); } };
 const eq = (a, b, m) => { if (String(a) !== String(b)) throw new Error((m || 'mismatch') + ': ' + a + ' != ' + b); };
-const abi = JSON.parse(fs.readFileSync(path.join(root, 'data', 'edition-abi-v13.json'), 'utf8'));
+const abi = JSON.parse(fs.readFileSync(path.join(root, 'contracts', 'edition.json'), 'utf8'));
 const ed = abi.contracts[Object.keys(abi.contracts)[0]];
 const H = s => Buffer.from(s, 'hex');
 // independent reference encoder driven only by the compiled ABI (pushes: 1-byte length prefix for <=75 bytes)

@@ -11,8 +11,21 @@ const C = require(path.join(ROOT, 'web', 'reliks-chain.js'));
 const makeTemplates = require(path.join(ROOT, 'lib', 'reliks-templates.js'));
 
 const t12 = makeTemplates();
-const t13 = makeTemplates({ editionAbi: 'edition-abi-v13.json' });
+const t13 = makeTemplates({ canonical: true });
 C.init(t12);
+
+// Canonical hashes (the only deployable set) + the one live legacy series.
+// The indexer lists a series as canonical only if its edition template is in
+// the allowlist. A series on legacy hashes stays listed but is flagged
+// "legacy, unsafe" in the UI — it is never dropped, and it is never treated
+// as canonical.
+const PINS = JSON.parse(fs.readFileSync(path.join(ROOT, 'TEMPLATE-HASHES.json'), 'utf8'));
+const ALLOWLIST = new Set([
+  ...(PINS.allowlist.factory || []),
+  ...(PINS.allowlist.edition || []),
+  ...(PINS.allowlist.escrow || []),
+]);
+const LEGACY = PINS.legacy_mainnet || {};
 
 const ANCHORS_PATH = process.env.RELIKS_ANCHORS || path.join(ROOT, 'data', 'mainnet-anchors.json');
 const INDEX_OUT = process.env.RELIKS_INDEX_OUT || path.join(ROOT, 'docs', 'marketplace-index.json');
@@ -159,9 +172,14 @@ async function sync(opts) {
       }
     }
 
+    const isLegacy = edTpl.templateHashHex === (LEGACY.edition || '') || s.protocol_version === 'v12' || s.id === (LEGACY.series_id || '');
+    const isCanonical = ALLOWLIST.has(edTpl.templateHashHex);
     marketSeries.push({
       id: s.id,
       title: s.title,
+      status: isCanonical ? 'canonical' : (isLegacy ? 'legacy-unsafe' : 'unknown'),
+      statusNote: isCanonical ? undefined : (isLegacy ? 'Legacy contract hashes (v12). Not deployable; listed for reference only.' : 'Template hash is not in the canonical allowlist.'),
+      editionTemplateHash: edTpl.templateHashHex,
       laneCovenantId: s.laneCovenantId,
       mintsLeft: laneInfo ? laneInfo.state.mints_left.toString() : null,
       mintPriceSompi: laneInfo ? laneInfo.state.price.toString() : null,

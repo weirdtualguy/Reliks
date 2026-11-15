@@ -1,5 +1,13 @@
-// MAINNET variant of the v13-fixed builder (2026-11-14). Same contracts/ABIs as testnet; requires PC_NET=mainnet + PC_MAINNET_WRPC. Never run with a testnet key.
+// MAINNET variant of the v13-fixed builder (2026-11-14). Canonical contracts
+// in contracts/ (ABIs: contracts/*.json). Requires PC_NET=mainnet +
+// PC_MAINNET_WRPC. Never run with a testnet key.
 if ((process.env.PC_NET || "") !== "mainnet") { console.error("mainnet scripts are mainnet-only: export PC_NET=mainnet"); process.exit(1); }
+// Hash gate first: recompile the canonical contracts and hard-fail if any
+// compiled hash differs from TEMPLATE-HASHES.json. Never trade unverified.
+const { spawnSync } = require('child_process');
+const gate = spawnSync('node', ['tools/verify-contract.js'], { encoding: 'utf8' });
+process.stdout.write(gate.stdout || ''); process.stderr.write(gate.stderr || '');
+if (gate.status !== 0) { console.error('FATAL: verify-contract.js failed — refusing to run.'); process.exit(1); }
 const V = require('../../lib/reliks-lib.js');
 const { B, hex, H, pushMin, pushMinInt, sighash, parts, encState, pickUtxo, secp, fs, feeLoop, waitForConfirmation } = V;
 const [,, cmd, kArg, priceArg] = process.argv;
@@ -7,8 +15,8 @@ const k = parseInt(kArg || '0', 10);
 (async () => {
 
 
-  const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'audit-test/v13-fixed/ledger.json'), 'utf8'));
-  const Ed = parts(JSON.parse(fs.readFileSync('audit-test/v13-fixed/out/edition.json', 'utf8')));
+  const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'audit-test/v13-fixed/ledger-mainnet.json'), 'utf8'));
+  const Ed = parts(JSON.parse(fs.readFileSync((process.env.RELIKS_EDITION_ABI || 'contracts/edition.json'), 'utf8')));
   const TAG = n => H(Ed.c.entries[n].dispatch_tag);
   const ed = LD.editions[k];
   if (!ed) throw new Error('edition ' + k + ' not in ledger');
@@ -41,7 +49,7 @@ const k = parseInt(kArg || '0', 10);
     await waitForConfirmation(txId, 600000);
     ed.price = Number(newPrice); ed.txId = txId; ed.index = 0;
     ed.spk = hex(V.p2sh(redeemOf(stateOf(ed.owner, ed.price))));
-    fs.writeFileSync((process.env.RELIKS_LEDGER || 'audit-test/v13-fixed/ledger.json'), JSON.stringify(LD, null, 2));
+    fs.writeFileSync((process.env.RELIKS_LEDGER || 'audit-test/v13-fixed/ledger-mainnet.json'), JSON.stringify(LD, null, 2));
     console.log('RELIKS V12 LIST:', txId, '| edition', ed.cov.slice(0, 16), '| newPrice', newPrice.toString());
   } else if (cmd === 'buy') {
     const price = BigInt(ed.price);
@@ -67,7 +75,7 @@ const k = parseInt(kArg || '0', 10);
     await waitForConfirmation(txId, 600000);
     const nx = advOf(V.USER); ed.lineage = nx.lineage; ed.sales = nx.sales; ed.owner = V.USER; ed.price = 0; ed.txId = txId; ed.index = 0;
     ed.spk = hex(V.p2sh(redeemOf(stateOf(ed.owner, ed.price))));
-    fs.writeFileSync((process.env.RELIKS_LEDGER || 'audit-test/v13-fixed/ledger.json'), JSON.stringify(LD, null, 2));
+    fs.writeFileSync((process.env.RELIKS_LEDGER || 'audit-test/v13-fixed/ledger-mainnet.json'), JSON.stringify(LD, null, 2));
     console.log('RELIKS V12 BUY:', txId, '| ownerNet', ownerNet.toString(), '| royalty', roy.toString());
   } else if (cmd === 'unlist') {
     const wIn = await pickUtxo();
@@ -86,7 +94,7 @@ const k = parseInt(kArg || '0', 10);
     await waitForConfirmation(txId);
     ed.price = 0; ed.txId = txId; ed.index = 0;
     ed.spk = hex(V.p2sh(redeemOf(stateOf(ed.owner, ed.price))));
-    fs.writeFileSync((process.env.RELIKS_LEDGER || 'audit-test/v13-fixed/ledger.json'), JSON.stringify(LD, null, 2));
+    fs.writeFileSync((process.env.RELIKS_LEDGER || 'audit-test/v13-fixed/ledger-mainnet.json'), JSON.stringify(LD, null, 2));
     console.log('RELIKS UNLIST:', txId);
   } else if (cmd === 'transfer') {
     const newOwner = String(priceArg || '');
@@ -108,7 +116,7 @@ const k = parseInt(kArg || '0', 10);
     await waitForConfirmation(txId);
     ed.lineage = nx.lineage; ed.owner = newOwner; ed.price = 0; ed.txId = txId; ed.index = 0;
     ed.spk = hex(V.p2sh(redeemOf(stateOf(ed.owner, ed.price))));
-    fs.writeFileSync((process.env.RELIKS_LEDGER || 'audit-test/v13-fixed/ledger.json'), JSON.stringify(LD, null, 2));
+    fs.writeFileSync((process.env.RELIKS_LEDGER || 'audit-test/v13-fixed/ledger-mainnet.json'), JSON.stringify(LD, null, 2));
     console.log('RELIKS TRANSFER:', txId, '| newOwner', newOwner.slice(0, 16));
   } else if (cmd === 'sell') {
     const askPrice = BigInt(priceArg);
@@ -137,7 +145,7 @@ const k = parseInt(kArg || '0', 10);
     await waitForConfirmation(txId, 600000);
     const nx = advOf(buyer); ed.lineage = nx.lineage; ed.sales = nx.sales; ed.owner = buyer; ed.price = 0; ed.txId = txId; ed.index = 0;
     ed.spk = hex(V.p2sh(redeemOf(stateOf(ed.owner, ed.price))));
-    fs.writeFileSync((process.env.RELIKS_LEDGER || 'audit-test/v13-fixed/ledger.json'), JSON.stringify(LD, null, 2));
+    fs.writeFileSync((process.env.RELIKS_LEDGER || 'audit-test/v13-fixed/ledger-mainnet.json'), JSON.stringify(LD, null, 2));
     console.log('RELIKS V12 SELL:', txId, '| ownerNet', ownerNet.toString(), '| royalty', roy.toString());
   } else { console.error('usage: node cli/secondary-v12.js <list|buy|sell> <edIdx> [priceSompi]'); process.exit(1); }
 })().catch(e => { console.error(e); process.exit(1); });

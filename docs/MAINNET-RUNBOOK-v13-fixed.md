@@ -8,13 +8,14 @@ template hash and a new genesis. This runbook is the exact sequence.
 
 ## 0. What is already fixed (do not change before the throwaway)
 
-- Contracts: `audit-test/v13-fixed/ReliksEdition-v13-fixed.sil`,
-  `OfferEscrow-v6-fixed.sil`, `SeriesFactory-v13-fixed.sil` (branch
-  `v13-fixed`).
+- Contracts: `contracts/ReliksEdition.sil`, `contracts/OfferEscrow.sil`,
+  `contracts/SeriesFactory.sil` (branch `v13-fixed`). Deploy only from
+  `contracts/`.
 - ABIs: `audit-test/v13-fixed/out/{edition,escrow,factory}.json` —
   network-independent, no recompile needed for mainnet.
-- Template hashes (`audit-test/v13-fixed/TEMPLATE-HASHES.json`):
-  edition `9106b142…`, escrow `8eff7679…`, factory `029512ea…`.
+- Template hashes (`TEMPLATE-HASHES.json` at the repo root):
+  edition `9106b142…`, escrow `18e3d59a…`, factory `029512ea…`.
+  Run `node tools/verify-contract.js` first — it hard-fails on any mismatch.
 - Constants: `MIN_ROYALTY_OUT = 5_000_000`, factory min royalty 5%
   (`royalty_bips >= 500`), `MIN_PRICE` 1 KAS.
 - Builders: `deploy-mainnet.js`, `mint-mainnet.js`,
@@ -36,27 +37,22 @@ template hash and a new genesis. This runbook is the exact sequence.
    The file holds `PC_NET=mainnet`, `PC_PRIV=<64-hex>`,
    `PC_WALLET=<kaspa: address of that key>`. The builders check
    `PC_WALLET` against `PC_PRIV` at startup and refuse on mismatch.
-3. **A mainnet wRPC endpoint — use the SDK/Resolver path (2026-11-15).**
-   The public JSON wRPC endpoints are gone: the resolver fleet serves
-   Borsh only (mainnet `.../wrpc/json` returns 404), and the kaspa-ng
-   proxies (`us-1`/`eu-1.kaspa-ng.org`) are retired (commented out of the
-   SDK's `Resolvers.toml`). Do NOT set `PC_MAINNET_WRPC` to a public JSON
-   host — none works. Instead:
+3. **A mainnet wRPC endpoint — raw JSON wRPC only (2026-11-15).**
+   **Never `PC_USE_SDK=1` for covenant spends.** The SDK/Borsh submit path
+   corrupts large covenant txs (a mint was rejected "script ran, but
+   verification failed" on 3 live nodes while the identical tx mined via
+   raw JSON wRPC on testnet). The SDK is only for node discovery and small
+   non-covenant txs. Use raw JSON wRPC with failover:
    ```bash
-   sh tools/setup-sdk.sh          # once: downloads the WASM SDK v2.1.0 (~57 MB) into vendor/kaspa-wasm/
-   export PC_USE_SDK=1            # builders submit via the SDK's Borsh RpcClient
+   export PC_MAINNET_WRPC=wss://emma.kaspa.stream/kaspa/mainnet/wrpc/json,wss://eva.kaspa.green/kaspa/mainnet/wrpc/json
+   # PC_USE_SDK must be UNSET
    ```
-   With `PC_USE_SDK=1`, each covenant spend resolves a live public Borsh
-   node through the Resolver protocol (16 resolver services, 8s timeout
-   each), connects with a 20s timeout, retries with a freshly resolved
-   node up to 3 times, and converts the built tx to the SDK's SafeJSON
-   (REST lookup of each input's funding tx for the `utxo` entries).
-   `PC_MAINNET_WRPC` is no longer required (only needed if you run your
-   own node — `ws://localhost:17110` — as a fallback). Covenant spends
-   still cannot use REST (it drops `computeBudget`).
-   Proven on testnet-10 2026-11-15: offer tx `133526d8…` submitted via
-   this path and accepted (first resolved node timed out on connect;
-   the retry resolved vector-10 and it went through).
+   These are the only two live mainnet JSON wRPC endpoints (probed
+   2026-11-15). The resolver fleet otherwise serves Borsh only, and the
+   kaspa-ng proxies (`us-1`/`eu-1.kaspa-ng.org`) are retired. Covenant
+   spends still cannot use REST (it drops `computeBudget`).
+   Proven on mainnet 2026-11-15: the throwaway rehearsal (genesis + mint
+   + list + buy) all mined via raw JSON wRPC.
 4. Node + `ws`. Try the real `ws` package first. If wRPC fails with
    `SSL routines: wrong version number`, use the shim instead: copy
    `audit-test/node_modules/ws/` (package `ws@9.9.9-shim`, a wrapper
@@ -108,6 +104,13 @@ two-party buy.)
   100k → switch the floor to 25M**, recompile all three contracts (new
   template hashes), regenerate args, redeploy the throwaway, re-run the
   buy. Only then start the real series, on the 25M template.
+
+**Update 2026-11-15: the throwaway already PASSED** (genesis `aaa1b9b9…`,
+mint `3bb75c97…`, list `89ac1e57…`, buy `a1240b00…`, all mined on mainnet;
+royalty exactly 5,000,000 = the floor). **The 5M floor SHIPS; the 25M
+fallback is DEAD.** The "buy rejected" branch above is now historical —
+it did not happen. The real genesis (§4) runs on the same template
+hashes (`029512ea…`, `9106b142…`, `18e3d59a…`).
 
 Verify each step on `https://kascov.io/mainnet/tx/<txid>` and the lane at
 `https://kascov.io/mainnet/c/<covenant-id>`.

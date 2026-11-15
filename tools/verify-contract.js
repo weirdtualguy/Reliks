@@ -1,6 +1,11 @@
 'use strict';
-// Recompiles contract sources (v12 and v13) and compares to the ABIs the tools use. Skips if silverc is missing.
-const cp = require('child_process'), fs = require('fs'), os = require('os'), path = require('path');
+// Canonical contract gate. Recompiles the three canonical contracts in
+// contracts/ AND the audit-test evidence copies, and compares every compiled
+// template hash (and every source sha256) to the pinned values in the root
+// TEMPLATE-HASHES.json. Hard-fails (exit 1) on ANY mismatch, missing file,
+// missing silverc, or missing pin file. Deploy scripts must call this first.
+// Any change to a contract file needs a fresh audit.
+const cp = require('child_process'), crypto = require('crypto'), fs = require('fs'), os = require('os'), path = require('path');
 
 // --- Genesis validation (audit fix, 2026-11-14) ---
 // The factory script cannot validate its own constructor at genesis, so the
@@ -54,54 +59,89 @@ if (process.argv[2] === '--validate' && process.argv[3]) {
   process.exit(0);
 }
 module.exports = { isValidXOnly, validateSeriesConfig, validateFactoryArgs };
-if (require.main !== module) return; // library use: exports only; the recompile flow below runs as a CLI
+if (require.main !== module) return; // library use: exports only; the recompile gate below runs as a CLI
+
+// --- Canonical hash gate ---
+const ROOT = path.join(__dirname, '..');
+const PINS_PATH = path.join(ROOT, 'TEMPLATE-HASHES.json');
+let bad = 0;
+const fail = (msg) => { console.log('FAIL ' + msg); bad = 1; };
+const pass = (msg) => { console.log('PASS ' + msg); };
+
+let pins;
+try { pins = JSON.parse(fs.readFileSync(PINS_PATH, 'utf8')); }
+catch (e) { fail('cannot read ' + PINS_PATH + ': ' + e.message); console.log('CONTRACT RECOMPILE FAILED'); process.exit(1); }
+if (!pins.contracts || !pins.contracts.factory || !pins.contracts.edition || !pins.contracts.escrow) {
+  fail('TEMPLATE-HASHES.json is missing a contract entry'); console.log('CONTRACT RECOMPILE FAILED'); process.exit(1);
+}
 
 const probe = cp.spawnSync('silverc', ['--help'], { encoding: 'utf8' });
-if (probe.error) { console.log('SKIP silverc not available'); process.exit(0); }
+let silverc = 'silverc';
+if (probe.error) {
+  // Fall back to ~/bin/silverc (the Termux install location) before failing.
+  const homeBin = path.join(os.homedir(), 'bin', 'silverc');
+  if (fs.existsSync(homeBin)) silverc = homeBin;
+  else { fail('silverc not available — cannot verify contract hashes, refusing to proceed'); console.log('CONTRACT RECOMPILE FAILED'); process.exit(1); }
+}
 
-const load = (f) => { const a = JSON.parse(fs.readFileSync(f, 'utf8')); return a.contracts ? a.contracts[Object.keys(a.contracts)[0]] : a; };
-const key = (c) => JSON.stringify([c.compiled.bytecode, c.compiled.template_hash, c.compiled.state_span]);
-
-// Reconstruct exact constructor args for data/factory-abi-v12.json from its embedded initial state + mainnet engine + v12 edition ABI.
-const v12FactoryArgsPath = path.join(os.tmpdir(), 'reliks-v12-factory-args-' + process.pid + '.json');
-try {
-  const fc = load('data/factory-abi-v12.json').compiled;
-  const CH = require('../web/reliks-chain.js');
-  CH.init(require('../lib/reliks-templates.js')());
-  const st = CH.decodeFactoryState(Buffer.from(fc.bytecode).toString('hex'));
-  const E = require('../lib/reliks-engine-mainnet.js');
-  const ec = load('data/edition-abi-v12.json').compiled;
-  const ebc = Buffer.from(ec.bytecode);
-  const prefix = ebc.subarray(0, ec.state_span.offset), suffix = ebc.subarray(ec.state_span.offset + ec.state_span.len);
-  const bytes = b => ({ kind: 'bytes', value: Array.from(b) }), int = n => ({ kind: 'int', value: Number(n) });
-  fs.writeFileSync(v12FactoryArgsPath, JSON.stringify([
-    bytes(Buffer.from(st.program_hash, 'hex')), bytes(Buffer.from(st.artist, 'hex')), int(st.price), int(st.royalty_bips), int(st.mints_left),
-    bytes(Buffer.from(E.ENGINE_SRC, 'utf8')), int(st.engine_lang), bytes(Buffer.from(st.render_hash, 'hex')), bytes(prefix), bytes(suffix), bytes(Buffer.from(ec.template_hash))
-  ]));
-} catch (e) {}
-
-const PAIRS = [
-  { name: 'v12 edition', src: 'sil/ReliksEdition-v12.sil', args: 'data/edition-args.json', abis: ['data/edition-abi-v12.json'], gate: true },
-  { name: 'v12 escrow', src: 'sil/OfferEscrow-v5.sil', args: 'data/escrow-args.json', abis: ['data/escrow-abi-v5.json'], gate: true },
-  { name: 'v12 factory', src: 'sil/SeriesFactory-v12.sil', args: v12FactoryArgsPath, abis: ['data/factory-abi-v12.json'], gate: true },
-  { name: 'edition', src: 'v13/ReliksEdition-v13.sil', args: 'v13/edition-args-v13.json', abis: ['data/edition-abi-v13.json', 'v13/out/v13.json'], gate: true },
-  { name: 'factory vm', src: 'v13/SeriesFactory-v13.sil', args: 'v13/factory-args-vm-v13.json', abis: ['v13/out/factory-vm-v13.json'], gate: true },
-  { name: 'factory marks3', src: 'v13/SeriesFactory-v13.sil', args: 'v13/factory-args-marks3-v13.json', abis: ['v13/out/factory-marks3-v13.json'], gate: true },
-  { name: 'escrow', src: 'v13/OfferEscrow-v6.sil', args: 'v13/escrow-args-v6.json', abis: ['v13/out/escrow-v6.json'], gate: true },
-  { name: 'edition fixed', src: 'audit-test/v13-fixed/ReliksEdition-v13-fixed.sil', args: 'v13/edition-args-v13.json', abis: ['audit-test/v13-fixed/out/edition.json'], gate: true },
-  { name: 'escrow fixed', src: 'audit-test/v13-fixed/OfferEscrow-v6-fixed.sil', args: 'audit-test/v13-fixed/escrow-args-v6-fixed.json', abis: ['audit-test/v13-fixed/out/escrow.json'], gate: true },
-  { name: 'factory fixed', src: 'audit-test/v13-fixed/SeriesFactory-v13-fixed.sil', args: 'audit-test/v13-fixed/factory-args.json', abis: ['audit-test/v13-fixed/out/factory.json'], gate: true },
+const CONTRACTS = [
+  { key: 'factory', name: 'SeriesFactory', src: 'contracts/SeriesFactory.sil', evidence: 'audit-test/v13-fixed/SeriesFactory-v13-fixed.sil', abi: 'audit-test/v13-fixed/out/factory.json', contractsAbi: 'contracts/factory.json', args: 'audit-test/v13-fixed/factory-args.json' },
+  { key: 'edition', name: 'ReliksEdition', src: 'contracts/ReliksEdition.sil', evidence: 'audit-test/v13-fixed/ReliksEdition-v13-fixed.sil', abi: 'audit-test/v13-fixed/out/edition.json', contractsAbi: 'contracts/edition.json', args: 'contracts/edition-args.json' },
+  { key: 'escrow', name: 'OfferEscrow', src: 'contracts/OfferEscrow.sil', evidence: 'audit-test/v13-fixed/OfferEscrow-v6-fixed.sil', abi: 'audit-test/v13-fixed/out/escrow.json', contractsAbi: 'contracts/escrow.json', args: 'audit-test/v13-fixed/escrow-args-v6-fixed.json' },
 ];
+const sha256 = (f) => crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
+const templateHash = (abiJson) => {
+  const j = JSON.parse(fs.readFileSync(abiJson, 'utf8'));
+  const c = j.contracts[Object.keys(j.contracts)[0]];
+  return Buffer.from(c.compiled.template_hash).toString('hex');
+};
 
-let bad = 0;
-PAIRS.forEach((p, i) => {
-  if (![p.src, p.args].concat(p.abis).every((f) => fs.existsSync(f))) { console.log('INFO ' + p.name + ': input files missing, skipped'); return; }
+CONTRACTS.forEach((c, i) => {
+  const pin = pins.contracts[c.key];
+  const want = pin.template_hash;
+  const srcPath = path.join(ROOT, c.src);
+  const evPath = path.join(ROOT, c.evidence);
+  const abiPath = path.join(ROOT, c.abi);
+  const argsPath = path.join(ROOT, c.args);
+  // 1. Source sha256 must match the pinned value.
+  if (!fs.existsSync(srcPath)) { fail(c.key + ': missing ' + c.src); return; }
+  const gotSha = sha256(srcPath);
+  if (gotSha !== pin.sha256) fail(c.key + ': sha256 mismatch for ' + c.src + ' (got ' + gotSha.slice(0, 16) + '…, want ' + pin.sha256.slice(0, 16) + '…)');
+  else pass(c.key + ': sha256 ' + c.src + ' == pinned');
+  // 2. Compile the canonical source; the hash must match the pin.
+  if (!fs.existsSync(argsPath)) { fail(c.key + ': missing compile args ' + c.args); return; }
   const out = path.join(os.tmpdir(), 'reliks-recompile-' + process.pid + '-' + i + '.json');
-  const r = cp.spawnSync('silverc', [p.src, '--ctor', p.args, '-o', out], { encoding: 'utf8' });
-  if (r.status !== 0 || !fs.existsSync(out)) { const m = String(r.stderr || r.stdout).split('\n')[0]; console.log((p.gate ? 'FAIL ' : 'INFO ') + p.name + ': silverc failed: ' + m); if (p.gate) bad = 1; return; }
-  const fresh = key(load(out));
-  p.abis.forEach((f) => { const ok = key(load(f)) === fresh; if (!ok && p.gate) bad = 1; console.log((ok ? 'PASS ' : p.gate ? 'FAIL ' : 'INFO ') + p.name + ': ' + f + (ok ? ' == recompiled ' : ' differs from recompiled ') + p.src); });
+  const r = cp.spawnSync(silverc, [c.src, '--ctor', c.args, '-o', out], { encoding: 'utf8', cwd: ROOT });
+  if (r.status !== 0 || !fs.existsSync(out)) {
+    fail(c.key + ': silverc failed on ' + c.src + ': ' + String(r.stderr || r.stdout).split('\n')[0]); return;
+  }
+  const fresh = templateHash(out);
+  if (fresh !== want) fail(c.key + ': ' + c.src + ' compiles to ' + fresh.slice(0, 16) + '…, want ' + want.slice(0, 16) + '…');
+  else pass(c.key + ': ' + c.src + ' compiles to ' + want.slice(0, 16) + '…');
   try { fs.unlinkSync(out); } catch (e) {}
+  // 3. The audit-test evidence copy must still compile to the same hash.
+  if (!fs.existsSync(evPath)) { fail(c.key + ': missing evidence copy ' + c.evidence); return; }
+  const out2 = path.join(os.tmpdir(), 'reliks-recompile-ev-' + process.pid + '-' + i + '.json');
+  const r2 = cp.spawnSync(silverc, [c.evidence, '--ctor', c.args, '-o', out2], { encoding: 'utf8', cwd: ROOT });
+  if (r2.status !== 0 || !fs.existsSync(out2)) {
+    fail(c.key + ': silverc failed on evidence copy ' + c.evidence + ': ' + String(r2.stderr || r2.stdout).split('\n')[0]); return;
+  }
+  const freshEv = templateHash(out2);
+  if (freshEv !== want) fail(c.key + ': evidence copy ' + c.evidence + ' compiles to ' + freshEv.slice(0, 16) + '…, want ' + want.slice(0, 16) + '…');
+  else pass(c.key + ': evidence copy ' + c.evidence + ' compiles to ' + want.slice(0, 16) + '…');
+  try { fs.unlinkSync(out2); } catch (e) {}
+  // 4. The stored ABIs (audit-test evidence copy AND the contracts/ copy the
+  // builders load) must carry the pinned hash.
+  if (!fs.existsSync(abiPath)) { fail(c.key + ': missing ABI ' + c.abi); return; }
+  const abiHash = templateHash(abiPath);
+  if (abiHash !== want) fail(c.key + ': ABI ' + c.abi + ' has ' + abiHash.slice(0, 16) + '…, want ' + want.slice(0, 16) + '…');
+  else pass(c.key + ': ABI ' + c.abi + ' == ' + want.slice(0, 16) + '…');
+  const cAbiPath = path.join(ROOT, c.contractsAbi);
+  if (!fs.existsSync(cAbiPath)) { fail(c.key + ': missing contracts ABI ' + c.contractsAbi); return; }
+  const cAbiHash = templateHash(cAbiPath);
+  if (cAbiHash !== want) fail(c.key + ': contracts ABI ' + c.contractsAbi + ' has ' + cAbiHash.slice(0, 16) + '…, want ' + want.slice(0, 16) + '…');
+  else pass(c.key + ': contracts ABI ' + c.contractsAbi + ' == ' + want.slice(0, 16) + '…');
 });
-try { fs.unlinkSync(v12FactoryArgsPath); } catch (e) {}
-console.log(bad ? 'CONTRACT RECOMPILE FAILED' : 'CONTRACT RECOMPILE OK'); process.exit(bad);
+
+console.log(bad ? 'CONTRACT RECOMPILE FAILED' : 'CONTRACT RECOMPILE OK');
+process.exit(bad);

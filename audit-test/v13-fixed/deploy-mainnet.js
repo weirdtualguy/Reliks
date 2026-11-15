@@ -1,5 +1,13 @@
-// MAINNET variant of the v13-fixed builder (2026-11-14). Same contracts/ABIs as testnet; requires PC_NET=mainnet + PC_MAINNET_WRPC. Never run with a testnet key.
+// MAINNET variant of the v13-fixed builder (2026-11-14). Canonical contracts
+// in contracts/ (ABIs: contracts/*.json). Requires PC_NET=mainnet +
+// PC_MAINNET_WRPC. Never run with a testnet key.
 if ((process.env.PC_NET || "") !== "mainnet") { console.error("mainnet scripts are mainnet-only: export PC_NET=mainnet"); process.exit(1); }
+// Hash gate first: recompile the canonical contracts and hard-fail if any
+// compiled hash differs from TEMPLATE-HASHES.json. Never deploy unverified.
+const { spawnSync } = require('child_process');
+const gate = spawnSync('node', ['tools/verify-contract.js'], { encoding: 'utf8' });
+process.stdout.write(gate.stdout || ''); process.stderr.write(gate.stderr || '');
+if (gate.status !== 0) { console.error('FATAL: verify-contract.js failed — refusing to deploy.'); process.exit(1); }
 const fs = require('fs');
 const OL = require('../../lib/reliks-lib.js');
 const V = require('../../lib/reliks-lib.js');
@@ -12,7 +20,7 @@ const { feeLoop, waitForConfirmation, pickUtxo, sighash, hex } = OL;
 const covIdGenesis = require('../../lib/reliks-lib.js').covIdGenesis || V.covIdGenesis || OL.covIdGenesis;
 if (typeof covIdGenesis !== 'function') { console.error('covIdGenesis unavailable in reliks-lib'); process.exit(1); }
 const B = Buffer;
-const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'audit-test/v13-fixed/out/factory.json'), 'utf8')));
+const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'contracts/factory.json'), 'utf8')));
 const ARGS_PATH = process.env.RELIKS_ARGS || 'audit-test/v13-fixed/factory-args.json';
 if (!fs.existsSync(ARGS_PATH)) { console.error('FATAL: ' + ARGS_PATH + ' not found. Generate it with: node gen-factory-args.js <series.json> (see docs/MAINNET-RUNBOOK.md)'); process.exit(1); }
 const args = JSON.parse(fs.readFileSync(ARGS_PATH, 'utf8'));
@@ -51,6 +59,6 @@ const rpc = (inputs, outputs) => ({ version: 1, inputs, outputs: outputs.map(o =
   }
   const { txId, fee } = await feeLoop(build);
   await waitForConfirmation(txId, 600000);
-  fs.writeFileSync((process.env.RELIKS_LEDGER || 'audit-test/v13-fixed/ledger.json'), JSON.stringify({ C, genesisTxId: txId, series, editions: [] }, null, 2));
+  fs.writeFileSync((process.env.RELIKS_LEDGER || 'audit-test/v13-fixed/ledger-mainnet.json'), JSON.stringify({ C, genesisTxId: txId, series, editions: [] }, null, 2));
   console.log('RELIKS V12 GENESIS:', txId, '| fee', fee.toString(), '| lane covenant C =', C);
 })().catch(e => { console.error(e); process.exit(1); });

@@ -1,6 +1,6 @@
 'use strict';
 const fs = require('fs');
-const ABI = 'v13/out/factory-vm-v13.json', EAB = 'data/edition-abi-v13.json';
+const ABI = 'v13/out/factory-vm-v13.json', EAB = 'contracts/edition.json';
 if (!fs.existsSync(ABI) || !fs.existsSync(EAB)) { console.log('SKIP no factory ABI on this machine'); process.exit(0); }
 const CH = require('../web/reliks-chain.js'), T = require('./templates.js'), L = require('./lane.js');
 CH.init(T.templatesFor({ factoryAbi: ABI, editionAbi: EAB }));

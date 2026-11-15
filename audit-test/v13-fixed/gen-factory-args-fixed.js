@@ -10,12 +10,20 @@
 //      RELIKS_ENGINE_CAP  max engine bytes (default 25641; PUSHDATA2 ceiling, see docs)
 //
 // Arg order mirrors the SeriesFactory constructor in
-// audit-test/v13-fixed/SeriesFactory-v13-fixed.sil.
+// contracts/SeriesFactory.sil.
 // Validation mirrors the on-chain requires so a dead series can't be baked.
 'use strict';
 const fs = require('fs');
 const path = require('path');
 const { blake2b } = require('@noble/hashes/blake2b');
+
+// Hash gate first: recompile the canonical contracts and hard-fail if any
+// compiled hash differs from TEMPLATE-HASHES.json. Never bake args from an
+// unverified edition template.
+const { spawnSync } = require('child_process');
+const gate = spawnSync('node', ['tools/verify-contract.js'], { encoding: 'utf8' });
+process.stdout.write(gate.stdout || ''); process.stderr.write(gate.stderr || '');
+if (gate.status !== 0) { console.error('FATAL: verify-contract.js failed — refusing to generate args.'); process.exit(1); }
 
 const MIN_PRICE = 100000000;   // 1 KAS carrier floor (SeriesFactory MIN_PRICE)
 const MAX_ROYALTY_BIPS = 2000; // SeriesFactory MAX_ROYALTY_BIPS
@@ -29,8 +37,8 @@ const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
 
 if (!/^[0-9a-fA-F]{64}$/.test(cfg.artist || '')) die('artist must be a 64-hex x-only pubkey');
 for (const k of ['price', 'royalty_bips', 'mints_left']) if (!Number.isSafeInteger(cfg[k])) die(k + ' must be an integer');
-if (cfg.price !== 0 && cfg.price < MIN_PRICE) die('price must be 0 or >= ' + MIN_PRICE + ' sompi (1 KAS)');
-if (cfg.royalty_bips < 1 || cfg.royalty_bips > MAX_ROYALTY_BIPS) die('royalty_bips must be in [1, ' + MAX_ROYALTY_BIPS + '] (0% editions are unsellable)');
+if (cfg.price < MIN_PRICE) die('price must be >= ' + MIN_PRICE + ' sompi (1 KAS) — no free mint');
+if (cfg.royalty_bips < 500 || cfg.royalty_bips > MAX_ROYALTY_BIPS) die('royalty_bips must be in [500, ' + MAX_ROYALTY_BIPS + '] (the factory enforces a 5% minimum royalty)');
 if (cfg.mints_left < 1) die('mints_left must be >= 1');
 
 const enginePath = process.env.RELIKS_ENGINE || './lib/reliks-engine-mainnet.js';
@@ -39,8 +47,8 @@ const engineBytes = Buffer.from(ENGINE.ENGINE_SRC, 'utf8');
 const cap = Number(process.env.RELIKS_ENGINE_CAP || 25641);
 if (engineBytes.length > cap) die('engine is ' + engineBytes.length + ' B, over cap ' + cap + ' B');
 
-// Edition template (prefix/suffix/hash) comes from the compiled edition ABI.
-const edAbi = JSON.parse(fs.readFileSync('audit-test/v13-fixed/out/edition.json', 'utf8'));
+// Edition template (prefix/suffix/hash) comes from the canonical edition ABI.
+const edAbi = JSON.parse(fs.readFileSync((process.env.RELIKS_EDITION_ABI || 'contracts/edition.json'), 'utf8'));
 const ed = edAbi.contracts[Object.keys(edAbi.contracts)[0]].compiled;
 const bc = Buffer.from(ed.bytecode);
 const prefix = bc.subarray(0, ed.state_span.offset);
