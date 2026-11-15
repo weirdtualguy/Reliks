@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-14",
+  "generated": "2026-11-15",
   "compiler": "silverc 0.1.0",
-  "note": "Phase-9 IN-01 fix build (escrow only). Template hashes are network-independent. Recompile with silverc <src.sil> --ctor <args.json> -o <out.json> and compare.",
+  "note": "IN-03 fix build (escrow only). Template hashes are network-independent. Recompile with silverc <src.sil> --ctor <args.json> -o <out.json> and compare.",
   "contracts": {
     "edition": {
       "source": "audit-test/v13-fixed/ReliksEdition-v13-fixed.sil",
@@ -13,8 +13,8 @@
     "escrow": {
       "source": "audit-test/v13-fixed/OfferEscrow-v6-fixed.sil",
       "abi": "audit-test/v13-fixed/out/escrow.json",
-      "template_hash": "07362054dd16fee6f0e8b44d69540dd8849b9f397e97ed7c3426641b99be007f",
-      "bytecode_bytes": 1433,
+      "template_hash": "18e3d59aa9403539ccb8bd04ef2c9c81fe21f0602f3ff55e9e6f0ce375d17a2b",
+      "bytecode_bytes": 1437,
       "state_span": 161
     },
     "factory": {

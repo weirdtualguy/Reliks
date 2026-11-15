@@ -1,9 +1,15 @@
 pragma silverscript ^0.1.0;
 
 // OfferEscrow-v6 (FINAL) — Zero-Fee Protocol escrow (trustless atomic swap).
-// Fixes applied 2026-11-14: C1 binding (editionOutIdx == authorized output),
-// H1 (payments immediately after the edition output), M1 royalty floor 5M.
-// M3 NOT fixed: silverc 0.1.0 cannot express `age < expireAge` (see note in accept).
+// Audit status (2026-11-15): static review + testnet-10 exploit/negative suite + mainnet throwaway rehearsal passed.
+// Fixed: C1 (editionOutIdx == the edition input's authorized output), H1 (payments immediately after the edition
+// output), M1 (royalty floor 5M sompi). Added: cancel (offerer-only withdrawal).
+// M3 NOT fixed in-script: silverc 0.1.0 cannot express `age < expireAge` (see note in accept). Expired offers stay
+// fillable until cancelled, expired or accepted; cancel is the mitigation, so wallets must warn offerers.
+// IN-01 (kaspa-redteam, 2026-11-15) fixed: expire refund bound to outputs[this.activeInputIndex]; accept requires
+// activeInputIndex == editionInIdx + 1. IN-03 (cross-input refund/payment sharing) fixed: expire requires exactly 2 inputs.
+// Template hash (silverc 0.1.0, verify-contract.js PASS): 18e3d59aa9403539ccb8bd04ef2c9c81fe21f0602f3ff55e9e6f0ce375d17a2b.
+// 07362054… was the pre-IN-03 hash; 8eff7679…, 9fb49e51… and b37aa685… are superseded/broken. Comments do not affect the hash.
 // The offerer locks (askPrice + FEE_BUFFER) at offer time; the buffer pays
 // the miner fee on the 2-input accept. The owner accepts by co-spending the
 // listed edition and signing. The split is TWO-WAY and exact-equality:
@@ -151,8 +157,9 @@ contract OfferEscrow(
         require(OpAuthOutputCount(this.activeInputIndex) == 0);
     }
 
-    // Permissionless liveness escape: after the age lock anyone may refund
-    // the offerer in full. Exits are accept, expire, and cancel (offerer only).
+    // Exits are accept, expire and cancel. expire is permissionless: after the age lock anyone may refund
+    // the offerer in full; silverc lowers `this.ageDaa >= expireAge` to a relative-locktime (sequence) check,
+    // so the spending input's sequence must be >= expireAge (and <= the UTXO's real age). cancel is offerer-only.
     entry expire() {
         // IN-01 fix (2026-11-15, kaspa-redteam): the refund must sit at the
         // output index matching this escrow’s input index — otherwise two
@@ -164,6 +171,9 @@ contract OfferEscrow(
         // escrow output is not covenant-bound — the count form rejects every
         // spend, phase 9.)
         require(this.ageDaa >= expireAge);
+        // IN-03: exactly 2 inputs [escrow, funding]. Otherwise this refund output can double as another covenant's
+        // payment output in the same tx (e.g. the owner payment of an Edition.buy when offerer == edition owner).
+        require(tx.inputs.length == 2);
         byte[36] offererSpk = new ScriptPubKeyP2PK(pubkey(offerer));
         require(tx.outputs[this.activeInputIndex].value == tx.inputs[this.activeInputIndex].value);
         require(tx.outputs[this.activeInputIndex].scriptPubKey == byte[](offererSpk));
