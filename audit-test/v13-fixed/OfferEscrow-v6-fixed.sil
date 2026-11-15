@@ -62,6 +62,16 @@ contract OfferEscrow(
         int paymentOutIdx,
         int royaltyOutIdx
     ) {
+        // IN-01 fix (2026-11-15, kaspa-redteam): the escrow must sit immediately
+        // after its edition input — otherwise two identical escrows share one set
+        // of payment outputs and the second coin is stealable by the tx builder
+        // (the seller). Only one input index can equal editionInIdx + 1, so a
+        // second escrow in the same tx always fails this check. Holds for the
+        // standalone accept [edition, escrow] and the combined buy+accept
+        // [buyEd, buyFund, accEd, escrow]. A covenant-id count does NOT work:
+        // offers are independent coins with distinct covenant ids, and the
+        // escrow output is not covenant-bound, so OpInputCovenantId returns no
+        // usable id and the count form rejects every spend (phase 9).
         require(identifierType == IDENTIFIER_PUBKEY);
         require(checkSig(ownerSig, pubkey(ownerIdentifier)));
         require(askPrice >= MIN_PRICE);
@@ -102,6 +112,7 @@ contract OfferEscrow(
         // Co-spend the edition and validate its transition.
         require(OpCovInputCount(edition_covid) == 1);
         int editionInIdx = OpCovInputIdx(edition_covid, 0);
+        require(this.activeInputIndex == editionInIdx + 1);
         // C1 fix (2026-11-14): the edition output must BE the edition input's
         // authorized output — no unbound decoy can satisfy the escrow.
         require(OpAuthOutputCount(editionInIdx) == 1);
@@ -143,10 +154,19 @@ contract OfferEscrow(
     // Permissionless liveness escape: after the age lock anyone may refund
     // the offerer in full. Exits are accept, expire, and cancel (offerer only).
     entry expire() {
+        // IN-01 fix (2026-11-15, kaspa-redteam): the refund must sit at the
+        // output index matching this escrow’s input index — otherwise two
+        // identical escrows share the single output[0] refund and the second
+        // coin is stealable by the tx builder. Each escrow input needs its own
+        // refund output at its own index, so a second escrow can only be spent
+        // by paying its refund too. (A covenant-id count does NOT work here:
+        // offers are independent coins with distinct covenant ids, and the
+        // escrow output is not covenant-bound — the count form rejects every
+        // spend, phase 9.)
         require(this.ageDaa >= expireAge);
         byte[36] offererSpk = new ScriptPubKeyP2PK(pubkey(offerer));
-        require(tx.outputs[0].value == tx.inputs[this.activeInputIndex].value);
-        require(tx.outputs[0].scriptPubKey == byte[](offererSpk));
+        require(tx.outputs[this.activeInputIndex].value == tx.inputs[this.activeInputIndex].value);
+        require(tx.outputs[this.activeInputIndex].scriptPubKey == byte[](offererSpk));
         require(OpAuthOutputCount(this.activeInputIndex) == 0);
     }
 
@@ -159,6 +179,9 @@ contract OfferEscrow(
     // invoke it, and the refund destination is their choice; a careless
     // builder could burn the funds by omitting the refund output.
     entry cancel(sig offererSig) {
+        // IN-01: no fix needed here — only the offerer can sign cancel, and
+        // it is their own money, so bundling two of their own offers cannot
+        // steal from anyone else.
         require(checkSig(offererSig, pubkey(offerer)));
         require(OpAuthOutputCount(this.activeInputIndex) == 0);
     }
