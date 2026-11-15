@@ -9,7 +9,7 @@
 // Env: RELIKS_ENGINE  engine module (default ./reliks-engine-mainnet.js)
 //      RELIKS_ENGINE_CAP  max engine bytes (default 25641; PUSHDATA2 ceiling, see docs)
 //
-// Arg order mirrors the SeriesFactory constructor in sil/SeriesFactory-v12.sil.
+// Arg order mirrors the SeriesFactory constructor in archive/deprecated/sil/SeriesFactory-v12.sil.
 // Validation mirrors the on-chain requires so a dead series can't be baked.
 'use strict';
 const fs = require('fs');
@@ -65,4 +65,4 @@ const args = [
 const out = outArg || 'data/factory-args-v12.json';
 fs.writeFileSync(out, JSON.stringify(args));
 console.log('wrote ' + out + ' | engine ' + engineBytes.length + ' B | engine_hash ' + ENGINE.engineHashHex + ' | render_hash ' + ENGINE.renderHashHex);
-console.log('next: silverc compile sil/SeriesFactory-v12.sil with these args -> data/factory-abi-v12.json, then node deploy-v12.js');
+console.log('next: silverc compile archive/deprecated/sil/SeriesFactory-v12.sil with these args -> data/factory-abi-v12.json, then node deploy-v12.js');

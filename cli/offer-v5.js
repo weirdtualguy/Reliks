@@ -6,7 +6,8 @@ const { schnorr } = require('@noble/curves/secp256k1');
 const secp = { schnorr: { signSync: (m, p) => schnorr.sign(m, p) } };
 const B = Buffer;
 const [,, edIdxArg, askArg, expireArg] = process.argv;
-const Esc = V.parts(JSON.parse(fs.readFileSync('data/escrow-abi-v5.json', 'utf8')));
+// Escrow v5 is retired; its ABI lives in archive/ for reference only.
+const Esc = V.parts(JSON.parse(fs.readFileSync('archive/deprecated/data/escrow-abi-v5.json', 'utf8')));
 const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v12.json'), 'utf8'));
 const ed = LD.editions[Number(edIdxArg)];
 if (!ed) throw new Error('edition not in ledger');
