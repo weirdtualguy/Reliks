@@ -1,6 +1,16 @@
-# Reliks: project status (updated 2026-11-13 — v12.1.1 & v13 genesis ready)
+# Reliks: project status (updated 2026-11-15 — v13-final)
 
 Everything below is committed and verified by `npm test` and `sh tools/check.sh`.
+
+## Canonical contracts (v13-final, 2026-11-15)
+
+Deploy only from `contracts/`. Pinned hashes and sha256 live in `TEMPLATE-HASHES.json`; `tools/verify-contract.js` hard-fails on any mismatch.
+
+- `contracts/SeriesFactory.sil` (v13) — template hash `029512ea…`
+- `contracts/ReliksEdition.sil` (v13) — template hash `9106b142…`
+- `contracts/OfferEscrow.sil` (v6, IN-01 + IN-03 fixed) — template hash `18e3d59a…`
+
+All deprecated contracts (v12, escrow v5, pre-fix v13/v6 drafts) were retired to `archive/deprecated/` and merged to main (tag `v13-final`). The v12 mainnet series `genesis-dag-city` is legacy — it stays in the indexer, flagged "legacy, unsafe". **The real v13 genesis has not happened yet.** See `docs/MAINNET-RUNBOOK-v13-fixed.md` for the deployment sequence.
 
 ## What this is
 Generative-art NFTs on Kaspa covenants. An edition's art is rendered from a small deterministic program stored in the covenant script, so anyone can verify it from chain data or an offline provenance bundle. The protocol and SDK let third parties build interfaces with no marketplace or node run by the author.

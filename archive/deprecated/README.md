@@ -12,6 +12,12 @@ Every contract in this directory is deprecated, vulnerable, or superseded.
   (genesis-dag-city) still needs were NOT archived — they remain in `data/`
   (`factory-abi-v12.json`, `edition-abi-v12.json`) and are flagged "legacy,
   unsafe" by the indexer.
+- `data/edition-args.json` and `data/escrow-args.json` (archived 2026-11-15):
+  orphaned placeholder args files (all-zero values). No live code referenced
+  them — only the superseded v12 runbook did. The canonical args live in
+  `contracts/edition-args.json` and `audit-test/v13-fixed/escrow-args-v6-fixed.json`.
+- `docs/MAINNET-RUNBOOK-v12.md` (archived 2026-11-15): the superseded v12
+  runbook. The canonical runbook is `docs/MAINNET-RUNBOOK-v13-fixed.md`.
 
 ## Deprecated template-hash prefixes
 

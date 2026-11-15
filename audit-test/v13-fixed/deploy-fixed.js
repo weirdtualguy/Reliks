@@ -14,7 +14,7 @@ if (typeof covIdGenesis !== 'function') { console.error('covIdGenesis unavailabl
 const B = Buffer;
 const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'audit-test/v13-fixed/out/factory.json'), 'utf8')));
 const ARGS_PATH = process.env.RELIKS_ARGS || 'audit-test/v13-fixed/factory-args.json';
-if (!fs.existsSync(ARGS_PATH)) { console.error('FATAL: ' + ARGS_PATH + ' not found. Generate it with: node gen-factory-args.js <series.json> (see docs/MAINNET-RUNBOOK.md)'); process.exit(1); }
+if (!fs.existsSync(ARGS_PATH)) { console.error('FATAL: ' + ARGS_PATH + ' not found. Generate it with: node gen-factory-args.js <series.json> (see docs/MAINNET-RUNBOOK-v13-fixed.md)'); process.exit(1); }
 const args = JSON.parse(fs.readFileSync(ARGS_PATH, 'utf8'));
 
   // H1-BAKE inline bake assertion

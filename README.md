@@ -1,14 +1,16 @@
-> **Deploy only from `contracts/`.** The canonical contracts are `contracts/SeriesFactory.sil` (v13, `029512ea…`), `contracts/ReliksEdition.sil` (v13, `9106b142…`), and `contracts/OfferEscrow.sil` (v6, `18e3d59a…`). Pinned hashes, sha256, and versions live in `TEMPLATE-HASHES.json`. `tools/verify-contract.js` recompiles every contract and hard-fails if any hash differs. Any change to a contract needs a fresh audit. Retired contracts live in `archive/deprecated/` — do not deploy them.
->
-> **Status:** v13-final (2026-11-15). The v12 mainnet series `genesis-dag-city` is legacy — it stays in the indexer, flagged "legacy, unsafe" in the UI. The real v13 genesis has not happened yet. See [STATUS.md](STATUS.md) for what exists, what is verified, and how to deploy a v13 series.
-
 # Reliks
 
 **Generative art on Kaspa where the artwork is a program, and its hash lives in the contract.**
 
-A Reliks edition is `render(engine, serial)` (or `render(program, serial, lineage, sales)` on v13 Reliks-VM). The engine is a few kilobytes of deterministic integer code or Reliks-VM (`RVM\x01`) bytecode. Its BLAKE2b hash is part of covenant state, and its bytes are baked into the contract template. Anyone can re-render any edition from public chain data or a self-contained provenance bundle. No IPFS required for integrity, no server, no platform cut in the contracts.
+A Reliks edition is `render(engine, serial)` — or `render(program, serial, lineage, sales)` on v13 Reliks-VM. The engine is a few kilobytes of deterministic integer code or Reliks-VM (`RVM\x01`) bytecode. Its BLAKE2b hash is part of covenant state, and its bytes are baked into the contract template. Anyone can re-render any edition from public chain data or a self-contained provenance bundle. No IPFS required for integrity, no server, no platform cut in the contracts.
 
-**Live site:** https://weirdtualguy.github.io/Reliks/ (re-renders and verifies both JavaScript and Reliks-VM series in your browser; supports offline provenance bundle verification and connects to the [Kaspire](https://kaspire.kaslab.space) wallet).
+**Live site:** https://weirdtualguy.github.io/Reliks/ — re-renders and verifies both JavaScript and Reliks-VM series in your browser; supports offline provenance bundle verification and connects to the [Kaspire](https://kaspire.kaslab.space) wallet.
+
+> **Deploy only from `contracts/`.** The canonical contracts are `contracts/SeriesFactory.sil` (v13, `029512ea…`), `contracts/ReliksEdition.sil` (v13, `9106b142…`), and `contracts/OfferEscrow.sil` (v6, `18e3d59a…`). Pinned hashes, sha256, and versions live in `TEMPLATE-HASHES.json`. `tools/verify-contract.js` recompiles every contract and hard-fails if any hash differs. Any change to a contract needs a fresh audit. Retired contracts live in `archive/deprecated/` — do not deploy them.
+
+## Status
+
+**v13-final (2026-11-15).** The v12 mainnet series `genesis-dag-city` is legacy — it stays in the indexer, flagged "legacy, unsafe" in the UI. The real v13 genesis has not happened yet. See [STATUS.md](STATUS.md) for what exists, what is verified, and how to deploy a v13 series.
 
 ## What Reliks is, and is not
 
@@ -21,9 +23,15 @@ A Reliks edition is `render(engine, serial)` (or `render(program, serial, lineag
 | Open source (MIT) with automated review passes and 142 cross-language VM conformance vectors | Formally audited. Start small |
 | Browser mint through Kaspire (and offline bundle/claim verification) | Browser buy, sell or offers: those run through the CLI today |
 
-## Mainnet & v13 VM status
+## Contracts
 
-The v12 mainnet genesis is a **single-edition series**: factory lane `1569a69f…9c09`, one DAG-city edition (serial `2884738305227171331`), primary price **1 KAS**, 5% resale royalty, engine hash `16440384…eaa4`. Its lane is sold out. Its factory (`b070609c…`) and edition (`0514190a…`) are legacy hashes — the indexer flags the series "legacy, unsafe". On testnet-10, v13 adds `lineage` and `sales` (wear) state fields and runs the **Reliks-VM** (`RVM\x01` deterministic bytecode with three agreeing implementations in Python, JavaScript and C99). The site recomputes every anchor from chain data (or offline provenance bundles) and shows PASS or FAIL for each check. Do not take this paragraph on faith: open the site, or run `node cli/verify-render.js` / `node tools/gen-provenance-bundle.js --verify data/provenance-v12-genesis.json`.
+| Contract | Role | Template hash |
+|---|---|---|
+| `contracts/SeriesFactory.sil` (v13) | Mint lanes: pays the artist, spawns an edition, decrements `mints_left`; `fork` splits a lane, `close` ends it | `029512ea…` |
+| `contracts/ReliksEdition.sil` (v13) | The NFT: list / unlist / buy / sell / transfer / spend, royalty-only exact splits, carrier conservation (+ `lineage` and `sales` in v13) | `9106b142…` |
+| `contracts/OfferEscrow.sil` (v6) | Offers: owner-signed atomic `accept`, or permissionless `expire` refund | `18e3d59a…` |
+
+Serials are counter-based (the factory's `next_serial` assigns each edition its serial). Older contract versions (v1–v12, escrow v5, and every pre-fix v13/v6 draft) live in `archive/deprecated/` — do not deploy them.
 
 ## Use it
 
@@ -60,36 +68,27 @@ npm run deploy && npm run mint && npm run verify && npm run gallery
 
 Full sequence: [docs/MAINNET-RUNBOOK-v13-fixed.md](docs/MAINNET-RUNBOOK-v13-fixed.md). To list another series on the site, add it to [`data/mainnet-anchors.json`](data/mainnet-anchors.json) and run `npm run site`; the page treats every anchor as a claim to verify and supports both JS (`engine`) and Reliks-VM (`programHex`, `engine_lang: 2`) series.
 
-## Contracts
-
-| Contract | Role | Template hash |
-|---|---|---|
-| `contracts/SeriesFactory.sil` (v13) | Mint lanes: pays the artist, spawns an edition, decrements `mints_left`; `fork` splits a lane, `close` ends it | `029512ea…` |
-| `contracts/ReliksEdition.sil` (v13) | The NFT: list / unlist / buy / sell / transfer / spend, royalty-only exact splits, carrier conservation (+ `lineage` and `sales` in v13) | `9106b142…` |
-| `contracts/OfferEscrow.sil` (v6) | Offers: owner-signed atomic `accept`, or permissionless `expire` refund | `18e3d59a…` |
-
-Serials are counter-based (the factory's `next_serial` assigns each edition its serial). Older contract versions (v1–v12, escrow v5, and every pre-fix v13/v6 draft) live in `archive/deprecated/` — do not deploy them.
-
 ## Layout
 
 | Path | Contents |
 |---|---|
-| `contracts/` | The canonical contracts (the only deployable set) + the edition compile-args fixture |
+| `contracts/` | The canonical contracts (the only deployable set) + ABIs and the edition compile-args fixture |
 | `audit-test/` | The audit evidence suite (testnet-10 test scripts, IN-01/IN-03 attack scripts, fixed-series ABIs). Testnet only. |
-| `archive/deprecated/` | Retired contracts and pre-fix ABIs. Do not deploy. |
-| `data/` | `mainnet-anchors.json`, offline provenance bundles (`data/provenance-v12-genesis.json`), and the v12 ABIs the live legacy series still needs (`factory-abi-v12.json`, `edition-abi-v12.json`) |
+| `archive/deprecated/` | Retired contracts, pre-fix ABIs, and superseded docs. Do not deploy. |
+| `data/` | `mainnet-anchors.json`, offline provenance bundles, and the v12 ABIs the live legacy series still needs (`factory-abi-v12.json`, `edition-abi-v12.json`) |
 | `lib/` | Shared Node code: `reliks-lib.js` (signing, fees), `reliks-templates.js` (browser contract templates derived from the compiled ABIs), `reliks-engine-mainnet.js`, `network.js`, `config.js`, `bech32-kaspa.js` |
-| `cli/` | Node reference builders (`deploy-v12.js`, `mint-v12.js`, `secondary-v12.js`, `offer-v5.js`, `accept-v5.js`) and gates (`reliks-lens.js`, `reliks-lens-vm.js`, `verify-render.js`, `gen-gallery.js`, `gen-factory-args.js`) |
+| `cli/` | Node reference builders and gates (`reliks-lens.js`, `reliks-lens-vm.js`, `verify-render.js`, `gen-gallery.js`, `gen-factory-args.js`); legacy v12/v5 tools (`deploy-v12.js`, `mint-v12.js`, `secondary-v12.js`, `offer-v5.js`, `accept-v5.js`) |
 | `web/` | Zero-dependency browser code: `blake2b.js`, `reliks-chain.js`, `kaspire.js` (wallet), `rvm-asm.js` (RVM assembler), `site-app.js`, `studio-vm-app.js`, `site.css` |
-| `tools/` | `verify-contract.js` (hash gate), `check-deprecated-hashes.js` (grep gate), `gen-site.js` (builds `docs/index.html`), `gen-studio.js` (builds `docs/studio.html`), `gen-provenance-bundle.js` (builds & verifies offline provenance bundles), `check.sh` (health check), `tags.js`, chain and context helpers |
+| `tools/` | `verify-contract.js` (hash gate), `check-deprecated-hashes.js` (grep gate), `gen-site.js` (builds `docs/index.html`), `gen-studio.js` (builds `docs/studio.html`), `gen-provenance-bundle.js` (builds & verifies offline provenance bundles), `check.sh` (health check), chain and context helpers |
 | `sdk/` | Read, plan, sign, send, confirm, claim verification, and signed ownership challenges for v12/v13 |
-| `v13/` | Reliks-VM (`v13/vm/rvm.js`, `rvm.py`, `rvm.c`, 142 vectors), specs (`v13/RELIKS-VM-SPEC.md`), and provenance bundle (`v13/provenance-v13-demo.json`). Its contracts are archived in `archive/deprecated/v13/`. |
+| `v13/` | Reliks-VM (`v13/vm/rvm.js`, `rvm.py`, `rvm.c`, 142 vectors), specs (`v13/RELIKS-VM-SPEC.md`), and the testnet provenance bundle (`v13/provenance-v13-demo.json`) |
 | `test/` | `self-test.js`, `chain-test.js`, `v13-codec-test.js`, `wallet-test.js`, `site-test.js`, `kaspire-mass-test.js`, `asm-test.js`, `studio-test.js`, `vm-conformance-test.js` |
 | `docs/` | `index.html`, `studio.html`, architecture, runbook, audit summary, `STATE.md`, `AI-CONTEXT.md`, `history/` |
 
 ## Dependencies
 
 Browser: none. The site is one HTML file with no external scripts, styles or fonts. The only optional third-party code is the pinned WalletConnect SDK, fetched when a visitor explicitly chooses Kaspire Mobile.
+
 Node tooling: `@noble/curves`, `@noble/hashes`, `ws`.
 
 ## Safety rules (standing)
