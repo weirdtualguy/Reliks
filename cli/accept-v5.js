@@ -5,7 +5,8 @@ const { feeLoop, waitForConfirmation, pickUtxo, sighash, hex, pushMin, pushMinIn
 const { schnorr } = require('@noble/curves/secp256k1');
 const secp = { schnorr: { signSync: (m, p) => schnorr.sign(m, p) } };
 const B = Buffer;
-const Esc = V.parts(JSON.parse(fs.readFileSync('data/escrow-abi-v5.json', 'utf8')));
+// Escrow v5 is retired; its ABI lives in archive/ for reference only.
+const Esc = V.parts(JSON.parse(fs.readFileSync('archive/deprecated/data/escrow-abi-v5.json', 'utf8')));
 const Ed = V.parts(JSON.parse(fs.readFileSync('data/edition-abi-v12.json', 'utf8')));
 const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v12.json'), 'utf8'));
 const ESC = JSON.parse(fs.readFileSync((process.env.RELIKS_ESCROW || 'data/escrow-ledger-v5.json'), 'utf8'));
