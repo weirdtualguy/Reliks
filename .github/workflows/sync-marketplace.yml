@@ -27,8 +27,8 @@ jobs:
 
       - name: Commit & push updated anchors and marketplace index
         run: |
-          git config user.name "reliks-bot"
-          git config user.email "reliks-bot@users.noreply.github.com"
+          git config user.name "weirdtualguy"
+          git config user.email "91307288+weirdtualguy@users.noreply.github.com"
           if [ -n "$(git status --porcelain data/mainnet-anchors.json docs/index.html docs/marketplace-index.json)" ]; then
             git add data/mainnet-anchors.json docs/index.html docs/marketplace-index.json
             git commit -m "chore(market): sync chain editions and marketplace index [skip ci]"
