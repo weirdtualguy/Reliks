@@ -39,7 +39,7 @@ function pubkeyOf(a) {
     const kp = Buffer.from(schnorr.getPublicKey(Uint8Array.from(Buffer.from(k, 'hex')))).toString('hex');
     if (kp !== pub) fail('PC_PRIV does not belong to PC_WALLET');
   }
-  CH.init(T.templatesFor({ factoryAbi: fa, editionAbi: ea || 'data/edition-abi-v13.json' }));
+  CH.init(T.templatesFor({ factoryAbi: fa, editionAbi: ea || 'contracts/edition.json' }));
   const led = JSON.parse(fs.readFileSync(lp, 'utf8')), io = CH.makeIO({ rest: N.rest, kascov: N.kascov }), age = await R.kascovTipAgeSec(N.kascov);
   const lane = await LN.resolveLaneKascov({ chain: CH, io, laneCovenantId: led.C, series: led.series, tipAgeSec: age });
   console.log(N.label + ' | mode ' + mode + ' | staleness ' + (age === undefined ? 'unknown' : age + ' s') + ' | lane ' + led.C.slice(0, 8) + ' ' + lane.status + (lane.ok ? ' | mints left ' + lane.state.mints_left + ' | price ' + KAS(lane.state.price) : ''));

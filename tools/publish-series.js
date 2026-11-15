@@ -42,7 +42,7 @@ try {
   cp.execFileSync('node', ['v13/gen-vm-factory-args.js', f('series.json'), f('factory-args.json')], { cwd: ROOT, stdio: 'pipe', env: { ...process.env, PROG_HEX_FILE: f('program.hex'), SHIM_OUT: f('engine-shim.js') } });
 } catch (e) { die('gen-vm-factory-args failed: ' + String(e.stderr || e.message).trim()); }
 const silverc = process.env.SILVERC || path.join(os.homedir(), 'bin', 'silverc');
-const r = cp.spawnSync(silverc, ['v13/SeriesFactory-v13.sil', '--ctor', f('factory-args.json'), '-o', f('factory.json')], { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28 });
+const r = cp.spawnSync(silverc, ['contracts/SeriesFactory.sil', '--ctor', f('factory-args.json'), '-o', f('factory.json')], { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28 });
 if (r.status !== 0) die('silverc failed: ' + (r.stderr || r.stdout || '').trim());
 
 // 3. assertions on the compiled factory
