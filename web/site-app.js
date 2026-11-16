@@ -103,6 +103,22 @@
       localStorage.setItem('reliks.bids.' + edCovId, JSON.stringify(list));
     } catch (e) { /* ignore */ }
   }
+  function loadEscrowsForEdition(edCovId) {
+    try { return JSON.parse(localStorage.getItem('reliks.escrows.' + edCovId) || '[]'); } catch (e) { return []; }
+  }
+  function saveEscrowForEdition(edCovId, escObj) {
+    try {
+      var list = loadEscrowsForEdition(edCovId).filter(function (x) { return x.txId !== escObj.txId; });
+      list.unshift(escObj);
+      localStorage.setItem('reliks.escrows.' + edCovId, JSON.stringify(list.slice(0, 10)));
+    } catch (e) { /* ignore */ }
+  }
+  function removeEscrowForEdition(edCovId, escObj) {
+    try {
+      var list = loadEscrowsForEdition(edCovId).filter(function (x) { return x.txId !== escObj.txId; });
+      localStorage.setItem('reliks.escrows.' + edCovId, JSON.stringify(list));
+    } catch (e) { /* ignore */ }
+  }
 
   /* ------------------------------------------------------------ deterministic engine runner (JS + Reliks-VM inside Web Worker, 5 s cap) */
   function seedLanes(seed) {
@@ -476,6 +492,98 @@
     });
   }
 
+  async function startEscrowAction(s, view, ed, escObj, action) {
+    if (minting) return;
+    var w = K.state();
+    if (w.status !== 'connected') { openWallet(); return; }
+    minting = true;
+    try {
+      mintScreen(0, 'Reading covenant state…', h('p', { class: 'note', text: 'Resolving edition and OfferEscrow UTXO state.' }));
+      var liveEd = await C.resolveEdition(io, s, ed, s._editionTemplate);
+      var escState = {
+        ownerIdentifier: escObj.state.ownerIdentifier,
+        identifierType: Number(escObj.state.identifierType || 0),
+        edition_covid: escObj.state.edition_covid,
+        askPrice: BigInt(escObj.state.askPrice),
+        expireAge: BigInt(escObj.state.expireAge),
+        artist: escObj.state.artist,
+        royalty_bips: BigInt(escObj.state.royalty_bips),
+        offerer: escObj.state.offerer
+      };
+      var escTicket = { txId: escObj.txId, index: Number(escObj.index || 0), spk: escObj.spk, locked: BigInt(escObj.locked), state: escState };
+      var draft, rows, noteText;
+      if (action === 'accept') {
+        draft = C.buildAcceptEscrowOffer({ edition: liveEd, escrow: escTicket, owner: { pubkey: w.pubkey, address: w.address }, hrp: A.hrp, editionTemplate: s._editionTemplate });
+        var sa = draft.summary;
+        rows = [
+          { label: 'Series / Edition', value: s.title + ' #' + ed.index },
+          { label: 'Escrow offerer', value: short(C.p2pkAddress(A.hrp, sa.buyer), 14, 8) },
+          { label: 'Escrow askPrice', value: C.fmtKas(sa.price) + ' KAS' },
+          { label: 'You receive (net)', value: C.fmtKas(sa.ownerNet) + ' KAS', total: true },
+          { label: 'Artist royalty', value: C.fmtKas(sa.royalty) + ' KAS' }
+        ];
+        noteText = 'Co-signing Input 1 executes OfferEscrow.accept (948f2512): you receive ' + C.fmtKas(sa.ownerNet) + ' KAS and the edition transfers to the offerer.';
+      } else {
+        var list = await io.utxos(w.address);
+        var dummyFund = { txId: '00'.repeat(32), index: 0, amount: 10n ** 13n };
+        if (action === 'cancel') {
+          var pCan = C.buildCancelEscrowOffer({ escrow: escTicket, offerer: { pubkey: w.pubkey, address: w.address }, funding: dummyFund, fee: 1n, hrp: A.hrp });
+          var fCan = C.estimateFee(pCan);
+          var uCan = C.pickFunding(list, fCan + 2000000n, 1);
+          if (uCan.error) throw new Error(uCan.error);
+          draft = C.buildCancelEscrowOffer({ escrow: escTicket, offerer: { pubkey: w.pubkey, address: w.address }, funding: uCan, fee: fCan, hrp: A.hrp });
+          rows = [
+            { label: 'Action', value: 'Cancel OfferEscrow (a0893109)' },
+            { label: 'Refunded to you', value: C.fmtKas(draft.summary.refund) + ' KAS', total: true },
+            { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(draft.fee) + ' KAS' }
+          ];
+          noteText = 'Withdraws your OfferEscrow UTXO immediately and refunds the full locked amount to your wallet.';
+        } else {
+          var pExp = C.buildExpireEscrowOffer({ escrow: escTicket, caller: { pubkey: w.pubkey, address: w.address }, funding: dummyFund, fee: 1n, hrp: A.hrp });
+          var fExp = C.estimateFee(pExp);
+          var uExp = C.pickFunding(list, fExp + 2000000n, 1);
+          if (uExp.error) throw new Error(uExp.error);
+          draft = C.buildExpireEscrowOffer({ escrow: escTicket, caller: { pubkey: w.pubkey, address: w.address }, funding: uExp, fee: fExp, hrp: A.hrp });
+          rows = [
+            { label: 'Action', value: 'Expire OfferEscrow (12ab1c61)' },
+            { label: 'Required ageDaa (sequence)', value: String(escState.expireAge) + ' DAA' },
+            { label: 'Refunded to offerer', value: C.fmtKas(draft.summary.refund) + ' KAS', total: true },
+            { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(draft.fee) + ' KAS' }
+          ];
+          noteText = 'Permissionless refund after expireAge DAA: returns 100% of locked funds to the offerer.';
+        }
+      }
+      var choice = await askReview('Review Escrow ' + action, rows, noteText, draft);
+      if (!choice.go) { mintDlg.close(); return; }
+      mintScreen(3, 'Approve in Kaspire', h('p', { class: 'note', text: 'Approve the OfferEscrow transaction in Kaspire.' }));
+      var signed = await K.signPskt(C.toSafeJSON(draft), C.walletSignIndices(draft));
+      var hasCov = draft.inputs.some(function (inp) { return !!inp.ownerCovenant; });
+      var verified = hasCov ? C.finalizeOwnerCovenantTx(draft, signed) : C.verifySigned(draft, signed);
+      var finalJson = verified.signedJson || signed;
+      mintScreen(5, 'Broadcasting…', h('p', { class: 'note', text: 'Submitting OfferEscrow transaction.' }));
+      var res = await K.broadcast(finalJson, verified.rpcTx, { wrpc: choice.wrpc ? [choice.wrpc] : A.wrpc || [] });
+      if (!res.txId) {
+        mintScreen(5, 'Signed, not broadcast', [
+          h('p', { class: 'note warn', text: 'Signed, but could not broadcast: ' + (res.message || 'no broadcast path') + '.' }),
+          h('div', { class: 'cta' }, h('button', { class: 'btn', onclick: function () { copy(finalJson, 'Signed OfferEscrow tx'); }, text: 'Copy signed tx' }), h('button', { class: 'btn ghost', onclick: function () { mintDlg.close(); }, text: 'Close' }))]);
+        return;
+      }
+      removeEscrowForEdition(ed.covenantId, escObj);
+      if (view && view.refreshEditions) view.refreshEditions();
+      renderGalleryFilters();
+      var link = A.explorer + res.txId;
+      mintScreen(6, 'Escrow ' + action + ' submitted!', [
+        h('p', { class: 'note' }, 'Transaction ', h('a', { href: link, target: '_blank', rel: 'noopener', text: short(res.txId, 10, 8) }), ' submitted.'),
+        h('div', { class: 'cta' }, h('button', { class: 'btn primary', onclick: function () { mintDlg.close(); }, text: 'Done' }))]);
+      toast('Escrow ' + action + ' submitted!', 'ok');
+      if (view && view.reload) view.reload();
+    } catch (e) {
+      var fe = K.friendly(e);
+      if (fe.userCancelled) { mintDlg.close(); toast('Cancelled.'); }
+      else mintScreen(0, 'Escrow action failed', [h('p', { class: 'note bad', text: fe.message }), h('div', { class: 'cta' }, h('button', { class: 'btn', onclick: function () { mintDlg.close(); }, text: 'Close' }))]);
+    } finally { minting = false; }
+  }
+
   async function startAcceptBid(s, view, ed, bidObj) {
     if (minting) return;
     var w = K.state();
@@ -598,6 +706,68 @@
         return;
       }
 
+      if (action === 'escrow_offer') {
+        var askEsc = BigInt(liveEd.state.price);
+        probe = C.buildCreateEscrowOffer({ edition: liveEd, offerer: { pubkey: w.pubkey, address: w.address }, askPrice: askEsc, expireAge: 100000n, funding: dummyFund, fee: 1n, hrp: A.hrp });
+        var feeEsc = C.estimateFee(probe);
+        var needEsc = askEsc + C.ESCROW_FEE_BUFFER + feeEsc + 2000000n;
+        var pickEsc = C.pickFunding(list, needEsc);
+        if (pickEsc.error) throw new Error(pickEsc.error);
+        draft = C.buildCreateEscrowOffer({ edition: liveEd, offerer: { pubkey: w.pubkey, address: w.address }, askPrice: askEsc, expireAge: 100000n, funding: pickEsc, fee: feeEsc, hrp: A.hrp });
+        var se = draft.summary;
+        rows = [
+          { label: 'Series / Edition', value: s.title + ' #' + ed.index },
+          { label: 'Covenant', value: 'OfferEscrow (18e3d59a…)' },
+          { label: 'Ask price + 0.1 KAS fee buffer', value: C.fmtKas(se.askPrice) + ' + 0.1 = ' + C.fmtKas(se.locked) + ' KAS' },
+          { label: 'Expiry lock (expireAge)', value: '100,000 DAA (~2.7 hrs)' },
+          { label: 'Leaves your wallet', value: '≈ ' + C.fmtKas(se.locked + se.fee) + ' KAS', total: true }
+        ];
+        noteText = 'Locks ' + C.fmtKas(se.locked) + ' KAS in an OfferEscrow covenant UTXO. The owner can accept atomically, you can cancel anytime, or anyone can refund you after 100,000 DAA.';
+        var choiceEsc = await askReview('Lock OfferEscrow on Edition #' + ed.index, rows, noteText, draft);
+        if (!choiceEsc.go) { mintDlg.close(); return; }
+        mintScreen(3, 'Approve in Kaspire', h('p', { class: 'note', text: 'Approve locking the OfferEscrow UTXO in Kaspire.' }));
+        var signedEsc = await K.signPskt(C.toSafeJSON(draft), C.walletSignIndices(draft));
+        var verEsc = C.verifySigned(draft, signedEsc);
+        mintScreen(5, 'Broadcasting…', h('p', { class: 'note', text: 'Submitting OfferEscrow creation transaction.' }));
+        var resEsc = await K.broadcast(signedEsc, verEsc.rpcTx, { wrpc: choiceEsc.wrpc ? [choiceEsc.wrpc] : A.wrpc || [] });
+        if (!resEsc.txId) {
+          mintScreen(5, 'Signed, not broadcast', [
+            h('p', { class: 'note warn', text: 'OfferEscrow signed, but could not be broadcast: ' + (resEsc.message || 'no broadcast path') + '.' }),
+            h('div', { class: 'cta' }, h('button', { class: 'btn', onclick: function () { copy(signedEsc, 'Signed OfferEscrow tx'); }, text: 'Copy signed tx' }), h('button', { class: 'btn ghost', onclick: function () { mintDlg.close(); }, text: 'Close' }))]);
+          return;
+        }
+        var escTicketObj = {
+          reliks_escrow: 1,
+          seriesId: s.id,
+          editionIndex: ed.index,
+          editionCovenantId: ed.covenantId,
+          txId: resEsc.txId,
+          index: 0,
+          spk: se.escrowSpk,
+          locked: se.locked.toString(),
+          state: {
+            ownerIdentifier: se.escrowState.ownerIdentifier,
+            identifierType: 0,
+            edition_covid: ed.covenantId,
+            askPrice: se.askPrice.toString(),
+            expireAge: se.expireAge.toString(),
+            artist: se.escrowState.artist,
+            royalty_bips: se.escrowState.royalty_bips.toString(),
+            offerer: se.offerer
+          }
+        };
+        saveEscrowForEdition(ed.covenantId, escTicketObj);
+        if (view && view.refreshEditions) view.refreshEditions();
+        renderGalleryFilters();
+        mintScreen(6, 'OfferEscrow Locked!', [
+          h('p', { class: 'note', text: 'Your OfferEscrow UTXO (' + short(resEsc.txId, 10, 8) + ':0) is live. Copy the Escrow Ticket JSON to share with the owner, or manage/cancel/expire it directly from the Edition card.' }),
+          h('div', { class: 'cta' },
+            h('button', { class: 'btn primary', onclick: function () { copy(JSON.stringify(escTicketObj), 'Escrow Ticket JSON'); }, text: 'Copy Escrow Ticket JSON' }),
+            h('button', { class: 'btn', onclick: function () { mintDlg.close(); }, text: 'Done' }))]);
+        toast('OfferEscrow locked on Edition #' + ed.index + '!', 'ok');
+        return;
+      }
+
       if (action === 'buy') {
         probe = C.buildBuyEdition({ edition: liveEd, buyer: { pubkey: w.pubkey, address: w.address }, funding: dummyFund, fee: 1n, hrp: A.hrp, editionTemplate: s._editionTemplate });
         var feeBuy = C.estimateFee(probe), priceBuy = BigInt(liveEd.state.price);
@@ -703,7 +873,7 @@
         var st = (liveMap[ed.index] && liveMap[ed.index].state) || { ownerIdentifier: ed.ownerAtMint, price: 0n };
         if (BigInt(st.price || 0) >= SOMPI) counts.listed++;
         if (myPk && String(st.ownerIdentifier || '').toLowerCase() === myPk) counts.mine++;
-        if (loadBidsForEdition(ed.covenantId).length > 0) counts.bids++;
+        if (loadBidsForEdition(ed.covenantId).length > 0 || loadEscrowsForEdition(ed.covenantId).length > 0) counts.bids++;
       });
     });
     var items = [
@@ -780,10 +950,10 @@
         var isMine = myPk && ownerPk === myPk;
         var price = BigInt(st.price || 0);
         var listed = price >= SOMPI;
-        var bids = loadBidsForEdition(ed.covenantId);
+        var bids = loadBidsForEdition(ed.covenantId), escrows = loadEscrowsForEdition(ed.covenantId);
         if (activeFilter === 'listed' && !listed) return;
         if (activeFilter === 'mine' && !isMine) return;
-        if (activeFilter === 'bids' && !bids.length) return;
+        if (activeFilter === 'bids' && !bids.length && !escrows.length) return;
         shownCount++;
 
         var tags = [
@@ -791,6 +961,7 @@
         ];
         if (isMine) tags.push(h('span', { class: 'tag v', style: 'margin-left:6px', text: 'Owned by you' }));
         if (bids.length) tags.push(h('span', { class: 'tag d', style: 'margin-left:6px', text: bids.length + ' Bid(s)' }));
+        if (escrows.length) tags.push(h('span', { class: 'tag v', style: 'margin-left:6px', text: escrows.length + ' Escrow(s)' }));
         var metaText = 'Serial ' + short(ed.serial, 8, 6) + ' · Owner ' + short(ownerAddr, 12, 6);
         if (st.lineage !== undefined) {
           var hi = RVM.hostInputs(ReliksBlake2b.blake2b, String(ed.serial), C.hex2u8(st.lineage), Number(st.sales || 0));
@@ -800,6 +971,7 @@
           h('button', { class: 'btn', onclick: function () { previewEdition(st, ed.index); }, text: 'Preview art' }));
         if (listed && !isMine) {
           btns.appendChild(h('button', { class: 'btn primary', onclick: function () { startTrade(s, view, ed, 'buy'); }, text: 'Buy for ' + C.fmtKas(price) + ' KAS' }));
+          btns.appendChild(h('button', { class: 'btn', onclick: function () { startTrade(s, view, ed, 'escrow_offer'); }, text: 'Lock Escrow Offer' }));
         }
         if (!isMine) {
           btns.appendChild(h('button', { class: 'btn', onclick: function () { startTrade(s, view, ed, 'bid'); }, text: 'Place Bid / Offer' }));
@@ -819,6 +991,18 @@
               h('button', { class: 'btn ghost', style: 'padding:4px 8px;font-size:12px', onclick: function () { copy(JSON.stringify(b), 'Signed Bid JSON'); }, text: 'Copy' }),
               h('button', { class: 'btn ghost', style: 'padding:4px 8px;font-size:12px', onclick: function () { removeBidForEdition(ed.covenantId, b); refreshEditions(); renderGalleryFilters(); }, text: '×' })));
           bidBox.appendChild(bRow);
+        });
+        escrows.forEach(function (esc) {
+          var oAddr = /^[0-9a-f]{64}$/.test(esc.state.offerer) ? C.p2pkAddress(A.hrp, esc.state.offerer) : esc.state.offerer;
+          var eRow = h('div', { style: 'display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 10px;border-radius:8px;background:rgba(99,155,255,.10)' },
+            h('span', { style: 'font:12px var(--mono)', text: 'OfferEscrow: ' + C.fmtKas(esc.state.askPrice) + ' KAS (locked ' + C.fmtKas(esc.locked) + ') from ' + short(oAddr, 10, 6) }),
+            h('div', { class: 'row', style: 'gap:6px;flex-wrap:wrap' },
+              h('button', { class: 'btn primary', style: 'padding:4px 10px;font-size:12px', onclick: function () { startEscrowAction(s, view, ed, esc, 'accept'); }, text: 'Accept Escrow' }),
+              h('button', { class: 'btn', style: 'padding:4px 10px;font-size:12px', onclick: function () { startEscrowAction(s, view, ed, esc, 'cancel'); }, text: 'Cancel' }),
+              h('button', { class: 'btn ghost', style: 'padding:4px 10px;font-size:12px', onclick: function () { startEscrowAction(s, view, ed, esc, 'expire'); }, text: 'Expire Refund' }),
+              h('button', { class: 'btn ghost', style: 'padding:4px 8px;font-size:12px', onclick: function () { copy(JSON.stringify(esc), 'Escrow Ticket JSON'); }, text: 'Copy' }),
+              h('button', { class: 'btn ghost', style: 'padding:4px 8px;font-size:12px', onclick: function () { removeEscrowForEdition(ed.covenantId, esc); refreshEditions(); renderGalleryFilters(); }, text: '×' })));
+          bidBox.appendChild(eRow);
         });
         edHost.appendChild(h('div', { class: 'card', style: 'padding:14px' },
           h('div', { style: 'display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap' },
@@ -925,6 +1109,14 @@
     var btnLoad = h('button', { class: 'btn', onclick: function () {
       try {
         var obj = JSON.parse(ta.value.trim());
+        if (obj && obj.reliks_escrow === 1 && obj.editionCovenantId) {
+          saveEscrowForEdition(obj.editionCovenantId, obj);
+          Object.keys(seriesViews).forEach(function (sid) { if (seriesViews[sid].refreshEditions) seriesViews[sid].refreshEditions(); });
+          renderGalleryFilters();
+          ta.value = '';
+          toast('Loaded OfferEscrow ticket (' + C.fmtKas(obj.state.askPrice) + ' KAS) on Edition #' + obj.editionIndex, 'ok');
+          return;
+        }
         if (obj && obj.reliks_bid === 1 && obj.editionCovenantId) {
           saveBidForEdition(obj.editionCovenantId, obj);
           Object.keys(seriesViews).forEach(function (sid) { if (seriesViews[sid].refreshEditions) seriesViews[sid].refreshEditions(); });
@@ -1130,6 +1322,7 @@
         clear(prevBox); prevBox.appendChild(artImg(svgVm));
         hashes.textContent = 'program       ' + prog.length + ' / ' + CAP + ' B (PUSHDATA2 bake cap)\nprogram_hash  ' + bhex(prog) + '\nrender_hash   ' + bhex(svgVm) + '\nsvg           ' + svgVm.length + ' / ' + RVM.limits.MAX_SVG + ' B\nfuel          ' + stats.fuel + ' / ' + RVM.limits.FUEL_MAX + '\nelements      ' + stats.elems + ' / ' + RVM.limits.MAX_ELEMS + '\nmax_stack     ' + stats.max_stack + ' / ' + RVM.limits.STACK_MAX + '\nwear          ' + hi.wear + ' / 255' + (wEnabled ? '' : ' (disabled in bytecode)') + '\npatina        ' + hi.pat + ' / 63';
         stat.textContent = 'Rendered Reliks-VM program (' + prog.length + ' B). Click "Publish on Chain (Kaspire)" to deploy.';
+        if (matrixOpen) renderStudioMatrix();
       } catch (e) {
         stat.textContent = 'Render fault: ' + (e.code || e.message);
       }
@@ -1432,9 +1625,50 @@
     ed.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(show, 600); });
     $('#run-gates').addEventListener('click', gates);
     K.on(function (st) { var a = $('#artist'); if (st.status === 'connected' && !a.value) a.placeholder = 'from Kaspire: ' + short(st.pubkey, 10, 6); });
+    var matrixBox = $('#matrix-box'), matrixModeSel = $('#matrix-mode'), btnMatrixToggle = $('#btn-matrix-toggle'), matrixOpen = false;
+    function renderStudioMatrix() {
+      if (!matrixBox || !lastProg) return;
+      clear(matrixBox);
+      var wEnabled = !wearOn || wearOn.checked;
+      var cells;
+      try {
+        cells = RvmAsm.renderVariationMatrix(RVM, B, lastProg, matrixModeSel ? matrixModeSel.value : 'serial_sweep', ser.value.trim() || '1', lin ? lin.value.trim() : '', wEnabled ? Number((wr && wr.value) || 0) : 0);
+      } catch (e) { return; }
+      cells.forEach(function (c) {
+        var cellEl = h('button', {
+          type: 'button',
+          style: 'background:#070a10;border:1px solid var(--line,#1f2937);border-radius:8px;padding:4px;cursor:pointer;display:grid;gap:3px;text-align:center',
+          title: 'Click to inspect Serial ' + c.serial + ' (Patina ' + c.pat + ', Wear ' + c.wear + ')',
+          onclick: function () {
+            ser.value = c.serial;
+            if (lin) lin.value = c.lineageHex;
+            if (wr && wEnabled) wr.value = String(c.wear);
+            show();
+          }
+        },
+          h('div', { style: 'aspect-ratio:1/1;border-radius:5px;overflow:hidden' }, artImg(c.svg)),
+          h('span', { style: 'font:10px var(--mono);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis', text: c.label })
+        );
+        matrixBox.appendChild(cellEl);
+      });
+    }
+    if (btnMatrixToggle && matrixBox) {
+      btnMatrixToggle.addEventListener('click', function () {
+        matrixOpen = !matrixOpen;
+        matrixBox.hidden = !matrixOpen;
+        btnMatrixToggle.textContent = matrixOpen ? 'Hide 4×4' : 'Show 4×4';
+        if (matrixOpen) renderStudioMatrix();
+      });
+    }
+    if (matrixModeSel) {
+      matrixModeSel.addEventListener('change', function () {
+        if (!matrixOpen && matrixBox && btnMatrixToggle) { matrixOpen = true; matrixBox.hidden = false; btnMatrixToggle.textContent = 'Hide 4×4'; }
+        renderStudioMatrix();
+      });
+    }
     renderVisualBuilder();
     ed.value = RvmAsm.compileLayers(vSpec);
-    return { show: show };
+    return { show: show, renderStudioMatrix: renderStudioMatrix };
   }
 
   /* ------------------------------------------------------------ tabs */

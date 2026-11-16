@@ -36,6 +36,7 @@
       img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
       info.textContent = 'program       ' + prog.length + ' / ' + BAKE_CAP + ' B (PUSHDATA2 bake cap)\nprogram_hash  ' + hex(B(prog, 32)) + '\nrender_hash   ' + hex(B(enc.encode(svg), 32)) + '\nsvg           ' + svg.length + ' / ' + RVM.limits.MAX_SVG + ' B\nfuel          ' + stats.fuel + ' / ' + RVM.limits.FUEL_MAX + '\nelements      ' + stats.elems + ' / ' + RVM.limits.MAX_ELEMS + '\nmax_stack     ' + stats.max_stack + ' / ' + RVM.limits.STACK_MAX + '\nwear          ' + hi.wear + ' / 255' + (wEnabled ? '' : ' (disabled in bytecode)') + '\npatina        ' + hi.pat + ' / 63';
       say('Rendered.');
+      if (matrixOpen) renderMatrix();
     } catch (e) { say('Render fault: ' + (e.code || e.message), true); }
   }
   function runGates() {
@@ -101,5 +102,31 @@
   $('dlhex').addEventListener('click', function () { if (runGates() && prog) download(slug() + '.hex', hex(prog) + '\n'); });
   $('dlsrc').addEventListener('click', function () { download(slug() + '.rvm.txt', ed.value); });
   ed.addEventListener('input', later); ser.addEventListener('change', run); lin.addEventListener('change', run); wr.addEventListener('input', run);
+  var matrixBox = $('matrix-box'), matrixMode = $('matrix-mode'), btnMatrix = $('btn-matrix'), matrixOpen = false;
+  function renderMatrix() {
+    if (!matrixBox || !prog) return;
+    while (matrixBox.firstChild) matrixBox.removeChild(matrixBox.firstChild);
+    var wEnabled = !wearOn || wearOn.checked;
+    var cells = RvmAsm.renderVariationMatrix(RVM, B, prog, matrixMode ? matrixMode.value : 'serial_sweep', ser.value.trim() || '1', lin.value.trim(), wEnabled ? Number(wr.value) : 0);
+    cells.forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.style.cssText = 'background:#0b0f17;border:1px solid #222b38;border-radius:6px;padding:4px;cursor:pointer;color:#9aa6b2;font:10px monospace';
+      var im = document.createElement('img');
+      im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(c.svg);
+      im.style.cssText = 'width:100%;aspect-ratio:1/1;display:block;border-radius:4px';
+      var sp = document.createElement('div');
+      sp.textContent = c.label;
+      b.appendChild(im); b.appendChild(sp);
+      b.addEventListener('click', function () { ser.value = c.serial; lin.value = c.lineageHex; if (wEnabled) wr.value = String(c.wear); run(); });
+      matrixBox.appendChild(b);
+    });
+  }
+  if (btnMatrix && matrixBox) {
+    btnMatrix.addEventListener('click', function () { matrixOpen = !matrixOpen; matrixBox.hidden = !matrixOpen; if (matrixOpen) renderMatrix(); });
+  }
+  if (matrixMode) {
+    matrixMode.addEventListener('change', function () { matrixOpen = true; if (matrixBox) matrixBox.hidden = false; renderMatrix(); });
+  }
   ed.value = D.templates.starter; run();
 })();

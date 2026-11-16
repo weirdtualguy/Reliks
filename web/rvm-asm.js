@@ -451,6 +451,56 @@
     return out.join('\n') + '\n';
   }
 
-  var api = { assemble: assemble, OPS: OPS, compileLayers: compileLayers, VISUAL_PRESETS: VISUAL_PRESETS };
+
+  var PATINA_LINEAGES = [
+    '0000000000000000000000000000000000000000000000000000000000000000',
+    '0800000000000000000000000000000000000000000000000000000000000000',
+    '0300000000000000000000000000000000000000000000000000000000000000',
+    '0400000000000000000000000000000000000000000000000000000000000000'
+  ];
+
+  function hexToU8(h) {
+    var o = new Uint8Array(h.length / 2);
+    for (var i = 0; i < o.length; i++) o[i] = parseInt(h.substr(i * 2, 2), 16);
+    return o;
+  }
+
+  function renderVariationMatrix(RVM, blake2b, progBytes, mode, baseSerial, baseLineageHex, baseWear) {
+    var s0 = BigInt(baseSerial || '1');
+    var lin0 = /^[0-9a-f]{64}$/i.test(baseLineageHex || '') ? baseLineageHex.toLowerCase() : PATINA_LINEAGES[0];
+    var w0 = Math.max(0, Math.min(255, Number(baseWear || 0)));
+    var cells = [];
+    var wears4 = [0, 64, 160, 255];
+    for (var i = 0; i < 16; i++) {
+      var ser, linHex, wear;
+      if (mode === 'patina_wear') {
+        var r = i >> 2, c = i & 3;
+        ser = s0.toString();
+        linHex = PATINA_LINEAGES[r];
+        wear = wears4[c];
+      } else if (mode === 'random_journey') {
+        ser = String((Number(s0 & 0xffffn) + i * 137 + 1) % 9999 + 1);
+        linHex = PATINA_LINEAGES[i & 3];
+        wear = wears4[(i + (i >> 2)) & 3];
+      } else {
+        ser = (s0 + BigInt(i)).toString();
+        linHex = lin0;
+        wear = w0;
+      }
+      var hi = RVM.hostInputs(blake2b, ser, hexToU8(linHex), wear);
+      var svg = RVM.render(progBytes, hi.lanes, hi.serial32, hi.pat, hi.wear);
+      cells.push({
+        index: i,
+        serial: ser,
+        lineageHex: linHex,
+        pat: hi.pat,
+        wear: hi.wear,
+        svg: svg,
+        label: '#' + ser + ' · P' + hi.pat + ' · W' + hi.wear
+      });
+    }
+    return cells;
+  }
+  var api = { assemble: assemble, OPS: OPS, compileLayers: compileLayers, VISUAL_PRESETS: VISUAL_PRESETS, PATINA_LINEAGES: PATINA_LINEAGES, renderVariationMatrix: renderVariationMatrix };
   if (typeof module === 'object' && module.exports) module.exports = api; else g.RvmAsm = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

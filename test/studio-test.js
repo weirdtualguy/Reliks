@@ -40,5 +40,20 @@ t('Visual No-Code Builder (RvmAsm.compileLayers): all 4 presets assemble and ren
     }
   }
 });
+t('4x4 Variation Matrix (RvmAsm.renderVariationMatrix): renders 16 cells across serial_sweep, patina_wear, and random_journey', () => {
+  const prog = A.assemble(A.compileLayers(A.VISUAL_PRESETS.cyber_orbs));
+  for (const mode of ['serial_sweep', 'patina_wear', 'random_journey']) {
+    const cells = A.renderVariationMatrix(R, b2, prog, mode, '1', A.PATINA_LINEAGES[0], 32);
+    if (cells.length !== 16) throw new Error(mode + ' expected 16 cells, got ' + cells.length);
+    for (const c of cells) {
+      if (!c.svg.startsWith('<svg') || !c.svg.endsWith('</svg>')) throw new Error(mode + ' cell ' + c.index + ' bad svg');
+    }
+    if (mode === 'patina_wear') {
+      const pats = new Set(cells.map(c => c.pat >> 4));
+      if (pats.size !== 4) throw new Error('patina_wear matrix did not cover all 4 patina theme buckets');
+    }
+  }
+});
+
 console.log('studio-test:', pass, 'passed,', fail, 'failed');
 process.exit(fail ? 1 : 0);

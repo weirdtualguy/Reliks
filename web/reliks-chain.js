@@ -84,6 +84,7 @@
   // Canonical state layouts (SeriesFactory: 8 fields / 144 B; ReliksEdition: 10 fields / 203 B; OfferEscrow: 8 fields / 161 B).
   var ED = [['ownerIdentifier', 32], ['identifierType', 1], ['price', 8], ['artist', 32], ['royalty_bips', 8], ['program_hash', 32], ['factory_covid', 32], ['serial', 8], ['lineage', 32], ['sales', 8]];
   var FC = [['program_hash', 32], ['artist', 32], ['price', 8], ['royalty_bips', 8], ['mints_left', 8], ['engine_lang', 8], ['render_hash', 32], ['next_serial', 8]];
+  var ES = [['ownerIdentifier', 32], ['identifierType', 1], ['edition_covid', 32], ['askPrice', 8], ['expireAge', 8], ['artist', 32], ['royalty_bips', 8], ['offerer', 32]];
   function editionHasLineage() { return true; }
   function encFields(tbl, s) {
     var out = [];
@@ -108,6 +109,7 @@
     return encFields(FC, st);
   }
   function encEditionState(s) { return encFields(ED, s); }
+  function encEscrowState(s) { return encFields(ES, s); }
 
   var TPL = null;
   function init(templates) {
@@ -152,6 +154,7 @@
   }
   function factoryRedeem(s, progBytes, edTemplate) { return buildFactoryRedeem(s, progBytes, edTemplate); }
   function editionRedeem(s, edTemplate) { return redeem(edTemplate || tpl().edition, encEditionState(s)); }
+  function escrowRedeem(s, escTemplate) { return redeem(escTemplate || tpl().escrow, encEscrowState(s)); }
   function p2shSpk(redeemBytes) { return 'aa20' + u8hex(hash(redeemBytes)) + '87'; }
   function p2pkSpk(pubkeyHex) { return '20' + pubkeyHex + 'ac'; }
 
@@ -297,6 +300,13 @@
     var p = parsePushes(revealedHex.slice(span.offset * 2, (span.offset + span.len) * 2));
     if (p.length !== 10) throw new Error('edition state has ' + p.length + ' fields, expected 10');
     return { ownerIdentifier: p[0], identifierType: Number(u64le(p[1])), price: u64le(p[2]), artist: p[3], royalty_bips: u64le(p[4]), program_hash: p[5], factory_covid: p[6], serial: u64le(p[7]).toString(), lineage: p[8], sales: u64le(p[9]) };
+  }
+  function decodeEscrowState(revealedHex, escTpl) {
+    var et = escTpl || tpl().escrow;
+    var span = et.span;
+    var p = parsePushes(revealedHex.slice(span.offset * 2, (span.offset + span.len) * 2));
+    if (p.length !== 8) throw new Error('escrow state has ' + p.length + ' fields, expected 8');
+    return { ownerIdentifier: p[0], identifierType: Number(u64le(p[1])), edition_covid: p[2], askPrice: u64le(p[3]), expireAge: u64le(p[4]), artist: p[5], royalty_bips: u64le(p[6]), offerer: p[7] };
   }
 
   /* ------------------------------------------------------------ chain access (injected fetch, so tests can mock) */
@@ -738,33 +748,234 @@
   // After Kaspire signs inputs on a list/unlist/transfer/sell(accept-bid) draft, wrap input 0's 65-byte Schnorr signature
   // into the ReliksEdition covenant signatureScript. Since Kaspa sighash never hashes input signatureScripts,
   // both input 0's ownerSig and input 1..N's wallet signature(s) remain 100% valid.
+  /* ------------------------------------------------------------ OfferEscrow builders (offer, accept, cancel, expire) */
+  var ESCROW_FEE_BUFFER = 10000000n; // 0.1 KAS miner fee buffer locked in OfferEscrow so 2-input accept needs no extra wallet input
+
+  function buildCreateEscrowOffer(p) {
+    var ed = p.edition, st = ed.state, funding = p.funding, offerer = p.offerer;
+    var escTpl = p.escrowTemplate || tpl().escrow;
+    if (!escTpl) throw new Error('escrow template missing');
+    if (!/^[0-9a-f]{64}$/.test(offerer.pubkey)) throw new Error('offerer key must be 32 bytes of lowercase hex');
+    if (p2pkAddress(p.hrp, offerer.pubkey) !== offerer.address) throw new Error('wallet public key does not belong to the connected address');
+    var askPrice = BigInt(p.askPrice != null ? p.askPrice : st.price);
+    if (askPrice < SOMPI || askPrice > MAX_PRICE) throw new Error('escrow askPrice must be at least 1 KAS');
+    if (BigInt(st.price) !== askPrice) throw new Error('edition must be listed at askPrice (' + fmtKas(askPrice) + ' KAS) before locking an OfferEscrow');
+    var roy = (askPrice * BigInt(st.royalty_bips)) / 10000n;
+    if (roy < MIN_ROYALTY_OUT) throw new Error('escrow royalty (' + fmtKas(roy) + ' KAS) is below the 0.05 KAS mineability floor');
+    var expireAge = BigInt(p.expireAge != null ? p.expireAge : 100000);
+    if (expireAge < 1n || expireAge >= (1n << 62n)) throw new Error('expireAge must be a positive DAA duration');
+    var feeBuf = p.feeBuffer != null ? BigInt(p.feeBuffer) : ESCROW_FEE_BUFFER;
+    var locked = askPrice + feeBuf;
+    var fee = BigInt(p.fee);
+    var need = locked + fee;
+    if (BigInt(funding.amount) < need) throw new Error('funding output too small');
+    var change = BigInt(funding.amount) - need;
+    if (change < MIN_CHANGE) { fee += change; change = 0n; }
+    var escState = {
+      ownerIdentifier: String(st.ownerIdentifier).toLowerCase(),
+      identifierType: 0,
+      edition_covid: ed.covenantId,
+      askPrice: askPrice,
+      expireAge: expireAge,
+      artist: String(st.artist).toLowerCase(),
+      royalty_bips: BigInt(st.royalty_bips),
+      offerer: offerer.pubkey
+    };
+    var escRedeemBytes = escrowRedeem(escState, escTpl);
+    var escSpk = p2shSpk(escRedeemBytes);
+    var outputs = [
+      { value: locked, spk: escSpk, role: 'escrow' }
+    ];
+    if (change > 0n) outputs.push({ value: change, spk: p2pkSpk(offerer.pubkey), role: 'change' });
+    return {
+      version: 1, hrp: p.hrp,
+      inputs: buildWalletInputs(funding, offerer),
+      outputs: outputs, lockTime: 0n, gas: 0n, payload: '', fee: fee,
+      summary: {
+        kind: 'escrow_offer', serial: String(st.serial), editionCovenantId: ed.covenantId,
+        askPrice: askPrice, locked: locked, feeBuffer: feeBuf, expireAge: expireAge,
+        royalty: roy, ownerNet: askPrice - roy, fee: fee, change: change,
+        escrowSpk: escSpk, escrowState: escState, offerer: offerer.pubkey, owner: st.ownerIdentifier
+      }
+    };
+  }
+
+  function buildAcceptEscrowOffer(p) {
+    var ed = p.edition, st = ed.state, esc = p.escrow, owner = p.owner;
+    var edTpl = p.editionTemplate || ed.editionTemplate || tpl().edition;
+    var escTpl = p.escrowTemplate || tpl().escrow;
+    if (!escTpl) throw new Error('escrow template missing');
+    if (!/^[0-9a-f]{64}$/.test(owner.pubkey)) throw new Error('owner key must be 32 bytes of lowercase hex');
+    if (p2pkAddress(p.hrp, owner.pubkey) !== owner.address) throw new Error('wallet public key does not belong to the connected address');
+    var escSt = esc.state;
+    if (owner.pubkey !== String(st.ownerIdentifier).toLowerCase()) throw new Error('connected wallet does not own this edition');
+    if (owner.pubkey !== String(escSt.ownerIdentifier).toLowerCase()) throw new Error('escrow ownerIdentifier does not match edition owner');
+    if (String(escSt.edition_covid).toLowerCase() !== String(ed.covenantId).toLowerCase()) throw new Error('escrow edition_covid does not match this edition');
+    var askPrice = BigInt(escSt.askPrice);
+    if (BigInt(st.price) !== askPrice) throw new Error('edition must be listed at exactly ' + fmtKas(askPrice) + ' KAS to accept this escrow');
+    var locked = BigInt(esc.locked != null ? esc.locked : esc.value);
+    if (locked < askPrice) throw new Error('escrow value is below askPrice');
+    var roy = (askPrice * BigInt(escSt.royalty_bips)) / 10000n;
+    if (roy < MIN_ROYALTY_OUT) throw new Error('escrow royalty is below the 0.05 KAS floor');
+    var ownerNet = askPrice - roy;
+    var fee = locked - askPrice;
+    var curEdRedeem = editionRedeem(st, edTpl);
+    var curEdSpk = p2shSpk(curEdRedeem);
+    if (ed.spk && curEdSpk !== ed.spk) throw new Error('edition spk drift');
+    var escRedeemBytes = escrowRedeem(escSt, escTpl);
+    var escSpk = p2shSpk(escRedeemBytes);
+    if (esc.spk && stripVersion(esc.spk) !== escSpk) throw new Error('escrow spk drift');
+    var offererHex = String(escSt.offerer).toLowerCase();
+    var nextEdState = {
+      ownerIdentifier: offererHex, identifierType: 0, price: 0n,
+      artist: st.artist, royalty_bips: BigInt(st.royalty_bips),
+      program_hash: st.program_hash, factory_covid: st.factory_covid, serial: String(st.serial),
+      lineage: advanceLineage(st.lineage, offererHex),
+      sales: BigInt(st.sales || 0) + 1n
+    };
+    var nextEdSpk = p2shSpk(editionRedeem(nextEdState, edTpl));
+    var buyTag = (edTpl.entries && edTpl.entries.buy) || '1cd4096a';
+    var edSigScript = u8hex(cat([pushMin(hex2u8(offererHex)), pushMinInt(1), pushMinInt(2), pushMin(hex2u8(buyTag)), pushMin(curEdRedeem)]));
+    var acceptTag = (escTpl.entries && escTpl.entries.accept) || '948f2512';
+    var edInput = {
+      txId: ed.outpoint.txId, index: Number(ed.outpoint.index), sequence: 0n, sigScript: edSigScript, computeBudget: LANE_BUDGET,
+      utxo: { amount: ed.value, spk: curEdSpk, address: p2shAddress(p.hrp, curEdSpk), daa: ed.daa || 0n, sign: false }
+    };
+    var escTxId = esc.txId || (esc.outpoint && esc.outpoint.txId);
+    var escIdx = Number(esc.index != null ? esc.index : (esc.outpoint && esc.outpoint.index) || 0);
+    var escInput = {
+      txId: escTxId, index: escIdx, sequence: 0n, sigScript: '', computeBudget: LANE_BUDGET,
+      ownerCovenant: { kind: 'escrow_accept', redeemHex: u8hex(escRedeemBytes), tag: acceptTag },
+      utxo: { amount: locked, spk: escSpk, address: owner.address, daa: BigInt(esc.daa || 0), sign: true }
+    };
+    var outputs = [
+      { value: ed.value, spk: nextEdSpk, covenant: { authorizingInput: 0, covenantId: ed.covenantId }, role: 'edition' },
+      { value: ownerNet, spk: p2pkSpk(owner.pubkey), role: 'seller' },
+      { value: roy, spk: p2pkSpk(st.artist), role: 'artist' }
+    ];
+    return {
+      version: 1, hrp: p.hrp,
+      inputs: [edInput, escInput],
+      outputs: outputs, lockTime: 0n, gas: 0n, payload: '', fee: fee,
+      summary: {
+        kind: 'escrow_accept', serial: String(st.serial), editionCovenantId: ed.covenantId,
+        price: askPrice, ownerNet: ownerNet, royalty: roy, fee: fee,
+        seller: owner.pubkey, buyer: offererHex, artist: st.artist, nextState: nextEdState
+      }
+    };
+  }
+
+  function buildCancelEscrowOffer(p) {
+    var esc = p.escrow, offerer = p.offerer, funding = p.funding;
+    var escTpl = p.escrowTemplate || tpl().escrow;
+    if (!escTpl) throw new Error('escrow template missing');
+    if (!/^[0-9a-f]{64}$/.test(offerer.pubkey)) throw new Error('offerer key must be 32 bytes of lowercase hex');
+    if (p2pkAddress(p.hrp, offerer.pubkey) !== offerer.address) throw new Error('wallet public key does not belong to the connected address');
+    var escSt = esc.state;
+    if (offerer.pubkey !== String(escSt.offerer).toLowerCase()) throw new Error('only the original offerer can cancel this escrow');
+    var locked = BigInt(esc.locked != null ? esc.locked : esc.value);
+    var fee = BigInt(p.fee);
+    if (BigInt(funding.amount) < fee) throw new Error('funding output too small to cover network fee');
+    var change = BigInt(funding.amount) - fee;
+    if (change < MIN_CHANGE) { fee += change; change = 0n; }
+    var escRedeemBytes = escrowRedeem(escSt, escTpl);
+    var escSpk = p2shSpk(escRedeemBytes);
+    if (esc.spk && stripVersion(esc.spk) !== escSpk) throw new Error('escrow spk drift');
+    var cancelTag = (escTpl.entries && escTpl.entries.cancel) || 'a0893109';
+    var escTxId = esc.txId || (esc.outpoint && esc.outpoint.txId);
+    var escIdx = Number(esc.index != null ? esc.index : (esc.outpoint && esc.outpoint.index) || 0);
+    var escInput = {
+      txId: escTxId, index: escIdx, sequence: 0n, sigScript: '', computeBudget: LANE_BUDGET,
+      ownerCovenant: { kind: 'escrow_cancel', redeemHex: u8hex(escRedeemBytes), tag: cancelTag },
+      utxo: { amount: locked, spk: escSpk, address: offerer.address, daa: BigInt(esc.daa || 0), sign: true }
+    };
+    var outputs = [
+      { value: locked, spk: p2pkSpk(offerer.pubkey), role: 'refund' }
+    ];
+    if (change > 0n) outputs.push({ value: change, spk: p2pkSpk(offerer.pubkey), role: 'change' });
+    return {
+      version: 1, hrp: p.hrp,
+      inputs: [escInput].concat(buildWalletInputs(funding, offerer)),
+      outputs: outputs, lockTime: 0n, gas: 0n, payload: '', fee: fee,
+      summary: {
+        kind: 'escrow_cancel', editionCovenantId: escSt.edition_covid,
+        refund: locked, fee: fee, change: change, offerer: offerer.pubkey
+      }
+    };
+  }
+
+  function buildExpireEscrowOffer(p) {
+    var esc = p.escrow, caller = p.caller, funding = p.funding;
+    var escTpl = p.escrowTemplate || tpl().escrow;
+    if (!escTpl) throw new Error('escrow template missing');
+    if (!/^[0-9a-f]{64}$/.test(caller.pubkey)) throw new Error('caller key must be 32 bytes of lowercase hex');
+    if (p2pkAddress(p.hrp, caller.pubkey) !== caller.address) throw new Error('wallet public key does not belong to the connected address');
+    var wInputs = buildWalletInputs(funding, caller);
+    if (wInputs.length !== 1) throw new Error('OfferEscrow.expire requires exactly 1 wallet funding UTXO (tx.inputs.length == 2)');
+    var escSt = esc.state;
+    var locked = BigInt(esc.locked != null ? esc.locked : esc.value);
+    var fee = BigInt(p.fee);
+    if (BigInt(funding.amount) < fee) throw new Error('funding output too small to cover network fee');
+    var change = BigInt(funding.amount) - fee;
+    if (change < MIN_CHANGE) { fee += change; change = 0n; }
+    var escRedeemBytes = escrowRedeem(escSt, escTpl);
+    var escSpk = p2shSpk(escRedeemBytes);
+    if (esc.spk && stripVersion(esc.spk) !== escSpk) throw new Error('escrow spk drift');
+    var expireTag = (escTpl.entries && escTpl.entries.expire) || '12ab1c61';
+    var expireSigScript = u8hex(cat([pushMin(hex2u8(expireTag)), pushMin(escRedeemBytes)]));
+    var seq = BigInt(escSt.expireAge);
+    var escTxId = esc.txId || (esc.outpoint && esc.outpoint.txId);
+    var escIdx = Number(esc.index != null ? esc.index : (esc.outpoint && esc.outpoint.index) || 0);
+    var escInput = {
+      txId: escTxId, index: escIdx, sequence: seq, sigScript: expireSigScript, computeBudget: LANE_BUDGET,
+      utxo: { amount: locked, spk: escSpk, address: p2shAddress(p.hrp, escSpk), daa: BigInt(esc.daa || 0), sign: false }
+    };
+    var offererHex = String(escSt.offerer).toLowerCase();
+    var outputs = [
+      { value: locked, spk: p2pkSpk(offererHex), role: 'refund' }
+    ];
+    if (change > 0n) outputs.push({ value: change, spk: p2pkSpk(caller.pubkey), role: 'change' });
+    return {
+      version: 1, hrp: p.hrp,
+      inputs: [escInput, wInputs[0]],
+      outputs: outputs, lockTime: 0n, gas: 0n, payload: '', fee: fee,
+      summary: {
+        kind: 'escrow_expire', editionCovenantId: escSt.edition_covid,
+        refund: locked, expireAge: seq, fee: fee, change: change, offerer: offererHex
+      }
+    };
+  }
+
   function finalizeOwnerCovenantTx(draft, signedJson) {
     var t = typeof signedJson === 'string' ? JSON.parse(signedJson) : JSON.parse(JSON.stringify(signedJson));
-    var inp0 = draft.inputs[0], meta = inp0 && inp0.ownerCovenant;
-    if (!meta) throw new Error('draft is not an owner-authorized covenant transaction');
-    var rawSigScript = String((t.inputs && t.inputs[0] && (t.inputs[0].signatureScript || t.inputs[0].signature_script)) || '').toLowerCase();
-    if (!/^41[0-9a-f]{128}01$/.test(rawSigScript)) throw new Error('wallet did not return a standard Schnorr signature for edition input 0');
-    var ownerSig65 = hex2u8(rawSigScript.slice(2));
-    var curRedeem = hex2u8(meta.redeemHex);
-    var tagBytes = hex2u8(meta.tag);
-    var parts;
-    if (meta.kind === 'list') parts = [pushMinInt(meta.newPrice), pushMin(ownerSig65), pushMin(tagBytes), pushMin(curRedeem)];
-    else if (meta.kind === 'unlist') parts = [pushMin(ownerSig65), pushMin(tagBytes), pushMin(curRedeem)];
-    else if (meta.kind === 'transfer') parts = [pushMin(hex2u8(meta.newOwner)), pushMin(ownerSig65), pushMin(tagBytes), pushMin(curRedeem)];
-    else if (meta.kind === 'sell') parts = [pushMin(hex2u8(meta.buyer)), pushMinInt(meta.salePrice), pushMinInt(1), pushMinInt(2), pushMin(ownerSig65), pushMin(tagBytes), pushMin(curRedeem)];
-    else throw new Error('unknown owner covenant kind: ' + meta.kind);
-    var fullSigHex = u8hex(cat(parts));
-    t.inputs[0].signatureScript = fullSigHex;
-    if (t.inputs[0].signature_script !== undefined) delete t.inputs[0].signature_script;
-    var finalizedDraft = Object.assign({}, draft, {
-      inputs: draft.inputs.map(function (inp, idx) {
-        if (idx !== 0) return inp;
-        return Object.assign({}, inp, {
-          sigScript: fullSigHex,
-          utxo: Object.assign({}, inp.utxo, { sign: false })
-        });
-      })
+    var found = false;
+    var updatedInputs = draft.inputs.map(function (inp, idx) {
+      var meta = inp && inp.ownerCovenant;
+      if (!meta) return inp;
+      found = true;
+      var rawSigScript = String((t.inputs && t.inputs[idx] && (t.inputs[idx].signatureScript || t.inputs[idx].signature_script)) || '').toLowerCase();
+      if (!/^41[0-9a-f]{128}01$/.test(rawSigScript)) throw new Error('wallet did not return a standard Schnorr signature for covenant input ' + idx);
+      var ownerSig65 = hex2u8(rawSigScript.slice(2));
+      var curRedeem = hex2u8(meta.redeemHex);
+      var tagBytes = hex2u8(meta.tag);
+      var parts;
+      if (meta.kind === 'list') parts = [pushMinInt(meta.newPrice), pushMin(ownerSig65), pushMin(tagBytes), pushMin(curRedeem)];
+      else if (meta.kind === 'unlist') parts = [pushMin(ownerSig65), pushMin(tagBytes), pushMin(curRedeem)];
+      else if (meta.kind === 'transfer') parts = [pushMin(hex2u8(meta.newOwner)), pushMin(ownerSig65), pushMin(tagBytes), pushMin(curRedeem)];
+      else if (meta.kind === 'sell') parts = [pushMin(hex2u8(meta.buyer)), pushMinInt(meta.salePrice), pushMinInt(1), pushMinInt(2), pushMin(ownerSig65), pushMin(tagBytes), pushMin(curRedeem)];
+      else if (meta.kind === 'escrow_accept') parts = [pushMin(ownerSig65), pushMinInt(0), pushMinInt(1), pushMinInt(2), pushMin(tagBytes), pushMin(curRedeem)];
+      else if (meta.kind === 'escrow_cancel') parts = [pushMin(ownerSig65), pushMin(tagBytes), pushMin(curRedeem)];
+      else throw new Error('unknown owner covenant kind: ' + meta.kind);
+      var fullSigHex = u8hex(cat(parts));
+      t.inputs[idx].signatureScript = fullSigHex;
+      if (t.inputs[idx].signature_script !== undefined) delete t.inputs[idx].signature_script;
+      return Object.assign({}, inp, {
+        sigScript: fullSigHex,
+        utxo: Object.assign({}, inp.utxo, { sign: false })
+      });
     });
+    if (!found) throw new Error('draft is not an owner-authorized covenant transaction');
+    var finalizedDraft = Object.assign({}, draft, { inputs: updatedInputs });
     var finalJson = JSON.stringify(t);
     var verified = verifySigned(finalizedDraft, finalJson);
     return { signedJson: finalJson, sigScripts: verified.sigScripts, rpcTx: verified.rpcTx, draft: finalizedDraft };
@@ -903,19 +1114,20 @@
     SOMPI: SOMPI, CARRIER: CARRIER, MAX_PRICE: MAX_PRICE, MIN_ROYALTY_OUT: MIN_ROYALTY_OUT, MIN_ROYALTY_BIPS: MIN_ROYALTY_BIPS, init: init,
     hex2u8: hex2u8, u8hex: u8hex, utf8: utf8, hash: hash, hashHex: hashHex,
     pushExp: pushExp, pushMin: pushMin, pushMinInt: pushMinInt, parseScriptInt: parseScriptInt,
-    encFactoryState: encFactoryState, encEditionState: encEditionState,
+    encFactoryState: encFactoryState, encEditionState: encEditionState, encEscrowState: encEscrowState,
     buildFactorySuffix: buildFactorySuffix, buildFactoryRedeem: buildFactoryRedeem,
-    factoryRedeem: factoryRedeem, editionRedeem: editionRedeem,
+    factoryRedeem: factoryRedeem, editionRedeem: editionRedeem, escrowRedeem: escrowRedeem,
     p2shSpk: p2shSpk, p2pkSpk: p2pkSpk,
     p2pkAddress: p2pkAddress, p2shAddress: p2shAddress, decodeAddress: decodeAddress, parseOwnerInput: parseOwnerInput,
     covenantIdGenesis: covenantIdGenesis,
     genesisLineage: genesisLineage, genesisLineageCounter: genesisLineageCounter, advanceLineage: advanceLineage, editionHasLineage: editionHasLineage,
-    decodeFactoryState: decodeFactoryState, decodeEditionState: decodeEditionState, parsePushes: parsePushes,
+    decodeFactoryState: decodeFactoryState, decodeEditionState: decodeEditionState, decodeEscrowState: decodeEscrowState, parsePushes: parsePushes,
     spkOfOutput: spkOfOutput, outputValue: outputValue, inputOutpoint: inputOutpoint, covenantOf: covenantOf,
     makeIO: makeIO, resolveLane: resolveLane, resolveEdition: resolveEdition,
     buildDeploySeries: buildDeploySeries, buildMint: buildMint,
     buildBuyEdition: buildBuyEdition, buildMakeBid: buildMakeBid,
     buildListEdition: buildListEdition, buildUnlistEdition: buildUnlistEdition, buildTransferEdition: buildTransferEdition,
+    buildCreateEscrowOffer: buildCreateEscrowOffer, buildAcceptEscrowOffer: buildAcceptEscrowOffer, buildCancelEscrowOffer: buildCancelEscrowOffer, buildExpireEscrowOffer: buildExpireEscrowOffer, ESCROW_FEE_BUFFER: ESCROW_FEE_BUFFER,
     finalizeOwnerCovenantTx: finalizeOwnerCovenantTx, walletSignIndices: walletSignIndices,
     estimateSize: estimateSize, estimateFee: estimateFee,
     toSafeJSON: toSafeJSON, toRpcTx: toRpcTx, verifySigned: verifySigned, pickFunding: pickFunding, fmtKas: fmtKas,

@@ -25,6 +25,8 @@ pre:empty{display:none}
 <div class="row"><label for="wr">Sales <span id="wv">0</span></label><input id="wr" type="range" min="0" max="255" value="0"><label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input id="wear-on" type="checkbox" checked style="width:auto;margin:0">Enable wear</label></div>
 <div class="row"><button class="btn" id="go">Run</button><button class="btn ghost" id="gates">Run gates</button><span id="st" class="small">Starting…</span></div>
 <img id="img" alt="Rendered artwork">
+<div class="row"><label for="matrix-mode">4×4 Matrix</label><select id="matrix-mode"><option value="serial_sweep" selected>Serial Sweep (#1–#16)</option><option value="patina_wear">Patina × Wear (4×4 Lifecycle)</option><option value="random_journey">Collector Journey (16 Varied)</option></select><button class="btn ghost" id="btn-matrix" type="button">Toggle 4×4 Matrix</button></div>
+<div id="matrix-box" hidden style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0"></div>
 <pre id="info"></pre>
 <pre id="gates-out"></pre>
 <div class="row"><input id="name" value="my-program" aria-label="File name"><button class="btn" id="dlhex">Download .hex</button><button class="btn ghost" id="dlsrc">Download source</button></div>
@@ -828,7 +830,57 @@ return module.exports;})();</script><script>var RvmAsm=(function(){var module={e
     return out.join('\n') + '\n';
   }
 
-  var api = { assemble: assemble, OPS: OPS, compileLayers: compileLayers, VISUAL_PRESETS: VISUAL_PRESETS };
+
+  var PATINA_LINEAGES = [
+    '0000000000000000000000000000000000000000000000000000000000000000',
+    '0800000000000000000000000000000000000000000000000000000000000000',
+    '0300000000000000000000000000000000000000000000000000000000000000',
+    '0400000000000000000000000000000000000000000000000000000000000000'
+  ];
+
+  function hexToU8(h) {
+    var o = new Uint8Array(h.length / 2);
+    for (var i = 0; i < o.length; i++) o[i] = parseInt(h.substr(i * 2, 2), 16);
+    return o;
+  }
+
+  function renderVariationMatrix(RVM, blake2b, progBytes, mode, baseSerial, baseLineageHex, baseWear) {
+    var s0 = BigInt(baseSerial || '1');
+    var lin0 = /^[0-9a-f]{64}$/i.test(baseLineageHex || '') ? baseLineageHex.toLowerCase() : PATINA_LINEAGES[0];
+    var w0 = Math.max(0, Math.min(255, Number(baseWear || 0)));
+    var cells = [];
+    var wears4 = [0, 64, 160, 255];
+    for (var i = 0; i < 16; i++) {
+      var ser, linHex, wear;
+      if (mode === 'patina_wear') {
+        var r = i >> 2, c = i & 3;
+        ser = s0.toString();
+        linHex = PATINA_LINEAGES[r];
+        wear = wears4[c];
+      } else if (mode === 'random_journey') {
+        ser = String((Number(s0 & 0xffffn) + i * 137 + 1) % 9999 + 1);
+        linHex = PATINA_LINEAGES[i & 3];
+        wear = wears4[(i + (i >> 2)) & 3];
+      } else {
+        ser = (s0 + BigInt(i)).toString();
+        linHex = lin0;
+        wear = w0;
+      }
+      var hi = RVM.hostInputs(blake2b, ser, hexToU8(linHex), wear);
+      var svg = RVM.render(progBytes, hi.lanes, hi.serial32, hi.pat, hi.wear);
+      cells.push({
+        index: i,
+        serial: ser,
+        lineageHex: linHex,
+        pat: hi.pat,
+        wear: hi.wear,
+        svg: svg,
+        label: '#' + ser + ' · P' + hi.pat + ' · W' + hi.wear
+      });
+    }
+    return cells;
+  }
+  var api = { assemble: assemble, OPS: OPS, compileLayers: compileLayers, VISUAL_PRESETS: VISUAL_PRESETS, PATINA_LINEAGES: PATINA_LINEAGES, renderVariationMatrix: renderVariationMatrix };
   if (typeof module === 'object' && module.exports) module.exports = api; else g.RvmAsm = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -870,6 +922,7 @@ return module.exports;})();</script><script>/* Reliks-VM Studio: assemble, rende
       img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
       info.textContent = 'program       ' + prog.length + ' / ' + BAKE_CAP + ' B (PUSHDATA2 bake cap)\nprogram_hash  ' + hex(B(prog, 32)) + '\nrender_hash   ' + hex(B(enc.encode(svg), 32)) + '\nsvg           ' + svg.length + ' / ' + RVM.limits.MAX_SVG + ' B\nfuel          ' + stats.fuel + ' / ' + RVM.limits.FUEL_MAX + '\nelements      ' + stats.elems + ' / ' + RVM.limits.MAX_ELEMS + '\nmax_stack     ' + stats.max_stack + ' / ' + RVM.limits.STACK_MAX + '\nwear          ' + hi.wear + ' / 255' + (wEnabled ? '' : ' (disabled in bytecode)') + '\npatina        ' + hi.pat + ' / 63';
       say('Rendered.');
+      if (matrixOpen) renderMatrix();
     } catch (e) { say('Render fault: ' + (e.code || e.message), true); }
   }
   function runGates() {
@@ -935,6 +988,32 @@ return module.exports;})();</script><script>/* Reliks-VM Studio: assemble, rende
   $('dlhex').addEventListener('click', function () { if (runGates() && prog) download(slug() + '.hex', hex(prog) + '\n'); });
   $('dlsrc').addEventListener('click', function () { download(slug() + '.rvm.txt', ed.value); });
   ed.addEventListener('input', later); ser.addEventListener('change', run); lin.addEventListener('change', run); wr.addEventListener('input', run);
+  var matrixBox = $('matrix-box'), matrixMode = $('matrix-mode'), btnMatrix = $('btn-matrix'), matrixOpen = false;
+  function renderMatrix() {
+    if (!matrixBox || !prog) return;
+    while (matrixBox.firstChild) matrixBox.removeChild(matrixBox.firstChild);
+    var wEnabled = !wearOn || wearOn.checked;
+    var cells = RvmAsm.renderVariationMatrix(RVM, B, prog, matrixMode ? matrixMode.value : 'serial_sweep', ser.value.trim() || '1', lin.value.trim(), wEnabled ? Number(wr.value) : 0);
+    cells.forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.style.cssText = 'background:#0b0f17;border:1px solid #222b38;border-radius:6px;padding:4px;cursor:pointer;color:#9aa6b2;font:10px monospace';
+      var im = document.createElement('img');
+      im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(c.svg);
+      im.style.cssText = 'width:100%;aspect-ratio:1/1;display:block;border-radius:4px';
+      var sp = document.createElement('div');
+      sp.textContent = c.label;
+      b.appendChild(im); b.appendChild(sp);
+      b.addEventListener('click', function () { ser.value = c.serial; lin.value = c.lineageHex; if (wEnabled) wr.value = String(c.wear); run(); });
+      matrixBox.appendChild(b);
+    });
+  }
+  if (btnMatrix && matrixBox) {
+    btnMatrix.addEventListener('click', function () { matrixOpen = !matrixOpen; matrixBox.hidden = !matrixOpen; if (matrixOpen) renderMatrix(); });
+  }
+  if (matrixMode) {
+    matrixMode.addEventListener('change', function () { matrixOpen = true; if (matrixBox) matrixBox.hidden = false; renderMatrix(); });
+  }
   ed.value = D.templates.starter; run();
 })();
 </script></body></html>

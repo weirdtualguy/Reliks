@@ -9,7 +9,36 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const read = (...a) => fs.readFileSync(path.join(ROOT, ...a), 'utf8');
 const scriptSafe = (s) => s.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--');
-const compactJs = (s) => scriptSafe(s.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('//')).join('\n'));
+const compactJs = (src) => {
+  let s = src.replace(/\/\*[\s\S]*?\*\//g, "");
+  s = s.split("\n").map((l) => {
+    let t = l.trim();
+    if (!t || t.startsWith("//")) return "";
+    const cIdx = t.indexOf(" // ");
+    if (cIdx > 0 && !/["'`\/]/.test(t.slice(cIdx + 4))) t = t.slice(0, cIdx).trim();
+    return t;
+  }).filter(Boolean).join("\n");
+  const re = /("(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|`(?:\\[\s\S]|[^`\\])*`|\/(?![\/\*])(?:\\.|\[(?:\\.|[^\]\\])*\]|[^\/\\\n])+\/[gimsuy]*)/g;
+  let out = "", last = 0, m;
+  const cleanCode = (c) => c
+    .replace(/[ \t]+/g, " ")
+    .replace(/ *([\{\}\(\)\[\]\;\,\:\?\=\+\-\*\&\|\!\<\>]) */g, "$1")
+    .replace(/;\n/g, ";")
+    .replace(/\{\n/g, "{")
+    .replace(/\n\}/g, "}")
+    .replace(/,\n/g, ",");
+  while ((m = re.exec(s)) !== null) {
+    out += cleanCode(s.slice(last, m.index)) + m[0];
+    last = re.lastIndex;
+  }
+  out += cleanCode(s.slice(last));
+  return scriptSafe(out);
+};
+const trimQr = (q) => {
+  const i1 = q.indexOf('_this.createDataURL ='), i2 = q.indexOf('return _this;\n  };');
+  const i3 = q.indexOf('// byteArrayOutputStream'), i4 = q.indexOf('// returns qrcode function.');
+  return (i1 > 0 && i2 > i1 && i3 > i2 && i4 > i3) ? q.slice(0, i1) + q.slice(i2, i3) + q.slice(i4) : q;
+};
 const compactCss = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map((l) => l.trim()).filter(Boolean).join('\n');
 const json = (o) => scriptSafe(JSON.stringify(o)).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 
@@ -72,7 +101,10 @@ const packedFactory = Object.assign({}, templates.factory, {
   suffixHex: templates.factory.suffixHex.split(fixtureEngHex).join('__FENG__').split(edSufHex).join('__EDS__')
 });
 
-const DATA = { anchors, templates: { factory: packedFactory, edition: templates.edition, escrow: templates.escrow }, engines, bundles, studio: { templates: studioTemplates, cap: CAP } };
+const packedEdition = Object.assign({}, templates.edition);
+const packedEscrow = Object.assign({}, templates.escrow);
+delete packedFactory.fields; delete packedEdition.fields; delete packedEscrow.fields;
+const DATA = { anchors, templates: { factory: packedFactory, edition: packedEdition, escrow: packedEscrow }, engines, bundles, studio: { templates: studioTemplates, cap: CAP } };
 const favicon = 'data:image/svg+xml,' + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='#06080b'/><path d='M32 10l20 11v22L32 54 12 43V21z' fill='none' stroke='#49c5b1' stroke-width='4'/><path d='M32 10v44M12 21l40 22M52 21L12 43' stroke='#49c5b1' stroke-width='2' opacity='.5'/></svg>");
 
 const view = (id, inner) => `<section class="view" id="view-${id}" ${id === 'gallery' ? '' : 'hidden'}>${inner}</section>`;
@@ -132,6 +164,20 @@ const studio = `
       <label for="wr" style="font:12px var(--mono);color:var(--dim);flex:0 0 auto">Sales / Wear: <span id="wv">0</span></label>
       <input id="wr" type="range" min="0" max="255" value="0" style="padding:0" />
       <label style="font:12px var(--mono);color:var(--dim);flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input id="wear-on" type="checkbox" checked style="width:auto;margin:0" />Enable wear</label>
+    </div>
+    <div class="card" style="padding:10px 12px">
+      <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+        <b style="font-size:13px">4×4 Variation Matrix (16x)</b>
+        <div class="row" style="gap:6px">
+          <select id="matrix-mode" aria-label="Matrix mode" style="max-width:195px;padding:4px 8px;font-size:12px">
+            <option value="serial_sweep" selected>Serial Sweep (#1–#16)</option>
+            <option value="patina_wear">Patina × Wear (4×4 Lifecycle)</option>
+            <option value="random_journey">Collector Journey (16 Varied)</option>
+          </select>
+          <button class="btn" id="btn-matrix-toggle" type="button" style="padding:4px 10px;font-size:12px">Show 4×4</button>
+        </div>
+      </div>
+      <div id="matrix-box" hidden style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px"></div>
     </div>
     <div class="gate-list" id="gates-out" aria-live="polite"></div>
     <pre class="code" id="hashes"></pre>
@@ -212,7 +258,7 @@ ${view('protocol', protocol)}
 <dialog id="wallet-dlg" aria-label="Connect wallet"><div class="dlg" id="wallet-body"></div></dialog>
 <dialog id="mint-dlg" aria-label="Transaction"><div class="dlg" id="mint-body"></div></dialog>
 <div class="toasts" id="toasts" aria-live="polite"></div>
-<script type="text/plain" id="qr-src">${compactJs(read('web', 'vendor', 'qrcode-generator.js'))}</script>
+<script type="text/plain" id="qr-src">${compactJs(trimQr(read('web', 'vendor', 'qrcode-generator.js')))}</script>
 <script id="rvm-src">var RVM=(function(){var module={exports:{}};
 ${compactJs(read('vm', 'rvm.js'))}
 return module.exports;})();window.RVM=RVM;</script>

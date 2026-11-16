@@ -16,6 +16,8 @@ const body = `<main>
 <div class="row"><label for="wr">Sales <span id="wv">0</span></label><input id="wr" type="range" min="0" max="255" value="0"><label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input id="wear-on" type="checkbox" checked style="width:auto;margin:0">Enable wear</label></div>
 <div class="row"><button class="btn" id="go">Run</button><button class="btn ghost" id="gates">Run gates</button><span id="st" class="small">Starting…</span></div>
 <img id="img" alt="Rendered artwork">
+<div class="row"><label for="matrix-mode">4×4 Matrix</label><select id="matrix-mode"><option value="serial_sweep" selected>Serial Sweep (#1–#16)</option><option value="patina_wear">Patina × Wear (4×4 Lifecycle)</option><option value="random_journey">Collector Journey (16 Varied)</option></select><button class="btn ghost" id="btn-matrix" type="button">Toggle 4×4 Matrix</button></div>
+<div id="matrix-box" hidden style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0"></div>
 <pre id="info"></pre>
 <pre id="gates-out"></pre>
 <div class="row"><input id="name" value="my-program" aria-label="File name"><button class="btn" id="dlhex">Download .hex</button><button class="btn ghost" id="dlsrc">Download source</button></div>

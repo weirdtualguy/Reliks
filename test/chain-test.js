@@ -201,6 +201,47 @@ const PK = 'aa'.repeat(32), PK2 = 'bb'.repeat(32);
     eq(bidDraft.summary.nextState.sales, 2n);
   });
 
+  await t('OfferEscrow (offer, accept 948f2512, cancel a0893109, expire 12ab1c61): state round-trip and all 4 builders', () => {
+    const listedEd = { ...edObj, state: { ...edState, price: 1000000000n }, spk: C.p2shSpk(C.editionRedeem({ ...edState, price: 1000000000n })) };
+    const offDraft = C.buildCreateEscrowOffer({ edition: listedEd, offerer: buyer, askPrice: 1000000000n, expireAge: 100000n, funding: { ...funding, amount: 2000000000n }, fee: 500000n, hrp: 'kaspa' });
+    eq(offDraft.summary.locked, 1010000000n);
+    const escRedeemHex = Buffer.from(C.escrowRedeem(offDraft.summary.escrowState)).toString('hex');
+    const decEsc = C.decodeEscrowState(escRedeemHex);
+    eq(decEsc.askPrice, 1000000000n);
+    eq(decEsc.expireAge, 100000n);
+    eq(decEsc.offerer, buyer.pubkey);
+    eq(decEsc.edition_covid, listedEd.covenantId);
+
+    const escTicket = { txId: '77'.repeat(32), index: 0, spk: offDraft.summary.escrowSpk, locked: offDraft.summary.locked, state: offDraft.summary.escrowState };
+    const accDraft = C.buildAcceptEscrowOffer({ edition: listedEd, escrow: escTicket, owner: seller, hrp: 'kaspa' });
+    eq(C.walletSignIndices(accDraft).join(','), '1');
+    const accSafe = JSON.parse(C.toSafeJSON(accDraft));
+    accSafe.inputs[1].signatureScript = sig;
+    const accFin = C.finalizeOwnerCovenantTx(accDraft, accSafe);
+    eq(accFin.rpcTx.outputs[0].value, 100000000);
+    eq(accFin.rpcTx.outputs[1].value, 950000000);
+    eq(accFin.rpcTx.outputs[2].value, 50000000);
+    eq(accDraft.summary.nextState.ownerIdentifier, buyer.pubkey);
+    eq(accDraft.summary.nextState.sales, 2n);
+
+    const canDraft = C.buildCancelEscrowOffer({ escrow: escTicket, offerer: buyer, funding, fee: 500000n, hrp: 'kaspa' });
+    eq(C.walletSignIndices(canDraft).join(','), '0,1');
+    const canSafe = JSON.parse(C.toSafeJSON(canDraft));
+    canSafe.inputs[0].signatureScript = sig;
+    canSafe.inputs[1].signatureScript = sig;
+    const canFin = C.finalizeOwnerCovenantTx(canDraft, canSafe);
+    eq(canFin.rpcTx.outputs[0].value, 1010000000);
+
+    const expDraft = C.buildExpireEscrowOffer({ escrow: escTicket, caller: seller, funding, fee: 500000n, hrp: 'kaspa' });
+    eq(C.walletSignIndices(expDraft).join(','), '1');
+    eq(expDraft.inputs[0].sequence, 100000n);
+    const expSafe = JSON.parse(C.toSafeJSON(expDraft));
+    expSafe.inputs[1].signatureScript = sig;
+    const expVer = C.verifySigned(expDraft, expSafe);
+    eq(expVer.rpcTx.outputs[0].value, 1010000000);
+    eq(expVer.rpcTx.inputs[0].sequence, 100000);
+  });
+
   await t('buildTransferEdition: accepts a kaspa: address, advances lineage, keeps sales unchanged', () => {
     const xferDraft = C.buildTransferEdition({ edition: edObj, owner: seller, newOwner: buyer.address, funding, fee: 500000n, hrp: 'kaspa' });
     eq(xferDraft.summary.nextState.ownerIdentifier, buyer.pubkey);
