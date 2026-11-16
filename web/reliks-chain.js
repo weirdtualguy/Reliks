@@ -78,15 +78,13 @@
   }
 
   /* ------------------------------------------------------------ state codec */
-  // Field order and widths are frozen with the v12/v13 contracts (spans 135 / 161 / 203).
-  var ED = [['ownerIdentifier', 32], ['identifierType', 1], ['price', 8], ['artist', 32], ['royalty_bips', 8], ['program_hash', 32], ['factory_covid', 32], ['serial', 8]];
-  var ED13 = ED.concat([['lineage', 32], ['sales', 8]]);
-  function edTable(edTpl) {
-    var f = (edTpl && edTpl.fields) || (TPL && TPL.edition && TPL.edition.fields);
-    return (f && f.indexOf('lineage') >= 0) ? ED13 : ED;
-  }
-  function editionHasLineage(edTpl) { return edTable(edTpl) === ED13; }
-  var FC = [['program_hash', 32], ['artist', 32], ['price', 8], ['royalty_bips', 8], ['mints_left', 8], ['engine_lang', 8], ['render_hash', 32]];
+  var MIN_ROYALTY_OUT = 5000000n;  // 0.05 KAS royalty mineability floor
+  var MIN_ROYALTY_BIPS = 500n;     // 5% minimum royalty
+
+  // Canonical state layouts (SeriesFactory: 8 fields / 144 B; ReliksEdition: 10 fields / 203 B; OfferEscrow: 8 fields / 161 B).
+  var ED = [['ownerIdentifier', 32], ['identifierType', 1], ['price', 8], ['artist', 32], ['royalty_bips', 8], ['program_hash', 32], ['factory_covid', 32], ['serial', 8], ['lineage', 32], ['sales', 8]];
+  var FC = [['program_hash', 32], ['artist', 32], ['price', 8], ['royalty_bips', 8], ['mints_left', 8], ['engine_lang', 8], ['render_hash', 32], ['next_serial', 8]];
+  function editionHasLineage() { return true; }
   function encFields(tbl, s) {
     var out = [];
     for (var i = 0; i < tbl.length; i++) {
@@ -105,8 +103,11 @@
     }
     return cat(out);
   }
-  function encFactoryState(s) { return encFields(FC, s); }
-  function encEditionState(s, edTpl) { return encFields(edTable(edTpl), s); }
+  function encFactoryState(s) {
+    var st = (s && (s.next_serial === undefined || s.next_serial === null)) ? Object.assign({}, s, { next_serial: 0n }) : s;
+    return encFields(FC, st);
+  }
+  function encEditionState(s) { return encFields(ED, s); }
 
   var TPL = null;
   function init(templates) {
@@ -117,66 +118,46 @@
   function tpl() { if (!TPL) throw new Error('ReliksChain.init(templates) not called'); return TPL; }
   function redeem(t, encoded) { return cat([hex2u8(t.prefixHex), encoded, hex2u8(t.suffixHex)]); }
 
-  // Synthesize the exact SeriesFactory-v12 or SeriesFactory-v13 suffix for any program/engine bytes (<= 25641 B)
-  // without needing silverc in the browser. For the v12 mainnet engine + v12 edition template, this reproduces
-  // tpl().factory.suffixHex byte-for-byte.
+  // Synthesize the exact SeriesFactory suffix (contracts/factory.json, 029512ea…) for any Reliks-VM program
+  // (1..25641 B) without needing silverc in the browser. Reproduces tpl().factory.suffixHex byte-for-byte.
   function buildFactorySuffix(progBytes, edTemplate) {
     var baseSuf = hex2u8(tpl().factory.suffixHex);
     var edTpl = edTemplate || tpl().edition;
-    var isV13 = editionHasLineage(edTpl);
     var prog = progBytes instanceof Uint8Array ? progBytes : hex2u8(progBytes);
     if (prog.length < 1 || prog.length > 25641) throw new Error('program length must be 1..25641 bytes');
     var pushProg = pushMin(prog);
-    var edSuf = hex2u8(edTpl.suffixHex);
-    var pushEd = pushMin(edSuf);
+    var pushEd = pushMin(hex2u8(edTpl.suffixHex));
     var pushTh = pushMin(hex2u8(edTpl.templateHashHex));
-    var p0 = baseSuf.subarray(0, 74);
-    var p1 = baseSuf.subarray(3965, 4007);
-    var p2 = baseSuf.subarray(7898, 8124);
-    var v13Lin = isV13 ? hex2u8('0f52656c696b7347656e657369735632b9ba7eb9bb54cd7eaa00') : new Uint8Array(0);
-    var p4 = baseSuf.subarray(8157, 8169);
-    var p5 = baseSuf.subarray(10174, 10181);
-    var p6 = baseSuf.subarray(12186, 12190);
-    var p7 = isV13
-      ? hex2u8('01205a797e01015a797e01085a7958cd7e01205a797e01085a7958cd7e01205a797e01205a797e01085a7958cd7e01205a797e01085a7958cd7e7e7e7e7e7e7e7e7e7e')
-      : baseSuf.subarray(12190, 12243);
-    var p8 = baseSuf.subarray(12243, 12247);
-    var p9 = baseSuf.subarray(14252, 14268);
-    var p10 = isV13
-      ? hex2u8('011779c388011679c20400e1f505a269b9cb519c69b900cc76c2b9bea2690115790115790115790115790115795194011579011579')
-      : baseSuf.subarray(14268, 14324);
-    var tailHex = u8hex(baseSuf.subarray(14324));
-    if (isV13) {
-      tailHex = tailHex.replace('75'.repeat(31) + '5167760499ec7fba', '75'.repeat(33) + '5167760499ec7fba');
-    }
-    var headLen = p0.length + pushProg.length + p1.length + pushProg.length + p2.length + v13Lin.length + pushTh.length + p4.length + pushEd.length + p5.length + pushEd.length + p6.length + p7.length + p8.length + pushEd.length + p9.length + p10.length;
+    var c0 = baseSuf.subarray(0, 76);
+    var c1 = baseSuf.subarray(3967, 4009);
+    var c2 = baseSuf.subarray(7900, 7985);
+    var c3 = baseSuf.subarray(8018, 8030);
+    var c4 = baseSuf.subarray(10428, 10435);
+    var c5 = baseSuf.subarray(12833, 12908);
+    var tailHex = u8hex(baseSuf.subarray(15306));
+    var headLen = c0.length + pushProg.length + c1.length + pushProg.length + c2.length + pushTh.length + c3.length + pushEd.length + c4.length + pushEd.length + c5.length + pushEd.length;
+    var oldPat = 'b976c902414194765193bc7c7eb976c97602b0c0937cbc';
     var patchedTail = hex2u8(tailHex);
-    var oldPat = 'b976c902a53c94765193bc7c7eb976c976021dbc937cbc';
     for (var iter = 0; iter < 3; iter++) {
       var sufLen = headLen + patchedTail.length;
-      var totLen = 136 + sufLen;
+      var totLen = 145 + sufLen;
       var newPat = 'b976c9' + u8hex(pushMinInt(totLen)) + '94765193bc7c7eb976c976' + u8hex(pushMinInt(-sufLen)) + '937cbc';
       patchedTail = hex2u8(tailHex.split(oldPat).join(newPat));
     }
-    return cat([p0, pushProg, p1, pushProg, p2, v13Lin, pushTh, p4, pushEd, p5, pushEd, p6, p7, p8, pushEd, p9, p10, patchedTail]);
+    return cat([c0, pushProg, c1, pushProg, c2, pushTh, c3, pushEd, c4, pushEd, c5, pushEd, patchedTail]);
   }
   function buildFactoryRedeem(state, progBytes, edTemplate) {
     if (!progBytes) return redeem(tpl().factory, encFactoryState(state));
     return cat([hex2u8(tpl().factory.prefixHex), encFactoryState(state), buildFactorySuffix(progBytes, edTemplate)]);
   }
   function factoryRedeem(s, progBytes, edTemplate) { return buildFactoryRedeem(s, progBytes, edTemplate); }
-  function editionRedeem(s, edTemplate) { return redeem(edTemplate || tpl().edition, encEditionState(s, edTemplate)); }
+  function editionRedeem(s, edTemplate) { return redeem(edTemplate || tpl().edition, encEditionState(s)); }
   function p2shSpk(redeemBytes) { return 'aa20' + u8hex(hash(redeemBytes)) + '87'; }
   function p2pkSpk(pubkeyHex) { return '20' + pubkeyHex + 'ac'; }
 
-  /* ------------------------------------------------------------ serial and covenant id */
-  function serialFromOutpoint(txId, index) {
-    var h = hash(cat([utf8('ReliksSerialV10'), hex2u8(txId), le32(index)]));
-    var s = 0n;
-    for (var i = 0; i < 7; i++) s += BigInt(h[i]) * (256n ** BigInt(i));
-    return (s + BigInt(h[7] % 128) * 72057594037927936n).toString();
-  }
-  function genesisLineage(txId, index) { return u8hex(hash(cat([utf8('ReliksGenesisV2'), hex2u8(txId), le32(index)]))); }
+  /* ------------------------------------------------------------ serial, lineage, and covenant id */
+  function genesisLineage(factoryCovId, serial) { return u8hex(hash(cat([utf8('ReliksGenesisV2'), hex2u8(factoryCovId), le64(serial)]))); }
+  function genesisLineageCounter(factoryCovId, serial) { return genesisLineage(factoryCovId, serial); }
   function advanceLineage(prevHex, ownerHex) { return u8hex(hash(cat([utf8('ReliksLineageV2'), hex2u8(prevHex), hex2u8(ownerHex)]))); }
   function covenantIdGenesis(authTxId, authIndex, outs) {
     var parts = [hex2u8(authTxId), le32(authIndex), le64(outs.length)];
@@ -307,18 +288,15 @@
   function decodeFactoryState(revealedHex) {
     var span = tpl().factory.span;
     var pushes = parsePushes(revealedHex.slice(span.offset * 2, (span.offset + span.len) * 2));
-    if (pushes.length !== 7) throw new Error('factory state has ' + pushes.length + ' fields, expected 7');
-    return { program_hash: pushes[0], artist: pushes[1], price: u64le(pushes[2]), royalty_bips: u64le(pushes[3]), mints_left: u64le(pushes[4]), engine_lang: u64le(pushes[5]), render_hash: pushes[6] };
+    if (pushes.length !== 8) throw new Error('factory state has ' + pushes.length + ' fields, expected 8');
+    return { program_hash: pushes[0], artist: pushes[1], price: u64le(pushes[2]), royalty_bips: u64le(pushes[3]), mints_left: u64le(pushes[4]), engine_lang: u64le(pushes[5]), render_hash: pushes[6], next_serial: u64le(pushes[7]) };
   }
   function decodeEditionState(revealedHex, edTpl) {
     var et = edTpl || tpl().edition;
     var span = et.span;
     var p = parsePushes(revealedHex.slice(span.offset * 2, (span.offset + span.len) * 2));
-    var want = edTable(et).length;
-    if (p.length !== want) throw new Error('edition state has ' + p.length + ' fields, expected ' + want);
-    var st = { ownerIdentifier: p[0], identifierType: Number(u64le(p[1])), price: u64le(p[2]), artist: p[3], royalty_bips: u64le(p[4]), program_hash: p[5], factory_covid: p[6], serial: u64le(p[7]).toString() };
-    if (want === 10) { st.lineage = p[8]; st.sales = u64le(p[9]); }
-    return st;
+    if (p.length !== 10) throw new Error('edition state has ' + p.length + ' fields, expected 10');
+    return { ownerIdentifier: p[0], identifierType: Number(u64le(p[1])), price: u64le(p[2]), artist: p[3], royalty_bips: u64le(p[4]), program_hash: p[5], factory_covid: p[6], serial: u64le(p[7]).toString(), lineage: p[8], sales: u64le(p[9]) };
   }
 
   /* ------------------------------------------------------------ chain access (injected fetch, so tests can mock) */
@@ -355,7 +333,7 @@
     if (laneTx === series.genesisTxId) {
       if (!series.genesisState) throw new Error('series registry lacks genesisState for an unspent lane');
       var g = series.genesisState;
-      state = { program_hash: g.program_hash, artist: g.artist, price: BigInt(g.price), royalty_bips: BigInt(g.royalty_bips), mints_left: BigInt(g.mints_left), engine_lang: BigInt(g.engine_lang || 0), render_hash: g.render_hash };
+      state = { program_hash: g.program_hash, artist: g.artist, price: BigInt(g.price), royalty_bips: BigInt(g.royalty_bips), mints_left: BigInt(g.mints_left), engine_lang: BigInt(g.engine_lang != null ? g.engine_lang : 2), render_hash: g.render_hash, next_serial: BigInt(g.next_serial != null ? g.next_serial : 0) };
       source = 'registry';
     } else {
       var mintTx = await io.tx(laneTx);
@@ -363,7 +341,7 @@
       var spent = utxos.filter(function (u) { return u.outpoint === prev.txId + ':' + prev.index && u.revealed_hex; })[0];
       if (!spent) throw new Error('previous lane output has no revealed script in kascov');
       var st = decodeFactoryState(spent.revealed_hex);
-      state = { program_hash: st.program_hash, artist: st.artist, price: st.price, royalty_bips: st.royalty_bips, mints_left: st.mints_left - 1n, engine_lang: st.engine_lang, render_hash: st.render_hash };
+      state = { program_hash: st.program_hash, artist: st.artist, price: st.price, royalty_bips: st.royalty_bips, mints_left: st.mints_left - 1n, engine_lang: st.engine_lang, render_hash: st.render_hash, next_serial: st.next_serial + 1n };
       source = 'chain';
       if (state.mints_left < 0n) throw new Error('lane state underflow');
     }
@@ -419,11 +397,8 @@
       program_hash: series.programHash, factory_covid: series.laneCovenantId,
       serial: String(ed.serial)
     };
-    if (hasLin) {
-      var consumed = ed.index === 0 ? series.genesisTxId : (series.editions[ed.index - 1] && series.editions[ed.index - 1].mintTxId) || series.genesisTxId;
-      mintState.lineage = ed.lineage || genesisLineage(consumed, 0);
-      mintState.sales = BigInt(ed.sales || 0);
-    }
+    mintState.lineage = ed.lineage || genesisLineage(series.laneCovenantId, ed.serial);
+    mintState.sales = BigInt(ed.sales || 0);
     var kj = null;
     try { kj = await io.covenant(ed.covenantId); } catch (e) { kj = null; }
     var utxos = (kj && kj.utxos) || [];
@@ -494,11 +469,13 @@
     if (!/^[0-9a-f]{64}$/.test(artist.pubkey)) throw new Error('artist key must be 32 bytes of lowercase hex');
     if (p2pkAddress(p.hrp, artist.pubkey) !== artist.address) throw new Error('wallet public key does not belong to the connected address');
     var price = BigInt(st.price);
-    if (price !== 0n && price < SOMPI) throw new Error('series price must be 0 or at least 1 KAS');
+    if (price < SOMPI) throw new Error('series price must be at least 1 KAS');
     var roy = BigInt(st.royalty_bips);
-    if (roy < 1n || roy > 2000n) throw new Error('royalty must be between 1 and 2000 bips (0.01% to 20%)');
+    if (roy < MIN_ROYALTY_BIPS || roy > 2000n) throw new Error('royalty must be between 500 and 2000 bips (5% to 20%)');
     var supply = BigInt(st.mints_left);
     if (supply < 1n) throw new Error('series supply must be at least 1 edition');
+    var nextSerial = BigInt(st.next_serial != null ? st.next_serial : 0);
+    if (nextSerial < 0n || nextSerial >= (1n << 40n)) throw new Error('next_serial must be in [0, 2^40)');
     var prog = p.progBytes instanceof Uint8Array ? p.progBytes : hex2u8(p.progBytes);
     if (hashHex(prog) !== st.program_hash) throw new Error('program_hash does not match the assembled program bytes');
     var fee = BigInt(p.fee);
@@ -509,7 +486,7 @@
     var fullState = {
       program_hash: st.program_hash, artist: artist.pubkey, price: price,
       royalty_bips: roy, mints_left: supply, engine_lang: BigInt(st.engine_lang != null ? st.engine_lang : 2),
-      render_hash: st.render_hash
+      render_hash: st.render_hash, next_serial: nextSerial
     };
     var redeemBytes = buildFactoryRedeem(fullState, prog, edTpl);
     var factorySpk = p2shSpk(redeemBytes);
@@ -545,14 +522,15 @@
     if (BigInt(funding.amount) < need) throw new Error('funding output too small');
     var change = BigInt(funding.amount) - need;
     if (change < MIN_CHANGE) { fee += change; change = 0n; }
-    var curRedeem = factoryRedeem(st, progBytes, edTpl);
+    var curSerial = BigInt(st.next_serial != null ? st.next_serial : 0);
+    var curState = Object.assign({}, st, { next_serial: curSerial });
+    var curRedeem = factoryRedeem(curState, progBytes, edTpl);
     var curSpk = p2shSpk(curRedeem);
     if (curSpk !== p.lane.spk) throw new Error('lane spk drift');
-    var next = { program_hash: st.program_hash, artist: st.artist, price: st.price, royalty_bips: st.royalty_bips, mints_left: st.mints_left - 1n, engine_lang: st.engine_lang, render_hash: st.render_hash };
+    var next = { program_hash: st.program_hash, artist: st.artist, price: st.price, royalty_bips: st.royalty_bips, mints_left: st.mints_left - 1n, engine_lang: st.engine_lang, render_hash: st.render_hash, next_serial: curSerial + 1n };
     var nextSpk = p2shSpk(factoryRedeem(next, progBytes, edTpl));
-    var serial = serialFromOutpoint(p.lane.outpoint.txId, p.lane.outpoint.index);
-    var edState = { ownerIdentifier: buyer.pubkey, identifierType: 0, price: 0, artist: st.artist, royalty_bips: st.royalty_bips, program_hash: st.program_hash, factory_covid: p.lane.covenantId, serial: serial };
-    if (editionHasLineage(edTpl)) { edState.lineage = genesisLineage(p.lane.outpoint.txId, p.lane.outpoint.index); edState.sales = 0; }
+    var serial = curSerial.toString();
+    var edState = { ownerIdentifier: buyer.pubkey, identifierType: 0, price: 0, artist: st.artist, royalty_bips: st.royalty_bips, program_hash: st.program_hash, factory_covid: p.lane.covenantId, serial: serial, lineage: genesisLineage(p.lane.covenantId, curSerial), sales: 0 };
     var edSpk = p2shSpk(editionRedeem(edState, edTpl));
     var edCov = covenantIdGenesis(funding.txId, funding.index, [{ idx: 1, value: Number(CARRIER), script: edSpk }]);
     var outputs = [
@@ -588,6 +566,7 @@
     var price = BigInt(st.price);
     if (price < SOMPI || price > MAX_PRICE) throw new Error('edition is not listed for sale (minimum 1 KAS)');
     var roy = (price * BigInt(st.royalty_bips)) / 10000n;
+    if (roy < MIN_ROYALTY_OUT) throw new Error('royalty output (' + fmtKas(roy) + ' KAS) is below the 0.05 KAS mineability floor');
     var ownerNet = price - roy;
     var fee = BigInt(p.fee);
     var need = price + fee;
@@ -643,6 +622,7 @@
     var offerPrice = BigInt(p.offerPrice);
     if (offerPrice < SOMPI || offerPrice > MAX_PRICE) throw new Error('bid / offer must be at least 1 KAS');
     var roy = (offerPrice * BigInt(st.royalty_bips)) / 10000n;
+    if (roy < MIN_ROYALTY_OUT) throw new Error('bid royalty (' + fmtKas(roy) + ' KAS) is below the 0.05 KAS mineability floor');
     var ownerNet = offerPrice - roy;
     var fee = BigInt(p.fee);
     var need = offerPrice + fee;
@@ -711,6 +691,7 @@
     if (mode === 'list') {
       var newPrice = BigInt(p.newPrice);
       if (newPrice < SOMPI || newPrice > MAX_PRICE) throw new Error('listing price must be at least 1 KAS');
+      if ((newPrice * BigInt(st.royalty_bips)) / 10000n < MIN_ROYALTY_OUT) throw new Error('listing royalty is below the 0.05 KAS mineability floor');
       nextState.price = newPrice;
       covMeta.newPrice = newPrice;
       covMeta.tag = (edTpl.entries && edTpl.entries.list) || '674a8ea4';
@@ -919,7 +900,7 @@
   }
 
   var api = {
-    SOMPI: SOMPI, CARRIER: CARRIER, MAX_PRICE: MAX_PRICE, init: init,
+    SOMPI: SOMPI, CARRIER: CARRIER, MAX_PRICE: MAX_PRICE, MIN_ROYALTY_OUT: MIN_ROYALTY_OUT, MIN_ROYALTY_BIPS: MIN_ROYALTY_BIPS, init: init,
     hex2u8: hex2u8, u8hex: u8hex, utf8: utf8, hash: hash, hashHex: hashHex,
     pushExp: pushExp, pushMin: pushMin, pushMinInt: pushMinInt, parseScriptInt: parseScriptInt,
     encFactoryState: encFactoryState, encEditionState: encEditionState,
@@ -927,8 +908,8 @@
     factoryRedeem: factoryRedeem, editionRedeem: editionRedeem,
     p2shSpk: p2shSpk, p2pkSpk: p2pkSpk,
     p2pkAddress: p2pkAddress, p2shAddress: p2shAddress, decodeAddress: decodeAddress, parseOwnerInput: parseOwnerInput,
-    serialFromOutpoint: serialFromOutpoint, covenantIdGenesis: covenantIdGenesis,
-    genesisLineage: genesisLineage, advanceLineage: advanceLineage, editionHasLineage: editionHasLineage,
+    covenantIdGenesis: covenantIdGenesis,
+    genesisLineage: genesisLineage, genesisLineageCounter: genesisLineageCounter, advanceLineage: advanceLineage, editionHasLineage: editionHasLineage,
     decodeFactoryState: decodeFactoryState, decodeEditionState: decodeEditionState, parsePushes: parsePushes,
     spkOfOutput: spkOfOutput, outputValue: outputValue, inputOutpoint: inputOutpoint, covenantOf: covenantOf,
     makeIO: makeIO, resolveLane: resolveLane, resolveEdition: resolveEdition,

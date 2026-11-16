@@ -9,7 +9,7 @@ const die = m => { console.error('FATAL: ' + m); process.exit(1); };
 const [,, progArg, cfgArg, outArg] = process.argv;
 if (!progArg || !cfgArg) die('usage: node tools/publish-series.js <program.hex|program.txt> <series.json> [outdir]');
 const progPath = path.resolve(progArg), cfgPath = path.resolve(cfgArg);
-const A = require('../web/rvm-asm.js'), R = require('../v13/vm/rvm.js'), b2 = u => require('../web/blake2b.js').blake2b(u, 32);
+const A = require('../web/rvm-asm.js'), R = require('../vm/rvm.js'), b2 = u => require('../web/blake2b.js').blake2b(u, 32);
 const hx = u => Buffer.from(u).toString('hex');
 const raw = fs.readFileSync(progPath, 'utf8');
 let prog;
@@ -39,7 +39,7 @@ const f = n_ => path.join(out, n_);
 fs.writeFileSync(f('program.hex'), hx(prog) + '\n');
 fs.copyFileSync(cfgPath, f('series.json'));
 try {
-  cp.execFileSync('node', ['v13/gen-vm-factory-args.js', f('series.json'), f('factory-args.json')], { cwd: ROOT, stdio: 'pipe', env: { ...process.env, PROG_HEX_FILE: f('program.hex'), SHIM_OUT: f('engine-shim.js') } });
+  cp.execFileSync('node', ['cli/gen-factory-args.js', f('series.json'), f('factory-args.json')], { cwd: ROOT, stdio: 'pipe', env: { ...process.env, PROG_HEX_FILE: f('program.hex'), SHIM_OUT: f('engine-shim.js') } });
 } catch (e) { die('gen-vm-factory-args failed: ' + String(e.stderr || e.message).trim()); }
 const silverc = process.env.SILVERC || path.join(os.homedir(), 'bin', 'silverc');
 const r = cp.spawnSync(silverc, ['contracts/SeriesFactory.sil', '--ctor', f('factory-args.json'), '-o', f('factory.json')], { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28 });
@@ -62,5 +62,5 @@ console.log('package    ' + out);
 console.log('\nNEXT (testnet only; not run by this tool). Deploy spends 1 KAS into the lane carrier plus the network fee from one wallet UTXO; change returns to the wallet:\n');
 console.log('cd ' + ROOT);
 console.log('read -rs -p "PC_PRIV: " PC_PRIV; export PC_PRIV; export PC_WALLET=<your testnet address>');
-console.log('PC_NET=testnet RELIKS_ENGINE=' + f('engine-shim.js') + ' RELIKS_FACTORY_ABI=' + f('factory.json') + ' RELIKS_ARGS=' + f('factory-args.json') + ' RELIKS_LEDGER=' + f('ledger.json') + ' node v13/deploy-v13.js; unset PC_PRIV');
+console.log('PC_NET=testnet RELIKS_ENGINE=' + f('engine-shim.js') + ' RELIKS_FACTORY_ABI=' + f('factory.json') + ' RELIKS_ARGS=' + f('factory-args.json') + ' RELIKS_LEDGER=' + f('ledger.json') + ' node cli/deploy.js; unset PC_PRIV');
 console.log('\nBack up first: nothing to back up for a new series. Afterwards, dry-run mint:\nPC_NET=testnet PC_WALLET=<your testnet address> node sdk/mint.js ' + f('ledger.json') + ' ' + f('factory.json'));

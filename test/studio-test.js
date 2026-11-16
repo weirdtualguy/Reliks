@@ -16,8 +16,8 @@ t('no external script, stylesheet or network call', () => {
   const urls = (built.match(/https?:\/\/[^\s"'<>)]+/g) || []).filter(u => !/^http:\/\/www\.w3\.org\//.test(u));
   if (urls.length) throw new Error(urls.join(', '));
 });
-const A = require('../web/rvm-asm.js'), R = require('../v13/vm/rvm.js'), b2 = u => require('../web/blake2b.js').blake2b(u, 32);
-const T = { starter: fs.readFileSync(path.join(root, 'web', 'vm-templates', 'iso.txt'), 'utf8'), circles: fs.readFileSync(path.join(root, 'web', 'vm-templates', 'starter.txt'), 'utf8'), dagcity: fs.readFileSync(path.join(root, 'v13', 'vm', 'asm-corpus', 'dagcity_clean.txt'), 'utf8') };
+const A = require('../web/rvm-asm.js'), R = require('../vm/rvm.js'), b2 = u => require('../web/blake2b.js').blake2b(u, 32);
+const T = { starter: fs.readFileSync(path.join(root, 'web', 'vm-templates', 'iso.txt'), 'utf8'), circles: fs.readFileSync(path.join(root, 'web', 'vm-templates', 'starter.txt'), 'utf8'), dagcity: fs.readFileSync(path.join(root, 'vm', 'asm-corpus', 'dagcity_clean.txt'), 'utf8') };
 for (const [name, src] of Object.entries(T)) t('template ' + name + ' assembles and renders (16 lineages x 2 serials x wear 0/255)', () => {
   const prog = A.assemble(src), themes = new Set(); let big = 0;
   for (let l = 0; l < 16; l++) {
@@ -29,6 +29,16 @@ for (const [name, src] of Object.entries(T)) t('template ' + name + ' assembles 
     }
   }
   console.log('  ' + name + ': program ' + prog.length + ' B, patina themes seen ' + themes.size + '/4, largest svg ' + big + ' B');
+});
+t('Visual No-Code Builder (RvmAsm.compileLayers): all 4 presets assemble and render across serials/lineages/wear', () => {
+  for (const [k, preset] of Object.entries(A.VISUAL_PRESETS)) {
+    const dsl = A.compileLayers(preset);
+    const prog = A.assemble(dsl);
+    for (const s of ['1', '42', '9223372036854775807']) for (const w of [0, 255]) {
+      const hi = R.hostInputs(b2, s, b2(Uint8Array.of(7)), w), svg = R.render(prog, hi.lanes, hi.serial32, hi.pat, hi.wear);
+      if (svg.indexOf('<svg') !== 0 || !/<\/svg>$/.test(svg)) throw new Error('bad svg in preset ' + k);
+    }
+  }
 });
 console.log('studio-test:', pass, 'passed,', fail, 'failed');
 process.exit(fail ? 1 : 0);

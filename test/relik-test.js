@@ -4,7 +4,7 @@ const fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..');
 let pass = 0, fail = 0;
 const t = (n, f) => { try { f(); pass++; console.log('PASS ' + n); } catch (e) { fail++; console.log('FAIL ' + n + ' | ' + e.message); } };
-const A = require('../web/rvm-asm.js'), R = require('../v13/vm/rvm.js'), b2 = u => require('../web/blake2b.js').blake2b(u, 32);
+const A = require('../web/rvm-asm.js'), R = require('../vm/rvm.js'), b2 = u => require('../web/blake2b.js').blake2b(u, 32);
 const { buildRelik } = require('../tools/make-relik.js');
 const hx = u => Buffer.from(u).toString('hex');
 const prog = A.assemble(fs.readFileSync(path.join(root, 'web', 'vm-templates', 'iso.txt'), 'utf8'));

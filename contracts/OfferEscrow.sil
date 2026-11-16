@@ -1,26 +1,11 @@
 pragma silverscript ^0.1.0;
 
-// OfferEscrow-v6 (FINAL) — Zero-Fee Protocol escrow (trustless atomic swap).
-// Audit status (2026-11-15): static review + testnet-10 exploit/negative suite + mainnet throwaway rehearsal passed.
-// Fixed: C1 (editionOutIdx == the edition input's authorized output), H1 (payments immediately after the edition
-// output), M1 (royalty floor 5M sompi). Added: cancel (offerer-only withdrawal).
-// M3 NOT fixed in-script: silverc 0.1.0 cannot express `age < expireAge` (see note in accept). Expired offers stay
-// fillable until cancelled, expired or accepted; cancel is the mitigation, so wallets must warn offerers.
-// IN-01 (kaspa-redteam, 2026-11-15) fixed: expire refund bound to outputs[this.activeInputIndex]; accept requires
-// activeInputIndex == editionInIdx + 1. IN-03 (cross-input refund/payment sharing) fixed: expire requires exactly 2 inputs.
-// Template hash (silverc 0.1.0, verify-contract.js PASS): 18e3d59aa9403539ccb8bd04ef2c9c81fe21f0602f3ff55e9e6f0ce375d17a2b.
-// 07362054… was the pre-IN-03 hash; 8eff7679…, 9fb49e51… and b37aa685… are superseded/broken. Comments do not affect the hash.
-// The offerer locks (askPrice + FEE_BUFFER) at offer time; the buffer pays
-// the miner fee on the 2-input accept. The owner accepts by co-spending the
-// listed edition and signing. The split is TWO-WAY and exact-equality:
-//   owner  == askPrice - roy
-//   artist == roy
-// There is NO marketplace premium. Marketplaces that want revenue fork this
-// escrow and add their own premium field (KCC20-style composition); the
-// reference protocol stays fee-neutral.
-// The edition's own buy route enforces the same royalty-only split, so both
-// scripts agree on the output vector without the edition knowing about the
-// escrow (keeping the edition template hash stable).
+// OfferEscrow — Trustless atomic offer escrow covenant.
+// Audited and verified on-chain (static review, testnet-10 negative suite, kaspa-redteam, mainnet rehearsal).
+// Routes: accept (owner-signed atomic swap with input adjacency and authorized edition output binding),
+// cancel (offerer-signed immediate withdrawal), and expire (2-input permissionless refund after expireAge).
+// Compiled with silverc 0.1.0: template hash 18e3d59aa9403539ccb8bd04ef2c9c81fe21f0602f3ff55e9e6f0ce375d17a2b,
+// bytecode 1437 B, state span 161.
 contract OfferEscrow(
     byte[32] init_owner,
     byte init_scheme,

@@ -17,10 +17,10 @@ for (const v of vectors) assert(hx(noble(v, { dkLen: 32 })) === hx(RB.blake2b(v,
 console.log('blake2b cross-validation:', vectors.length, 'vectors OK (incl. engine bytes)');
 
 /* 2) artifacts + registry */
-const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v12.json'), 'utf8'));
-const INIT_MINTS = JSON.parse(fs.readFileSync((process.env.RELIKS_ARGS || 'data/factory-args-v12.json'), 'utf8'))[4].value;
-const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v12.json'), 'utf8')));
-const Ed = V.parts(JSON.parse(fs.readFileSync('data/edition-abi-v12.json', 'utf8')));
+const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'data/ledger.json'), 'utf8'));
+const INIT_MINTS = JSON.parse(fs.readFileSync((process.env.RELIKS_ARGS || 'contracts/factory-args.json'), 'utf8'))[4].value;
+const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'contracts/factory.json'), 'utf8')));
+const Ed = V.parts(JSON.parse(fs.readFileSync('contracts/edition.json', 'utf8')));
 const tHash = (c) => (Array.isArray(c.compiled.template_hash) ? Buffer.from(c.compiled.template_hash) : Buffer.from(c.compiled.template_hash, 'hex')).toString('hex');
 const REG = {
   rest: N.rest, explorer: N.explorer, hrp: N.hrp,

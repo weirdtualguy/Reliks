@@ -233,7 +233,7 @@ async function checkProvenance({ chain, io, covenantId, st, kj, fresh }) {
     try { g = chain.decodeEditionState(first.revealed_hex); } catch (e) { return { level: 'listed', detail: 'the earliest output cannot be decoded' }; }
   }
   const op = String(prev.outpoint).split(':'), ptx = op[0], pidx = Number(op[1]);
-  const ok = String(g.serial) === chain.serialFromOutpoint(ptx, pidx) && String(g.lineage).toLowerCase() === chain.genesisLineage(ptx, pidx) && BigInt(g.sales) === 0n && BigInt(g.price) === 0n && String(g.factory_covid).toLowerCase() === st.factory_covid;
+  const ok = String(g.lineage).toLowerCase() === chain.genesisLineage(st.factory_covid, g.serial) && BigInt(g.sales) === 0n && BigInt(g.price) === 0n && String(g.factory_covid).toLowerCase() === st.factory_covid;
   return ok ? { level: 'listed_and_derived', detail: 'listed in a lane mint; genesis state follows from the lane input' } : { level: 'mismatch', detail: 'the genesis state does not follow from the lane input of the mint' };
 }
 

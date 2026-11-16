@@ -7,7 +7,7 @@ const ROOT = path.join(__dirname, '..');
 const read = (...p) => fs.readFileSync(path.join(ROOT, ...p), 'utf8');
 const hx = u => Buffer.from(u).toString('hex');
 const safe = s => s.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
-const R = require('../v13/vm/rvm.js');
+const R = require('../vm/rvm.js');
 const b2 = u => require('../web/blake2b.js').blake2b(u, 32);
 const die = m => { console.error('FATAL: ' + m); process.exit(1); };
 
@@ -81,11 +81,11 @@ function buildRelik(o) {
     '<div class="row"><button class="btn" id="dl">Download SVG</button><button class="btn ghost" id="cp">Copy claim JSON</button></div><p id="note" class="small"></p>' +
     '<details><summary>Chain check (not done by this file)</summary><p class="small">To confirm this is the live state: find the outpoint below in a Kaspa explorer for the network, check it is unspent, and compare its script public key and covenant id with the values here. A transfer or sale after the date above changes the state and the art.</p><pre id="chain"></pre></details>' +
     '<details><summary>Claim JSON</summary><pre id="json"></pre></details>' +
-    '<p class="small">Reliks-VM spec rev 2 (draft). Program hash = BLAKE2b-256 of the program bytes. Reference implementations: v13/vm (JS, Python, C) in the Reliks repository. This file contains everything needed to redraw the art offline.</p></main>';
+    '<p class="small">Reliks-VM spec rev 2 (draft). Program hash = BLAKE2b-256 of the program bytes. Reference implementations: vm/ (JS, Python, C) in the Reliks repository. This file contains everything needed to redraw the art offline.</p></main>';
   return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Relik #' + DATA.edition.serial + '</title><style>' + CSS + '</style></head><body>' + body +
     '<script>window.RELIK=' + safe(JSON.stringify(DATA)) + ';</script>' +
     '<script>' + safe(read('web', 'blake2b.js')) + '</script>' +
-    '<script>var RVM=(function(){var module={exports:{}};' + safe(read('v13', 'vm', 'rvm.js')) + '\nreturn module.exports;})();</script>' +
+    '<script>var RVM=(function(){var module={exports:{}};' + safe(read('vm', 'rvm.js')) + '\nreturn module.exports;})();</script>' +
     '<script>' + safe(CLIENT) + '</script></body></html>';
 }
 module.exports = { buildRelik, findProgram };

@@ -1,4 +1,4 @@
-/* Reliks v10/v12 generative gallery runtime. Browser globals: RB2B, REG, fetch, document.
+/* Reliks generative gallery runtime. Browser globals: RB2B, REG, fetch, document.
    Pure functions are exported so gen-gallery.js can parity-test them in Node.
    Uses a text-only DOM helper (no innerHTML with dynamic data, F-02 audit fix). */
 (function (root) {

@@ -1,5 +1,4 @@
 // Network-free self-test: `npm test`. No keys, no chain access.
-// Core checks need zero packages; parity checks run when deps are installed.
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -10,8 +9,8 @@ const t = (name, fn) => {
   catch (e) { fail++; console.log('FAIL ' + name + ' — ' + e.message); }
 };
 const eq = (a, b, m) => { if (a !== b) throw new Error((m || 'mismatch') + ': ' + a + ' != ' + b); };
-const hex = u => Buffer.from(u).toString('hex');
-const tryReq = p => { try { return require(p); } catch (e) { if (e.code === 'MODULE_NOT_FOUND') return null; throw e; } };
+const hex = (u) => Buffer.from(u).toString('hex');
+const tryReq = (m) => { try { return require(m); } catch (e) { if (e.code === 'MODULE_NOT_FOUND') return null; throw e; } };
 
 // --- Kaspa address codec ---
 const B32 = require(path.join(root, 'lib', 'bech32-kaspa.js'));
@@ -39,35 +38,35 @@ t('blake2b: parity vs @noble/hashes (0..600 B)', () => {
   }
 });
 
-// --- Engines: determinism + anchors ---
-for (const f of ['lib/reliks-engine-mainnet.js']) {
-  t('engine ' + f + ': deterministic + hashes self-consistent', () => {
-    let E; try { E = require(path.join(root, f)); } catch (e) { if (e.code === 'MODULE_NOT_FOUND') return 'skip'; throw e; }
-    eq(E.render(42), E.render(42), 'render(42) not deterministic');
-    if (E.render(1) === E.render(2)) throw new Error('serials 1 and 2 render identically');
-    eq(E.render(2 ** 32 + 5), E.render(5), 'seed must be serial mod 2^32');
-    if (/Math\.random|Date|fetch|eval/.test(E.ENGINE_SRC)) throw new Error('banned construct in engine');
-  });
-}
+// --- Reliks-VM determinism & anchors ---
+const RVM = require(path.join(root, 'vm', 'rvm.js'));
+const RvmAsm = require(path.join(root, 'web', 'rvm-asm.js'));
+t('Reliks-VM: deterministic render across starter templates', () => {
+  const src = fs.readFileSync(path.join(root, 'web', 'vm-templates', 'starter.txt'), 'utf8');
+  const prog = RvmAsm.assemble(src);
+  const hi1 = RVM.hostInputs(RB.blake2b, '1', new Uint8Array(32), 0);
+  const hi2 = RVM.hostInputs(RB.blake2b, '2', new Uint8Array(32), 0);
+  const s1a = RVM.render(prog, hi1.lanes, hi1.serial32, hi1.pat, hi1.wear);
+  const s1b = RVM.render(prog, hi1.lanes, hi1.serial32, hi1.pat, hi1.wear);
+  const s2 = RVM.render(prog, hi2.lanes, hi2.serial32, hi2.pat, hi2.wear);
+  eq(s1a, s1b, 'render(1) not deterministic');
+  if (s1a === s2) throw new Error('serials 1 and 2 rendered identically');
+});
 
 // --- Repo integrity ---
-t('canonical contracts present', () => { for (const f of ['SeriesFactory.sil', 'ReliksEdition.sil', 'OfferEscrow.sil']) fs.accessSync(path.join(root, 'contracts', f)); });
-t('retired contracts archived, not in sil/ or v13/', () => {
-  for (const f of ['SeriesFactory-v13.sil', 'ReliksEdition-v13.sil', 'OfferEscrow-v6.sil']) fs.accessSync(path.join(root, 'archive', 'deprecated', 'sil', f));
-  for (const f of ['SeriesFactory-v13.sil', 'ReliksEdition-v13.sil', 'OfferEscrow-v6.sil']) fs.accessSync(path.join(root, 'archive', 'deprecated', 'v13', f));
-  if (fs.existsSync(path.join(root, 'sil', 'SeriesFactory-v13.sil'))) throw new Error('sil/ still holds a deployable contract');
+t('canonical contracts and args fixtures present in contracts/', () => {
+  for (const f of ['SeriesFactory.sil', 'ReliksEdition.sil', 'OfferEscrow.sil', 'factory.json', 'edition.json', 'escrow.json', 'factory-args.json', 'edition-args.json', 'escrow-args.json']) {
+    fs.accessSync(path.join(root, 'contracts', f));
+  }
+});
+t('legacy v12, archive, and audit-test folders removed', () => {
+  for (const d of ['archive', 'v13', 'audit-test', 'data/factory-abi-v12.json', 'data/edition-abi-v12.json']) {
+    if (fs.existsSync(path.join(root, d))) throw new Error(d + ' still exists');
+  }
 });
 t('canonical ABIs parse; state spans frozen (144/203/161)', () => {
-  const span = (dir, f) => { const a = JSON.parse(fs.readFileSync(path.join(root, dir, f), 'utf8')); return a.contracts[Object.keys(a.contracts)[0]].compiled.state_span.len; };
-  eq(span('contracts', 'factory.json'), 144); eq(span('contracts', 'edition.json'), 203); eq(span('contracts', 'escrow.json'), 161);
-  eq(span('data', 'factory-abi-v12.json'), 135); eq(span('data', 'edition-abi-v12.json'), 161);
-});
-t('no default path points at superseded versions', () => {
-  const bad = /factory-(ledger|args|abi)-v1[01]\.json|edition-abi-v6\.json|escrow-abi-v4|reliks-engine-v10\.js['"]\s*\)/;
-  for (const f of ['cli/deploy-v12.js', 'cli/mint-v12.js', 'cli/secondary-v12.js', 'cli/offer-v5.js', 'cli/accept-v5.js', 'cli/verify-render.js', 'cli/gen-gallery.js', 'tools/gen-site.js']) {
-    const m = fs.readFileSync(path.join(root, f), 'utf8').match(bad);
-    if (m) throw new Error(f + ' references ' + m[0]);
-  }
+  const span = (f) => { const a = JSON.parse(fs.readFileSync(path.join(root, 'contracts', f), 'utf8')); return a.contracts[Object.keys(a.contracts)[0]].compiled.state_span.len; };
+  eq(span('factory.json'), 144); eq(span('edition.json'), 203); eq(span('escrow.json'), 161);
 });
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed, ' + skip + ' skipped');

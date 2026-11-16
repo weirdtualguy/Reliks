@@ -2,7 +2,7 @@
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
 const { schnorr } = require('@noble/curves/secp256k1');
 const CH = require('../web/reliks-chain.js'), F = require('./mint-flow.js');
-try { CH.init(require('../lib/reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' })); } catch (e) { console.log('SKIP default templates not available: ' + e.message); process.exit(0); }
+try { CH.init(require('../lib/reliks-templates.js')()); } catch (e) { console.log('SKIP default templates not available: ' + e.message); process.exit(0); }
 let bad = 0;
 const t = (n, ok, d) => { if (!ok) bad = 1; console.log((ok ? 'PASS ' : 'FAIL ') + n + (ok ? '' : ' | ' + d)); };
 const H = (c) => c.repeat(64), safe = (k, v) => (typeof v === 'bigint' ? v.toString() : v);
@@ -22,7 +22,7 @@ function mk(o) {
     lookup: async (tx, hint) => (hint ? o.hintLooks[Math.min(c.hint++, o.hintLooks.length - 1)] : o.ambLooks[Math.min(c.amb++, o.ambLooks.length - 1)]),
   };
   const ledger = { preflight: async () => o.preflight, hasTx: async () => o.hasTx, append: async (e) => { c.appended.push(e); return true; } };
-  const serial = String(CH.serialFromOutpoint(H('c'), 0));
+  const serial = '0';
   const d = { chain: CH, hrp: 'kaspatest', mode: o.mode, lane: o.lane, wallet, pickFunding: async () => { c.pick++; return o.funding; }, getKey: () => { c.key++; if (o.key instanceof Error) throw o.key; return o.key; }, node, ledger, sleep: async () => {}, confirmTries: 3, intervalMs: 0, maxFeeTries: o.maxFeeTries };
   if (o.mode === 'send' && o.serialOk) d.confirmSerial = serial; else if (o.confirmSerial !== undefined) d.confirmSerial = o.confirmSerial;
   return { d, c, serial };
@@ -51,7 +51,7 @@ const go = async (name, o, status, fn) => { const m = mk(o), r = await F.runMint
   const g = await go('happy path: send, confirm, ledger', {}, 'minted', (r, c) => c.submit.length === 1 && c.appended.length === 1 && r.wrote === true && r.txId === OKR.txId);
   const e = g.r.entry, last = JSON.parse(g.c.submit[0]);
   t('ledger entry has exactly the 12 legacy fields', JSON.stringify(Object.keys(e).sort()) === JSON.stringify(F.KEYS));
-  t('ledger entry values', e.txId === OKR.txId && e.mintTxId === OKR.txId && e.index === 1 && e.mintIndex === 1 && e.sales === 0 && e.price === 0 && e.amount === 100000000 && e.owner === K.pub && e.serial === g.m.serial && e.cov === g.r.plan.summary.editionCovenantId && e.lineage === CH.genesisLineage(H('c'), 0), JSON.stringify(e).slice(0, 200));
+  t('ledger entry values', e.txId === OKR.txId && e.mintTxId === OKR.txId && e.index === 1 && e.mintIndex === 1 && e.sales === 0 && e.price === 0 && e.amount === 100000000 && e.owner === K.pub && e.serial === g.m.serial && e.cov === g.r.plan.summary.editionCovenantId && e.lineage === CH.genesisLineage(H('9'), 0), JSON.stringify(e).slice(0, 200));
   t('ledger spk is the hex of the ASCII edition script (140 hex characters)', /^[0-9a-f]{140}$/.test(e.spk) && Buffer.from(e.spk, 'hex').toString() === g.r.plan.draft.outputs[1].spk);
   t('the node received the signed 2-input, 4-output transaction', last.outputs.length === 4 && last.inputs.length === 2 && /^41[0-9a-f]{128}01$/.test(last.inputs[1].signatureScript));
   await go('already in the ledger: no duplicate', { hasTx: true }, 'minted', (r, c) => r.wrote === false && c.appended.length === 0);

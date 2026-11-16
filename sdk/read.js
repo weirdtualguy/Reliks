@@ -1,7 +1,7 @@
 'use strict';
 const B2 = require('../web/blake2b.js');
 const chain = require('../web/reliks-chain.js');
-const vm = require('../v13/vm/rvm.js');
+const vm = require('../vm/rvm.js');
 
 const enc = new TextEncoder();
 const h32 = (u8) => B2.blake2b(u8, 32);

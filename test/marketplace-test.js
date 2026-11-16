@@ -9,13 +9,12 @@ const root = path.join(__dirname, '..');
 
 const { blake2b } = require(path.join(root, 'web', 'blake2b.js'));
 const C = require(path.join(root, 'web', 'reliks-chain.js'));
-const RVM = require(path.join(root, 'v13', 'vm', 'rvm.js'));
+const RVM = require(path.join(root, 'vm', 'rvm.js'));
 const RvmAsm = require(path.join(root, 'web', 'rvm-asm.js'));
 const makeTemplates = require(path.join(root, 'lib', 'reliks-templates.js'));
 
-const t12 = makeTemplates();
-const t13 = makeTemplates({ editionAbi: 'edition-abi-v13.json' });
-C.init(t12);
+const tpl = makeTemplates();
+C.init(tpl);
 
 const tmpAnchors = path.join(os.tmpdir(), 'reliks-mkt-anchors-' + process.pid + '.json');
 const tmpIndex = path.join(os.tmpdir(), 'reliks-mkt-index-' + process.pid + '.json');
@@ -42,8 +41,8 @@ const eq = (a, b, m) => { if (String(a) !== String(b)) throw new Error((m || 'mi
   const renderHash = C.u8hex(blake2b(C.utf8(svg1), 32));
 
   const artist = '25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b';
-  const genState = { program_hash: progHash, artist, price: '100000000', royalty_bips: '500', mints_left: '8', engine_lang: '2', render_hash: renderHash };
-  const facRedeem = C.buildFactoryRedeem(genState, progBytes, t13.edition);
+  const genState = { program_hash: progHash, artist, price: '100000000', royalty_bips: '500', mints_left: '8', engine_lang: '2', render_hash: renderHash, next_serial: '0' };
+  const facRedeem = C.buildFactoryRedeem(genState, progBytes, tpl.edition);
   const facSpk = C.p2shSpk(facRedeem);
   const authTxId = 'aa'.repeat(32);
   const genesisTxId = 'bb'.repeat(32);
@@ -72,13 +71,13 @@ const eq = (a, b, m) => { if (String(a) !== String(b)) throw new Error((m || 'mi
   const mintTxId = 'cc'.repeat(32);
   const buyer = 'dd'.repeat(32);
   const buyerFundTx = 'ee'.repeat(32);
-  const serial0 = C.serialFromOutpoint(genesisTxId, 0);
-  const lin0 = C.genesisLineage(genesisTxId, 0);
+  const serial0 = '0';
+  const lin0 = C.genesisLineage(laneCov, 0);
   const edState0 = { ownerIdentifier: buyer, identifierType: 0, price: 0, artist, royalty_bips: 500, program_hash: progHash, factory_covid: laneCov, serial: serial0, lineage: lin0, sales: 0 };
-  const edSpk0 = C.p2shSpk(C.editionRedeem(edState0, t13.edition));
+  const edSpk0 = C.p2shSpk(C.editionRedeem(edState0, tpl.edition));
   const edCov0 = C.covenantIdGenesis(buyerFundTx, 1, [{ idx: 1, value: 100000000, script: edSpk0 }]);
-  const nextLaneState = { ...genState, mints_left: '7' };
-  const nextLaneSpk = C.p2shSpk(C.buildFactoryRedeem(nextLaneState, progBytes, t13.edition));
+  const nextLaneState = { ...genState, mints_left: '7', next_serial: '1' };
+  const nextLaneSpk = C.p2shSpk(C.buildFactoryRedeem(nextLaneState, progBytes, tpl.edition));
 
   const mintSigScript = C.u8hex(Buffer.concat([
     Buffer.from(C.pushMin(C.hex2u8(buyer))),

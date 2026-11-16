@@ -37,10 +37,10 @@ function planMint(p) {
   const op = p.lane.outpoint;
   const ed = draft.outputs.find((o) => o.role === 'edition');
   const edState = { ownerIdentifier: p.buyer.pubkey, identifierType: 0, price: 0, artist: st.artist, royalty_bips: st.royalty_bips, program_hash: st.program_hash, factory_covid: p.lane.covenantId, serial: draft.summary.serial };
-  if (CH.editionHasLineage()) { edState.lineage = CH.genesisLineage(op.txId, op.index); edState.sales = 0; }
+  edState.lineage = CH.genesisLineage(lane.covenantId, draft.summary.serial); edState.sales = 0;
   add('edition_script', ed && ed.spk === CH.p2shSpk(CH.editionRedeem(edState)));
   add('edition_covenant', ed && ed.covenant && ed.covenant.authorizingInput === 1 && ed.covenant.covenantId === draft.summary.editionCovenantId);
-  add('serial_from_lane_outpoint', String(draft.summary.serial) === String(CH.serialFromOutpoint(op.txId, op.index)));
+  add('serial_from_lane_counter', String(draft.summary.serial) === String(lane.state.next_serial != null ? lane.state.next_serial : 0));
   add('mints_left_after', BigInt(draft.summary.mintsLeftAfter) === BigInt(st.mints_left) - 1n);
   const price = BigInt(st.price), art = draft.outputs.find((o) => o.role === 'artist');
   add('artist_paid', price === 0n ? !art : (art && art.spk === CH.p2pkSpk(st.artist) && BigInt(art.value) === price));

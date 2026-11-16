@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Reliks: generative art whose code lives in a Kaspa covenant</title>
-<meta name="description" content="Reliks anchors a deterministic generative engine inside a Kaspa covenant. Re-render and verify every edition in your browser.">
+<meta name="description" content="Reliks anchors a deterministic generative program inside a Kaspa covenant. Re-render and verify every edition in your browser.">
 <meta name="theme-color" content="#06080b">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2064%2064'%3E%3Crect%20width%3D'64'%20height%3D'64'%20rx%3D'14'%20fill%3D'%2306080b'%2F%3E%3Cpath%20d%3D'M32%2010l20%2011v22L32%2054%2012%2043V21z'%20fill%3D'none'%20stroke%3D'%2349c5b1'%20stroke-width%3D'4'%2F%3E%3Cpath%20d%3D'M32%2010v44M12%2021l40%2022M52%2021L12%2043'%20stroke%3D'%2349c5b1'%20stroke-width%3D'2'%20opacity%3D'.5'%2F%3E%3C%2Fsvg%3E">
 <style>:root {
@@ -171,7 +171,7 @@ main { padding-bottom: 120px; }
 <div class="hero">
   <span class="eyebrow">Generative art on Kaspa</span>
   <h1>The artwork is a <em>program</em>. Its hash lives in the contract.</h1>
-  <p>Reliks anchors a small deterministic engine (Reliks-VM bytecode or JavaScript) inside a Kaspa covenant. Anyone can re-render every edition from public chain data or an offline provenance bundle. This page does exactly that in your browser, and withholds the art if any check fails.</p>
+  <p>Reliks anchors a small deterministic Reliks-VM program inside a Kaspa covenant. Anyone can re-render every edition from public chain data or an offline provenance bundle. This page does exactly that in your browser, and withholds the art if any check fails.</p>
 </div>
 <div class="section-h"><h2>Series &amp; Secondary Market</h2><span>every number below is read from the chain, not from this page</span></div>
 <div class="row" id="gallery-filters" style="margin:0 0 16px;flex-wrap:wrap;gap:8px" role="group" aria-label="Filter editions"></div>
@@ -181,34 +181,35 @@ main { padding-bottom: 120px; }
 <div id="offline-host"></div>
 <div class="section-h"><h2>How to read the proof</h2></div>
 <div class="cards">
-  <div class="card"><span class="tag v">Recomputed here</span><h3>Engine and image</h3><p>The engine bytes (Reliks-VM bytecode or JS) are hashed and rendered locally in a Web Worker, then compared with the hashes committed on chain.</p></div>
+  <div class="card"><span class="tag v">Recomputed here</span><h3>Program and image</h3><p>The Reliks-VM bytecode is hashed and rendered locally in a Web Worker, then compared with the hashes committed on chain.</p></div>
   <div class="card"><span class="tag v">Recomputed here</span><h3>Contract scripts</h3><p>Each edition's script is rebuilt from its claimed state and must equal the output the mint transaction created across available sources.</p></div>
   <div class="card"><span class="tag d">By design</span><h3>Nothing to pay the platform</h3><p>The contracts contain no treasury or marketplace fee. Network fees still apply.</p></div>
-  <div class="card"><span class="tag n">Not claimed</span><h3>Audited</h3><p>The contracts had automated reviews, not a formal third-party audit. Start small.</p></div>
+  <div class="card"><span class="tag n">Not claimed</span><h3>Audited</h3><p>The contracts had automated reviews and on-chain negative testing, not a formal third-party audit. Start small.</p></div>
 </div></section>
 <section class="view" id="view-studio" hidden>
-<div class="hero" style="padding-bottom:8px"><span class="eyebrow">Studio · Reliks-VM (v13) &amp; High-Level DSL</span><h1>Design a program. <em>Gate</em> it. Publish it.</h1>
-<p>Write high-level Reliks-Script (<code>.vars</code>, <code>seedrng</code>, <code>bg</code>, <code>for/endfor</code>, <code>if/else/endif</code>, <code>rand</code>) or raw Reliks-VM assembly in the browser, preview patina and optional sales wear, run the determinism gates, and publish your SeriesFactory covenant on chain in one click with Kaspire. Standalone offline VM studio: <a href="studio.html">studio.html</a>.</p></div>
-<div class="row" style="margin:20px 0 14px;flex-wrap:wrap">
-  <input id="name" value="my-program" aria-label="Series name" style="max-width:220px" />
-  <select id="tpl" aria-label="Template" style="max-width:280px">
-    <option value="iso" selected>Isometric city (Reliks-VM)</option>
+<div class="hero" style="padding-bottom:8px"><span class="eyebrow">Studio · Visual No-Code Builder &amp; Reliks-VM DSL</span><h1>Design visually or in code. <em>Gate</em> it. Publish it.</h1>
+<p>Build generative series visually with no-code layers and sliders, or write High-Level Reliks-Script DSL (<code>.vars</code>, <code>seedrng</code>, <code>bg</code>, <code>for/endfor</code>, <code>if/else/endif</code>, <code>rand</code>), preview patina and optional sales wear, run the determinism gates, and publish your SeriesFactory covenant on chain in one click with Kaspire. Standalone offline studio: <a href="studio.html">studio.html</a>.</p></div>
+<div class="row" style="margin:20px 0 14px;flex-wrap:wrap;gap:8px">
+  <input id="name" value="my-program" aria-label="Series name" style="max-width:200px" />
+  <button class="btn primary" id="mode-visual" type="button">Visual Builder (No-Code)</button>
+  <button class="btn" id="mode-code" type="button">Code Editor (DSL / ASM)</button>
+  <select id="tpl" aria-label="Template" style="max-width:250px">
+    <option value="iso" selected>Isometric city (Code template)</option>
     <option value="dsl_rings">Celestial rings (High-Level DSL)</option>
-    <option value="vm_circles">40 circles (Reliks-VM)</option>
-    <option value="vm_dagcity">DAG-City (Reliks-VM)</option>
-    <option value="dagcity">DAG City (v12 JS, deprecated)</option>
-    <option value="circles">Circles (v12 JS, deprecated)</option>
-    <option value="flow">Flow field (v12 JS, deprecated)</option>
-    <option value="blank">Blank (v12 JS, deprecated)</option>
+    <option value="vm_circles">40 circles (Code template)</option>
+    <option value="vm_dagcity">DAG-City (Code template)</option>
   </select>
-  <button class="btn" id="load">Load template</button>
+  <button class="btn" id="load" type="button">Load code template</button>
 </div>
 <details class="proof" style="margin-bottom:14px"><summary><span>High-Level Reliks-Script DSL Quick Reference (compiles directly to RVM\x01 bytecode)</span></summary>
 <div style="padding:8px 18px 14px;font:12px/1.6 var(--mono);color:var(--dim)">
 <code>.canvas 1000 1000</code> · <code>.vars I X Y R WR</code> (auto-allocates variable slots) · <code>seedrng</code> (initializes PRNG from serial &amp; lineage) · <code>bg 0x090d16</code> (fills canvas) · <code>set X 100</code> · <code>inc X 5</code> · <code>rand 20 800 st X</code> (random int in [min,max]) · <code>for I 0 40 ... endfor</code> (nestable counted loop) · <code>ld X push 500 lt if ... else ... endif</code> (structured branches without manual labels).
 </div></details>
 <div class="studio">
-  <div><label class="sr" for="ed">Program / Engine code</label><textarea id="ed" class="editor" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off"></textarea></div>
+  <div>
+    <div id="visual-builder" style="display:grid;gap:12px"></div>
+    <div id="code-pane" hidden><label class="sr" for="ed">Program code</label><textarea id="ed" class="editor" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off"></textarea></div>
+  </div>
   <div style="display:grid;gap:14px;align-content:start">
     <div class="art-wrap" id="prev-box" style="border-radius:14px;overflow:hidden;background:#000"></div>
     <div class="row"><input id="ser" value="1" inputmode="numeric" aria-label="Serial" style="max-width:150px" /><button class="btn" id="go">Render</button><button class="btn" id="rnd">Random serial</button><button class="btn" id="run-gates">Run gates</button></div>
@@ -229,27 +230,27 @@ main { padding-bottom: 120px; }
 <div class="section-h"><h2>Publish &amp; Export</h2></div>
 <div class="cards">
   <div class="card"><h3>1. Publish Series on Chain (Kaspire)</h3>
-    <p style="margin-bottom:10px">Deploys a new <code>SeriesFactory-v13</code> covenant with your program baked in. Requires green gates and a connected Kaspire wallet (1 KAS carrier + network fee).</p>
+    <p style="margin-bottom:10px">Deploys a new <code>SeriesFactory</code> covenant with your program baked in. Requires green gates and a connected Kaspire wallet (1 KAS carrier + network fee).</p>
     <div class="field"><label for="artist">Artist key (64 hex or kaspa: address)</label><input id="artist" placeholder="filled from Kaspire when connected" /></div>
     <div class="row"><div class="field"><label for="price">Price (KAS)</label><input id="price" value="1" inputmode="decimal" /></div><div class="field"><label for="roy">Royalty %</label><input id="roy" value="5" inputmode="decimal" /></div><div class="field"><label for="eds">Editions</label><input id="eds" value="8" inputmode="numeric" /></div></div>
     <div class="row" style="margin-top:8px"><button class="btn primary" id="pub-kaspire">Publish on Chain (Kaspire)</button><button class="btn" id="exs">Export series (.json)</button></div>
     <div id="pub-out" style="margin-top:10px"></div>
   </div>
-  <div class="card"><h3>2. Export Program / Bytecode</h3><p style="margin-bottom:14px">Exports Reliks-VM bytecode (<code>.hex</code>) and assembly source (<code>.rvm.txt</code>) for <code>cli/reliks-lens-vm.js</code>, or a legacy <code>.js</code> module. Export requires green gates.</p><div class="row"><button class="btn" id="exe">Export bytecode (.hex)</button><button class="btn" id="exsrc">Export source (.rvm.txt)</button></div></div>
-  <div class="card"><h3>CLI Alternative</h3><ol class="steps" style="margin-top:6px"><li><span><code>node cli/reliks-lens-vm.js my-program.hex</code></span></li><li><span><code>node v13/gen-vm-factory-args.js --program my-program.hex --artist &lt;hex&gt; --price 100000000 --royalty 500 --supply 8</code></span></li><li><span>compile with <code>silverc</code>, then deploy</span></li></ol></div>
+  <div class="card"><h3>2. Export Program / Bytecode</h3><p style="margin-bottom:14px">Exports Reliks-VM bytecode (<code>.hex</code>) and assembly source (<code>.rvm.txt</code>) for <code>cli/reliks-lens.js</code>. Export requires green gates.</p><div class="row"><button class="btn" id="exe">Export bytecode (.hex)</button><button class="btn" id="exsrc">Export source (.rvm.txt)</button></div></div>
+  <div class="card"><h3>CLI Alternative</h3><ol class="steps" style="margin-top:6px"><li><span><code>node cli/reliks-lens.js my-program.hex</code></span></li><li><span><code>PROG_FILE=my-program.hex node cli/gen-factory-args.js series.json</code></span></li><li><span>compile with <code>silverc</code>, then deploy</span></li></ol></div>
 </div></section>
 <section class="view" id="view-protocol" hidden>
 <div class="hero" style="padding-bottom:8px"><span class="eyebrow">Protocol</span><h1>What Reliks is, and what it is <em>not</em>.</h1>
 <p>Reliks is three Silverscript covenants, the Reliks-VM deterministic bytecode runtime, and a set of verification tools. It is not a custodial marketplace, an indexer or an audited product. This page keeps the claims small enough to check.</p></div>
 <div class="section-h"><h2>Claims</h2></div>
 <table class="claims"><thead><tr><th style="width:34%">Claim</th><th style="width:16%">Status</th><th>Basis</th></tr></thead><tbody>
-<tr><td>The image is a function of (engine, serial[, lineage, sales])</td><td><span class="tag v">Checked in page</span></td><td>Engine hash, image hash and serial are recomputed on load (both Reliks-VM and JS).</td></tr>
-<tr><td>The engine cannot be swapped after mint</td><td><span class="tag d">Contract</span></td><td>program_hash is part of covenant state and of every successor's script.</td></tr>
-<tr><td>Serials never collide across parallel lanes</td><td><span class="tag d">Contract</span></td><td>Serial is derived from the consumed lane outpoint; the page recomputes it.</td></tr>
-<tr><td>No protocol fee</td><td><span class="tag d">Contract</span></td><td>Primary sale pays the artist exactly the price. Network fees (about 0.04 KAS per mint) still apply.</td></tr>
-<tr><td>Royalties on resale</td><td><span class="tag d">Contract, partly</span></td><td>Enforced on covenant-priced sales (list/buy, atomic bid/sell, escrow accept). <code>transfer</code> is royalty-free by design.</td></tr>
-<tr><td>The art survives pruning</td><td><span class="tag n">Not claimed</span></td><td>The hash is anchored on chain and the engine bytes ship in the contract script, but pruned nodes may drop old transactions. Keep a copy of the engine or provenance bundle (this repository has both).</td></tr>
-<tr><td>Audited</td><td><span class="tag n">No</span></td><td>Automated review passes only. See <code>docs/AUDIT-SUMMARY.md</code>.</td></tr>
+<tr><td>The image is a function of (program, serial, lineage, sales)</td><td><span class="tag v">Checked in page</span></td><td>Program hash, image hash and serial are recomputed on load.</td></tr>
+<tr><td>The program cannot be swapped after mint</td><td><span class="tag d">Contract</span></td><td>program_hash is part of covenant state and of every successor's script.</td></tr>
+<tr><td>Serials are deterministic and ungrindable</td><td><span class="tag d">Contract</span></td><td>Assigned by the lane's monotonic <code>next_serial</code> counter (split into disjoint ranges on fork).</td></tr>
+<tr><td>No protocol fee</td><td><span class="tag d">Contract</span></td><td>Primary sale pays the artist 100% of the price. Network fees (about 0.04 KAS per mint) still apply.</td></tr>
+<tr><td>Royalties on resale (5%–20%, 0.05 KAS floor)</td><td><span class="tag d">Contract, partly</span></td><td>Enforced on covenant-priced sales (list/buy, atomic bid/sell, escrow accept) with a 5,000,000 sompi mineability floor. <code>transfer</code> is royalty-free by design.</td></tr>
+<tr><td>The art survives pruning</td><td><span class="tag n">Not claimed</span></td><td>The hash is anchored on chain and the program bytes ship in the contract script, but pruned nodes may drop old transactions. Keep a copy of the program or provenance bundle.</td></tr>
+<tr><td>Audited</td><td><span class="tag n">No</span></td><td>Automated review passes and on-chain exploit/negative suites only. See <code>docs/AUDIT-SUMMARY.md</code>.</td></tr>
 <tr><td>Publish, mint, list, buy, bid and transfer in the browser</td><td><span class="tag v">In browser + CLI</span></td><td>1-click series publishing, multi-UTXO minting, fixed-price listings, 2-party atomic bids/offers, and transfers run directly in the browser with Kaspire.</td></tr>
 </tbody></table>
 <div class="section-h"><h2>Wallet</h2></div>
@@ -267,7 +268,7 @@ main { padding-bottom: 120px; }
 </ol>
 <p class="note" style="margin-top:28px">Source, contracts and tests: <a href="https://github.com/weirdtualguy/Reliks" target="_blank" rel="noopener">github.com/weirdtualguy/Reliks</a>. MIT licensed.</p></section>
 </main>
-<footer><span>Reliks v13 · MIT · not financial advice, not audited</span><span><a href="https://github.com/weirdtualguy/Reliks" target="_blank" rel="noopener">Source</a> · <a href="https://kaspire.kaslab.space" target="_blank" rel="noopener">Kaspire wallet</a></span></footer>
+<footer><span>Reliks · MIT · not financial advice, not audited</span><span><a href="https://github.com/weirdtualguy/Reliks" target="_blank" rel="noopener">Source</a> · <a href="https://kaspire.kaslab.space" target="_blank" rel="noopener">Kaspire wallet</a></span></footer>
 <dialog id="wallet-dlg" aria-label="Connect wallet"><div class="dlg" id="wallet-body"></div></dialog>
 <dialog id="mint-dlg" aria-label="Transaction"><div class="dlg" id="mint-body"></div></dialog>
 <div class="toasts" id="toasts" aria-live="polite"></div>
@@ -1883,9 +1884,6 @@ module.exports = factory();
 }(function () {
 return qrcode;
 }));</script>
-<script>window.RELIKS_DATA={"anchors":{"_note":"Claims to be verified, not facts to be trusted. The site recomputes each of these from public chain data and shows PASS or FAIL.","network":"mainnet","hrp":"kaspa","rest":"https://api.kaspa.org","kascov":"https://kascov.io/data/mainnet","explorer":"https://kascov.io/mainnet/tx/","series":[{"id":"genesis-dag-city","title":"Genesis: DAG-City","laneCovenantId":"1569a69fd3e82b28ef32d9daea0d1a107cd26a586cf30458416889e689739c09","genesisTxId":"029c14e56034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb904","programHash":"16440384b2b00579d67e1366e8aa9c835e276fbf84a711d4920e87b134d7eaa4","renderHash":"836c15aecc078e0c19ae71467ff12cdd85a904d1c965a991af095a246dcc403c","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","engine_lang":1,"engine":"reliks-engine-mainnet.js","editions":[{"index":0,"serial":"2884738305227171331","covenantId":"6f8f076f72ff39eab63b11cd5e5ee3f7d1a9f31e570c4ac3d1ba5e3394146999","mintTxId":"9d9342c69446e9d25881c23296b82671350350e3df0d0ec27e155fffea19939c","outputIndex":1,"ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b"}],"engineKind":"js"}],"wrpc":[],"_wrpc_note":"No public mainnet wRPC endpoints are pinned on purpose (audit finding). Kaspire Extension broadcasts with pushTx; others can paste their own node URL in the mint panel."},"templates":{"factory":{"prefixHex":"6b","suffixHex":"6c7604b781beeb8763755a798201209d75597982519d75587982599f6975577982599f6975527900a0695979010087695479009c55790400e1f505a29b69537951a2547902d007a19a694d300f__ENG12__b9ba7eaa20000000000000000000000000000000000000000000000000000000000000000087916956794d300f__ENG12__aa8769547900a06354790300002057797e01ac7e5979c252799c695979c37887697575680f52656c696b7353657269616c56313076b9ba7eb9bb54cd7eaa760051957651937f01007e785151957651937f01007e0200019593785251957651937f01007e030000019593785351957651937f01007e04000000019593785451957651937f01007e0500000000019593785551957651937f01007e060000000000019593785651957651937f01007e07000000000000019593785751957651937f01007e028000970800000000000000019593765e795e79005c795b795f79b9cf5779200514190ac75aa6d0c63ba393c37df9ca186c64be048d52e0d9170966d6a75859016b827c75519658cd016b7e4dd207__ED12__827c75519658cd4dd207__ED12__7e7ed988012058797e010158797e0108587958cd7e012058797e0108587958cd7e012058797e012058797e0108587958cd7e7e7e7e7e7e7e7e016b7c7e4dd207__ED12__7eaa02000001aa7e01207e7c7e01877e011579c388011479c20400e1f505a269b9cb519c69b900cc76c2b9bea2690113790113790113790113790113795194011379011379012057797e012057797e0108577958cd7e0108577958cd7e0108577958cd7e0108577958cd7e012057797e7e7e7e7e7e7eb976c902a53c94765193bc7c7eb976c976021dbc937cbc7eaa02000001aa7e01207e7c7e01877e5879c388757575757575757575757575757575757575757575757575757575757575755167760499ec7fba87637559798201419d75587982599f6975577982599f6975b9cb5779577957795779577957795779567956795679567956795679567901187901187901187952795979ac697800a07800a09a6978789356799c69b900ccb951cc78c278c293b9bea2695b795c797e5b795c797e5b7958cd5c7958cd7e5b7958cd5c7958cd7e577958cd577958cd7e5b7958cd5c7958cd7e5b795c797e011a7952a169011a795779827c750120969c6900011b79787853799452a1697652799f6376b978cc5b795279012095760120937f5b795379012095760120937f5b79547958957658937f5b79557958957658937f5b79567958957658937f5b79577958957658937f5b795879012095760120937f012057797e012057797e0108577958cd7e0108577958cd7e0108577958cd7e0108577958cd7e012057797e7e7e7e7e7e7eb976c902a53c94765193bc7c7eb976c976021dbc937cbc7eaa02000001aa7e01207e7c7e01877e5879c388587951935a7a75777777777777777777687652799f6376b978cc5b795279012095760120937f5b795379012095760120937f5b79547958957658937f5b79557958957658937f5b79567958957658937f5b79577958957658937f5b795879012095760120937f012057797e012057797e0108577958cd7e0108577958cd7e0108577958cd7e0108577958cd7e012057797e7e7e7e7e7e7eb976c902a53c94765193bc7c7eb976c976021dbc937cbc7eaa02000001aa7e01207e7c7e01877e5879c388587951935a7a757777777777777777776875757575757575757575757575757575757575757575757575757575757575757575757575757575516776045342244487637557798201419d75b9cb57795779577957795779577957795679567956795679567956795679011679765779ac690000000000000001167951a1690116795779827c750120969c6900011779787853799451a1697652799f6376b978cc5b795279012095760120937f5b795379012095760120937f5b79547958957658937f5b79557958957658937f5b79567958957658937f5b79577958957658937f5b795879012095760120937f012057797e012057797e0108577958cd7e0108577958cd7e0108577958cd7e0108577958cd7e012057797e7e7e7e7e7e7eb976c902a53c94765193bc7c7eb976c976021dbc937cbc7eaa02000001aa7e01207e7c7e01877e5879c388587951935a7a75777777777777777777687575757575757575757575757575757575757575757575757575757575757575757551676a686868","span":{"offset":1,"len":135},"templateHashHex":"b070609c7ae51ff778a172009351dd0f1d18e5c36d4593c3514a248cfd2177ee","entries":{"close":"53422444","fork":"99ec7fba","mint":"b781beeb"},"fields":["program_hash","artist","price","royalty_bips","mints_left","engine_lang","render_hash"]},"edition":{"prefixHex":"6b","suffixHex":"6c7604674a8ea4876375597982599f697558798201419d75b9cb5879587958795879587958795879587957795779577957795779577957795779011a79011a7976011a790100876976011c79ac69b900cc76c2b9bea26953790400e1f505a25479076588635ddc4603a19a695b795b7955795b795b795b795b795b79011c79519c69b900cc012059797e010159797e0108597958cd7e012059797e0108597958cd7e012059797e012059797e0108597958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e78c388757575757575757575757575757575757575757575757575757575757575757575757575757575755167760488709f2587637558798201419d75b9cb5879587958795879587958795879587957795779577957795779577957795779011979760119790100876976011b79ac69b900cc76c2b9bea2695a7976010000011c79011c79011c79011c79011c7957795779577957795779577957795779012479519c69b900cc012059797e010159797e0108597958cd7e012059797e0108597958cd7e012059797e012059797e0108597958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575516776041cd4096a8763755a798201209d75597982599f6975587982599f6975b9cb5879587958795879587958795879587957795779577957795779577957795779011b79011b79011b7901197900a069011979076588635ddc4603a169b900cc76c2b9bea269011a7953795379011e790100876978789e695279011c799502102796537978947600a26903000020011f797e01ac7e030000200123797e01ac7e5579c25379a2695579c37887695479c254799c695479c3527987695a797601000001247901247901247901247901247957795779577957795779577957795779012c79519c69b900cc012059797e010159797e0108597958cd7e012059797e0108597958cd7e012059797e012059797e0108597958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575755167760489cfc99a8763755c798201209d755b7982599f69755a7982599f6975597982599f697558798201419d75b9cb5879587958795879587958795879587957795779577957795779577957795779011d79011d79011d79011d79011d7976011d790100876976011f79ac69b900cc76c2b9bea2695579009c56790400e1f505a25779076588635ddc4603a19a9b69557900a0635579557955790121790100876978789e695279011f799502102796537978947600a269030000200122797e01ac7e030000200126797e01ac7e5579c25379a2695579c37887695479c254799c695479c352798769757575757575756856797601000001207901207901207901207901207957795779577957795779577957795779012879519c69b900cc012059797e010159797e0108597958cd7e012059797e0108597958cd7e012059797e012059797e0108597958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551677604794dca5487637559798201209d7558798201419d75b9cb5879587958795879587958795879587957795779577957795779577957795779011a79011a7976011a790100876976011c79ac69b900cc76c2b9bea269537976010000011d79011d79011d79011d79011d7957795779577957795779577957795779012579519c69b900cc012059797e010159797e0108597958cd7e012059797e0108597958cd7e012059797e012059797e0108597958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551677604bf4a166087637558798201419d75b9cb5879587958795879587958795879587957795779577957795779577957795779011979760119790100876976011b79ac690000000000000000011a7951a169011a795879827c750120969c6900011b79787853799451a1697652799f6376b978cc5c795279012095760120937f5c79537951957651937f5c79547958957658937f5c795579012095760120937f5c79567958957658937f5c795779012095760120937f5c795879012095760120937f5c79597958957658937f012058797e010158797e0108587958cd7e012058797e0108587958cd7e012058797e012058797e0108587958cd7e7e7e7e7e7e7e7eb976c902740894765193bc7c7eb976c97602d287937cbc7eaa02000001aa7e01207e7c7e01877e5979c388597951935b7a75777777777777777777776875757575757575757575757575757575757575757575757575757575757575757575757575757551676a686868686868","span":{"offset":1,"len":161},"templateHashHex":"0514190ac75aa6d0c63ba393c37df9ca186c64be048d52e0d9170966d6a75859","entries":{"buy":"1cd4096a","list":"674a8ea4","sell":"89cfc99a","spend":"bf4a1660","transfer":"794dca54","unlist":"88709f25"},"fields":["ownerIdentifier","identifierType","price","artist","royalty_bips","program_hash","factory_covid","serial"]}},"templatesV13":{"edition":{"prefixHex":"6b","suffixHex":"6c7604674a8ea48763755b7982599f69755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979012079012079760120790100876976012279ac69b900cc76c2b9bea26953790400e1f505a25479076588635ddc4603a19a695379011f79950210279603404b4ca2695d795d7955795d795d795d795d795d795d795d79012279519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902270a94765193bc7c7eb976c976025b89937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575755167760488709f258763755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979011f7976011f790100876976012179ac69b900cc76c2b9bea2695c79760100000122790122790122790122790122790122790122795979597959795979597959795979597959795979012c79519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902270a94765193bc7c7eb976c976025b89937cbc7eaa02000001aa7e01207e7c7e01877e78c388757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575516776041cd4096a8763755c798201209d755b7982599f69755a7982599f6975b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979012179012179012179011f7900a069011f79076588635ddc4603a169b900cc76c2b9bea269012079537953790124790100876978789e69b900cc52797851939c5279527952939c9a6953790123799502102796547978947600a269030000200126797e01ac7e03000020012a797e01ac7e5679c25379a2695679c37887695579c254799c695579c3527987695b790f52656c696b734c696e65616765563278010000012c79012c79012c79012c79012c795879012d797e5a797eaa012c7951935979597959795979597959795979597959795979013679519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902270a94765193bc7c7eb976c976025b89937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575755167760489cfc99a8763755e798201209d755d7982599f69755c7982599f69755b7982599f69755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979012379012379012379012379012379760123790100876976012579ac69b900cc76c2b9bea26955790400e1f505a25679076588635ddc4603a19a695579012279950210279603404b4ca2695579557955790127790100876978789e69b900cc52797851939c5279527952939c9a6953790126799502102796547978947600a269030000200129797e01ac7e03000020012d797e01ac7e5679c25379a2695679c37887695579c254799c695579c3527987695e790f52656c696b734c696e65616765563278010000012f79012f79012f79012f79012f7958790130797e5a797eaa012f7951935979597959795979597959795979597959795979013979519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902270a94765193bc7c7eb976c976025b89937cbc7eaa02000001aa7e01207e7c7e01877e78c388757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551677604794dca548763755b798201209d755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979012079012079760120790100876976012279ac69b900cc76c2b9bea26953790f52656c696b734c696e6561676556327801000001247901247901247901247901247958790125797e5a797eaa0124795979597959795979597959795979597959795979012e79519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902270a94765193bc7c7eb976c976025b89937cbc7eaa02000001aa7e01207e7c7e01877e78c38875757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551677604bf4a16608763755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979011f7976011f790100876976012179ac690000000000000000000001207951a1690120795a79827c750120969c6900012179787853799451a1697652799f6376b978cc5e795279012095760120937f5e79537951957651937f5e79547958957658937f5e795579012095760120937f5e79567958957658937f5e795779012095760120937f5e795879012095760120937f5e79597958957658937f5e795a79012095760120937f5e795b7958957658937f01205a797e01015a797e01085a7958cd7e01205a797e01085a7958cd7e01205a797e01205a797e01085a7958cd7e01205a797e01085a7958cd7e7e7e7e7e7e7e7e7e7eb976c902270a94765193bc7c7eb976c976025b89937cbc7eaa02000001aa7e01207e7c7e01877e5b79c3885b7951935d7a7577777777777777777777777768757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551676a686868686868","span":{"offset":1,"len":203},"templateHashHex":"9106b1426f4bb67ba4133d040b5258a9f177939c338266d249a1f8780e0ea2e5","entries":{"buy":"1cd4096a","list":"674a8ea4","sell":"89cfc99a","spend":"bf4a1660","transfer":"794dca54","unlist":"88709f25"},"fields":["ownerIdentifier","identifierType","price","artist","royalty_bips","program_hash","factory_covid","serial","lineage","sales"]}},"engines":{"reliks-engine-mainnet.js":"\nfunction reliks(L,serial){\nvar x=(L[0]^serial)|0,y=L[1]|0,z=L[2]|0,w=L[3]|0;\nfunction rnd(){var t=(x^(x<<11))|0;x=y;y=z;z=w;w=(w^(w>>>19))^(t^(t>>>8));return w>>>0;}\nfunction ri(a,b){return a+(rnd()%(b-a+1));}\nvar W=1600,CX=800,CY=770,A=36,B=18,Z=22,R=13,i,j,k,s,h,x,y,d,o=[],wat={},wpts=[];\nfunction IX(i,j){return CX+(i-j)*A;}\nfunction IY(i,j){return CY+(i+j-R)*B;}\nfunction dia(x,y){return 'M'+x+' '+y+'l'+A+' '+B+'l'+-A+' '+B+'l'+-A+' '+-B+'z';}\nfunction pl(p,wd,col,op){var q='M'+p[0][0]+' '+p[0][1];for(var v=1;v<p.length;v++)q+='L'+p[v][0]+' '+p[v][1];return '<path d=\"'+q+'\" fill=\"none\" stroke=\"'+col+'\" stroke-width=\"'+wd+'\"'+(op?' opacity=\"'+op+'\"':'')+'/>';}\no.push('<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1600 1600\"><defs><radialGradient id=\"g\"><stop offset=\"0\" stop-color=\"#ffd9a0\"/><stop offset=\".3\" stop-color=\"#e8923a\" stop-opacity=\".8\"/><stop offset=\"1\" stop-color=\"#e8923a\" stop-opacity=\"0\"/></radialGradient></defs><rect width=\"1600\" height=\"1600\" fill=\"#e7dfc8\"/>');\no.push('<g stroke=\"#d3c9ab\" opacity=\".5\">');\nfor(i=0;i<150;i++){x=ri(60,1540);y=ri(60,1540);k=ri(30,130);o.push('<line x1=\"'+x+'\" y1=\"'+y+'\" x2=\"'+(x+k)+'\" y2=\"'+(y+(k/2|0))+'\"/>');}\no.push('</g><g stroke=\"#cfc5a8\" opacity=\".55\">');\nfor(i=0;i<=R;i++){o.push('<line x1=\"'+IX(i,0)+'\" y1=\"'+IY(i,0)+'\" x2=\"'+IX(i,R)+'\" y2=\"'+IY(i,R)+'\"/><line x1=\"'+IX(0,i)+'\" y1=\"'+IY(0,i)+'\" x2=\"'+IX(R,i)+'\" y2=\"'+IY(R,i)+'\"/>');}\no.push('</g>');\nvar c,pts,wi,wj;\nfor(c=0;c<4;c++){wi=c%2?ri(2,R-2):0;wj=c%2?0:ri(2,R-2);pts=[[IX(wi,wj),IY(wi,wj)]];wat[wi+'_'+wj]=1;wpts.push([IX(wi,wj),IY(wi,wj)]);\nwhile(wi<R&&wj<R){if(rnd()%2)wi++;else wj++;wat[wi+'_'+wj]=1;pts.push([IX(wi,wj),IY(wi,wj)]);wpts.push([IX(wi,wj),IY(wi,wj)]);}\no.push(pl(pts,30,'#2f2f28',0)+pl(pts,22,'#49c5b1',0)+pl(pts,6,'#bfeee2','.85'));}\nfor(s=0;s<=2*R;s++){for(i=s-R>0?s-R:0;i<=R&&i<=s;i++){j=s-i;\nif(wat[i+'_'+j])continue;\nvar t=rnd()%10;if(t<1){o.push('<path d=\"'+dia(IX(i,j),IY(i,j))+'\" fill=\"#ddd4ba\"/>');continue;}\nh=t>7?ri(6,9):ri(2,5);\nvar dk=t%3,top,lf,rf;\nif(dk==0){top='#4b4a3f';lf='#34332b';rf='#26251e';}else if(dk==1){top='#f0e9d3';lf='#d8cfb3';rf='#bfb598';}else{top='#49c5b1';lf='#2e8f85';rf='#1f6b64';}\nx=IX(i,j);y=IY(i,j)-h*Z;d=h*Z;\no.push('<path d=\"'+dia(x,y)+'\" fill=\"'+top+'\"/><path d=\"M'+(x-A)+' '+(y+B)+'l'+A+' '+B+'v'+d+'l'+-A+' '+-B+'z\" fill=\"'+lf+'\"/><path d=\"M'+(x+A)+' '+(y+B)+'l'+-A+' '+B+'v'+d+'l'+A+' '+-B+'z\" fill=\"'+rf+'\"/>');\nif(h>=2){var wn=h>3?3:2;for(k=0;k<wn;k++){o.push('<path d=\"M'+(x-A+6+k*10)+' '+(y+B+6)+'l7 4v11l-7 -4z\" fill=\"'+(dk==1?'#34332b':'#8fe8d8')+'\"'+(dk==1?'':' opacity=\".9\"')+'/>');}}\nif(h>=6){o.push('<path d=\"M'+(x+6)+' '+(y+B+d-24)+'v-11q10 -12 20 0v11z\" fill=\"'+(dk==1?'#26251e':'#123c36')+'\"/>');\nvar ah=ri(18,42);o.push('<line x1=\"'+x+'\" y1=\"'+(y+B)+'\" x2=\"'+x+'\" y2=\"'+(y+B-ah)+'\" stroke=\"#26251e\" stroke-width=\"3\"/><circle cx=\"'+x+'\" cy=\"'+(y+B-ah)+'\" r=\"3\" fill=\"#49c5b1\"/>');}\nif(t==6||t==7){var di=rnd()%2,dj=di?0:1,n=ri(4,7);\nfor(k=1;k<=n;k++){var e2=h*Z-k*13,qx=IX(i+di*k,j+dj*k),qy=IY(i+di*k,j+dj*k)-(e2>0?e2:0);\no.push('<path d=\"'+dia(qx,qy)+'\" fill=\"#efe8d2\"/><path d=\"M'+(qx-A)+' '+(qy+B)+'l'+A+' '+B+'v13l'+-A+' '+-B+'z\" fill=\"#34332b\"/>');}}\n}}\no.push('<g>');\nfor(k=0;k<wpts.length;k++){if(rnd()%3==0){var bx=wpts[k][0]+(rnd()%2?26:-26),by=wpts[k][1]+8;o.push('<circle cx=\"'+bx+'\" cy=\"'+by+'\" r=\"9\" fill=\"#49c5b1\" opacity=\".22\"/><circle cx=\"'+bx+'\" cy=\"'+by+'\" r=\"3\" fill=\"#bfeee2\"/>');}}\no.push('</g>');\nvar m=R/2|0,gx=IX(m,m),gy=IY(m,m)-ri(2,4)*Z;\no.push('<circle cx=\"'+gx+'\" cy=\"'+gy+'\" r=\"110\" fill=\"url(#g)\"/><circle cx=\"'+gx+'\" cy=\"'+gy+'\" r=\"9\" fill=\"#fff\"/>');\nfor(k=14;k<=42;k+=7)o.push('<circle cx=\"'+gx+'\" cy=\"'+gy+'\" r=\"'+k+'\" fill=\"none\" stroke=\"'+(k>34?'#49c5b1':'#e8923a')+'\" stroke-width=\"2\" opacity=\".75\"/>');\no.push('<rect x=\"36\" y=\"36\" width=\"1528\" height=\"1528\" fill=\"none\" stroke=\"#3a3a33\" stroke-width=\"7\"/></svg>');\nreturn o.join('');\n}"},"bundles":{"v12":{"reliks_provenance_bundle":1,"generated_at":"2026-11-13","network":"mainnet","hrp":"kaspa","series":{"id":"genesis-dag-city","title":"Genesis: DAG-City","protocol_version":"v12","laneCovenantId":"1569a69fd3e82b28ef32d9daea0d1a107cd26a586cf30458416889e689739c09","genesisTxId":"029c14e56034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb904","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","price":"100000000","royalty_bips":"500","mints_left_at_genesis":1,"engine_lang":1,"engine_kind":"js","program_hash":"16440384b2b00579d67e1366e8aa9c835e276fbf84a711d4920e87b134d7eaa4","render_hash":"836c15aecc078e0c19ae71467ff12cdd85a904d1c965a991af095a246dcc403c"},"editions":[{"index":0,"serial":"2884738305227171331","serial32":1627858435,"lanes":[1232521659,-613504186,-1758390526,-131891038,-2003096083,2116399032,1200263756,602121247],"covenantId":"6f8f076f72ff39eab63b11cd5e5ee3f7d1a9f31e570c4ac3d1ba5e3394146999","mintTxId":"9d9342c69446e9d25881c23296b82671350350e3df0d0ec27e155fffea19939c","outputIndex":1,"consumedLaneOutpoint":"029c14e56034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb904:0","ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","state":{"ownerIdentifier":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","identifierType":0,"price":"0","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","royalty_bips":"500","program_hash":"16440384b2b00579d67e1366e8aa9c835e276fbf84a711d4920e87b134d7eaa4","factory_covid":"1569a69fd3e82b28ef32d9daea0d1a107cd26a586cf30458416889e689739c09","serial":"2884738305227171331"},"expectedSpk":"aa20adbeb3a482341484e552f52fbade6355250c58b691488b66909690bc27760d3487","render_hash":"3f04acc79f970b7a5789d6cdbdc6fdac4784d24726108deeedb19e113f0a127e","svg_bytes":89907}]},"v13":{"reliks_provenance_bundle":1,"generated_at":"2026-11-13","network":"testnet-10","hrp":"kaspatest","series":{"id":"v13-vm-dag-city","title":"Reliks v13: DAG-City (Reliks-VM)","protocol_version":"v13","laneCovenantId":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","genesisTxId":"029c14e56034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb904","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","price":"100000000","royalty_bips":"500","mints_left_at_genesis":8,"engine_lang":2,"engine_kind":"vm","program_hash":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","render_hash":"9bd989c4375220fbcb87b566c310b1ec6cb1f053ed3a701408d10bd805b9d405","program_hex":"52564d01400640069d010001a0b3ff0701e4009e011e01baa4a20701d0009e01e40001baa4a20701009e9f01c8bf9f07800100010001c00c01c00c90600061226001600260037001ab93cf068101329b01005104013c01840c4305065111013c01840c4305065112011e0182014305065106501150125011500610501250060102131092500401011002510401960132424c009c01a88bbf068101379b010051045004010043610550040100436a055004010d4361055004010d436a05920100500443610501005004436a05010d5004436105010d5004436a05925004010110025104010d334299009c0100510f0100510c500c0102144102010102010b430506510d0100510e400f010100510d0102010b430506510e500f5110438e05500d010d32500e010d32204143010102430f06413601500d010110510d403d01500e010110510e438e05401601011e01a8debc0101e40043c105011601b18ba70201e40043c105010601e2ddff0501d50043c105500c01011002510c01043242ea00017f8101e40083010051075007010d1101001851045004010d33500450073320415c04500750041151055004010e125005100180021052425204010a430f06510a500a01013241db0101baa9f706805004500543610550045005436a05437605405204500a01073441ef0101060109430506510840f801010201054305065108500a010314510b500b421c0201bf94ad02511501abe6d0015116019eca98015117405802500b010130413c0201d3d3c307511501b39fe30651160198ebfe05511740580201b18ba70262018488101222511501859fba01511601e4d6fd00511750045005436105511150045005436a055008011612115112500801161251095015805011501243760550168094501101241150120112109501240112990100500999015c016e999798501780945011012410501201121095015c01129901005009990124016e99979801025008010334105118500b01013041e00201abe6d0018001e4008340ef0201d8d1bf048001da00630132171183010051069450110124110106105006010a121050120112100106109501070104990100010b990179017c999798500601011002510650183242f30201e40083500801063242ae03500b010130414703019eca980180404d0301b6f8c800809450110106105012011210500910011811950100017599010a0174011401009a0100010b9997980112012a4305065119019eca980181010382501150120112105011501201121050191192017f8101b18ba7028050115012011210501911010391500a010630500a010730214152040102430f06511a0101501a11511b01040107430506511c0101510650080116125006010d1211511d5004501a500612105005501b50061210436105511e5004501a500612105005501b50061210436a05501d01001811511f01d2d1bf0780501e501f43760501abe6d0018094501e012411501f0112109501240112990100010d99015c016e9997985006010110025106501c3342d70350040101105104408d015007010110025107011a3342830101e4009b010051065006500f3241d2040103430f0642c804500601800410520102430f06419604011a409804016610512050060180051052010810512101b18ba702800116835020502101099101e4008301e2ddff058050205021010391500601011051064072049c01060106436105512201060106436a05010201044305060116121151230180808008805022502301ee009101ffffff078050225023010991017f8001028201cb0083010e51065006012234412a0501b18ba7028140300501baa4a20781502250235006915006010710025106012a33421905017f8001b3f4e8018101078201e400830124012401f80b01f80b90001101241201a006104410010d110112120182061044940505950124011299015c011299015c016e9997980303440101500d010e12500e100180021053500d500e436105500f0180041053500d500e436a05500f0180051053500f010110510f44838182017f809450105106500601800410525006018005105295500601011051065006500f324103065006018004105250060180051052965006010110510640e20598440511010110430f0610440100040101117244"},"editions":[{"index":0,"serial":"2884738305227171331","serial32":1627858435,"lanes":[-1539051654,1550940364,-1752465193,-1318761273,-798323025,1552770662,388025969,-1903202835],"pat":61,"wear":0,"covenantId":"212a4610be6ddf268c7fbe9e95416bfd53292525c97e1073af738ec0778bc9ae","mintTxId":"c7fc689f54f404e0a770ddb4d303b861592d1d508c779c545a64407fccf72846","outputIndex":1,"consumedLaneOutpoint":"029c14e56034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb904:0","ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","state":{"ownerIdentifier":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","identifierType":0,"price":"0","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","royalty_bips":"500","program_hash":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","factory_covid":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","serial":"2884738305227171331","lineage":"7554b3d0cbe86969697ae9cd4f7e65ed973ad6b82fec1e2ba68d50dda26cfa22","sales":"0"},"expectedSpk":"aa202c727e75134245ec5ed54136ba1bd84c90ba27414b02e2655e98b637b3df732687","render_hash":"37d0f856943f4f1aeb1aeacc4566252c786aa50fffc95ab474a109da51d76c58","svg_bytes":86222,"vm_stats":{"fuel":80704,"elems":1397,"svg_len":86222,"max_stack":6,"max_calls":2,"max_groups":1,"max_segs":18,"grads":1}},{"index":1,"serial":"4030318016432366363","serial32":-447814885,"lanes":[-762878556,1537421474,885658214,82739676,-348944091,-861878542,1648509338,-1506154826],"pat":26,"wear":1,"covenantId":"e878a5cbbf9eacac40bf939715099a38055d26c9882bbe1ea1966a04fc2b2200","mintTxId":"86860766c7a104e0a770ddb4d303b861592d1d508c779c545a64407fccf72847","outputIndex":1,"consumedLaneOutpoint":"c7fc689f54f404e0a770ddb4d303b861592d1d508c779c545a64407fccf72846:0","ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","state":{"ownerIdentifier":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","identifierType":0,"price":"0","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","royalty_bips":"500","program_hash":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","factory_covid":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","serial":"4030318016432366363","lineage":"923225ca2d2a47c0650e04da3b86de881c8f2a6d1592ff5b450e97423b7414d7","sales":"1"},"expectedSpk":"aa20d52420a0d8e5c7af68b001e4761054ed42b2a978c1441c98593492da782891c587","render_hash":"7b43c2553e97fcae81577c32b2e72421d8a8e8ca78551aa6103035b61da2a071","svg_bytes":84527,"vm_stats":{"fuel":81765,"elems":1354,"svg_len":84527,"max_stack":6,"max_calls":2,"max_groups":1,"max_segs":22,"grads":1}},{"index":2,"serial":"8561826841341975308","serial32":1385683724,"lanes":[708565355,2049925419,1880875281,637155205,-1644075554,743942356,-1959020575,693423529],"pat":59,"wear":3,"covenantId":"d8aee38b2b1dc4943631c6fd0b3dcbf393238e295e0185c738c58c2efca8cdba","mintTxId":"4fef24e96034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb905","outputIndex":1,"consumedLaneOutpoint":"86860766c7a104e0a770ddb4d303b861592d1d508c779c545a64407fccf72847:0","ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","state":{"ownerIdentifier":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","identifierType":0,"price":"0","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","royalty_bips":"500","program_hash":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","factory_covid":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","serial":"8561826841341975308","lineage":"78fa058f23be77e15c5e7b4f0546bbe1600995ac6236ee807afe145769ece7b1","sales":"3"},"expectedSpk":"aa2051873544539b4eeceb91bebe0da61b2c75b5c2b29127de2f8c2c8de832ae35a087","render_hash":"e4524a8fae028a4118717207d085ef298ff4251f7012343e302857c839782783","svg_bytes":80138,"vm_stats":{"fuel":77917,"elems":1278,"svg_len":80138,"max_stack":6,"max_calls":2,"max_groups":1,"max_segs":23,"grads":1}}]}},"studio":{"prelude":"var R=(function(L,serial){\nvar x=(L[0]^serial)|0,y=L[1]|0,z=L[2]|0,w=L[3]|0;\nfunction rnd(){var t=(x^(x<<11))|0;x=y;y=z;z=w;w=(w^(w>>>19))^(t^(t>>>8));return w>>>0;}\nfunction ri(a,b){return a+(rnd()%(b-a+1));}\nfunction pick(a){return a[rnd()%a.length];}\nfunction chance(p){return rnd()%100<p;}\nfunction hsl(){return 'hsl('+rnd()%360+','+ri(40,90)+'%,'+ri(30,70)+'%)';}\nfunction sin(a){a&=4095;var s=a<2048?1:-1,q=a<2048?a:a-2048,u=q*(2048-q);return s*(16*u*10000/(20971520-4*u)|0);}\nfunction cos(a){return sin(a+1024);}\nfunction dir(a,len){return [cos(a)*len/10000|0,sin(a)*len/10000|0];}\nfunction svg(parts,bg){return '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1000 1000\">'+(bg?'<rect width=\"1000\" height=\"1000\" fill=\"'+bg+'\"/>':'')+parts.join('')+'</svg>';}\nreturn {rnd:rnd,ri:ri,pick:pick,chance:chance,hsl:hsl,sin:sin,cos:cos,dir:dir,svg:svg,serial:serial,lanes:L};\n})(L,serial);","templates":{"circles":"function reliks(L, serial) {\n  var n = R.ri(18, 48), out = [];\n  for (var i = 0; i < n; i++) {\n    out.push('<circle cx=\"' + R.ri(0,1000) + '\" cy=\"' + R.ri(0,1000) +\n      '\" r=\"' + R.ri(20,240) + '\" fill=\"' + R.hsl() +\n      '\" fill-opacity=\"0.' + R.ri(30,85) + '\"/>');\n  }\n  return R.svg(out, '#000');\n}","flow":"function reliks(L, serial) {\n  var out = [], i;\n  for (i = 0; i < 700; i++) {\n    var x = R.ri(0, 1000), y = R.ri(0, 1000);\n    var a = (R.sin(x >> 2) + R.cos(y >> 2)) | 0;\n    var d = R.dir(a, R.ri(20, 90));\n    out.push('<line x1=\"' + x + '\" y1=\"' + y + '\" x2=\"' + (x + d[0]) +\n      '\" y2=\"' + (y + d[1]) + '\" stroke=\"' + R.hsl() +\n      '\" stroke-width=\"1\" opacity=\"0.5\"/>');\n  }\n  return R.svg(out, '#0a0b10');\n}","blank":"function reliks(L, serial) {\n  return R.svg([], '#000');\n}","iso":"; Reliks metropolis diorama. Patina: bits 0-1 theme (paper, dusk, night, rose), bits 2-3 district style.\n; Light, gradual, optional sales wear (change \"wear push 1 mul\" to \"wear push 0 mul\" or uncheck Enable Wear in Studio to disable):\n; delicate celestial halo rings, gentle starlight/firefly motes, warmer window life, and glowing spire/rooftop beacons.\n.canvas 1600 1600\n.var X 0 .var Y 1 .var I 2 .var J 3 .var S 4 .var K 5 .var H 6 .var D 7 .var T 8\n.var WR 9 .var TH 10 .var STY 11 .var BB 12 .var BT 13 .var MT 14 .var FG 15 .var DC 16 .var A 17 .var B 18 .var R 19\n.var COL 20 .var TY 21 .var E 22 .var DW 23 .var DH 24\n.var S0 30 .var S1 31 .var SUC 32 .var SUD 33 .var M0 34 .var M1 35 .var M2 36 .var SHD 37 .var RD 38 .var PV1 39 .var PV2 40\n.var GRS 41 .var TRE 42 .var WLT 43 .var WDK 44 .var LITP 45 .var STR 46 .var INK 47 .var SR 48\n.var BX 50 .var BY 51 .var BW 52 .var BWH 53 .var BD 54 .var CT 55 .var CL 56 .var CR 57\n.var C0 58 .var C1 59 .var MT2 60 .var CA 61 .var CB 62 .var CTT 63 .var WX 64 .var WY 65 .var SLP 66\n.var PK 68 .var LO 69 .var MD 70\nlane 0 serial xor lane 1 lane 2 lane 3 rnginit\nwear push 1 mul st WR ; wear_toggle (1 = enabled, 0 = disabled)\npat push 3 and st TH\npat push 2 shr push 3 and st STY\ncall theme\npush 12 st PK push 25 st LO push 30 st MD\nld STY push 3 eq jz y3 push 35 st PK\ny3: ld STY push 1 eq jz y1 push 10 st LO push 20 st MD\ny1: ld STY push 2 eq jz y2 push 50 st LO\ny2: push 0 st K\nbl: push 100 call rmod st T\nld T ld PK lt jz b1 push 0 st BT jmp bset\nb1: ld T ld PK ld LO add lt jz b2 push 1 st BT jmp bset\nb2: ld T ld PK ld LO add ld MD add lt jz b3 push 2 st BT jmp bset\nb3: push 3 st BT\nbset: ld BT ld K push 256 add stx\npush 3 call rmod ld K push 272 add stx\nnext K 16 bl\npush -1 stroke push 100 opacity push 0 st K\nsky: ld S0 ld S1 ld K call mix fill push 0 ld K push 25 mul push 1600 push 26 rect next K 64 sky\npush 30 gopen ld S1 fill push 0 st K\ncl: push -100 push 900 rndr st X push 120 push 520 rndr st Y push 240 push 700 rndr st A push 8 push 16 rndr st B\nld X ld Y ld A ld B rect\nld X ld Y ld B push 2 div add ld B push 2 div circle\nld X ld A add ld Y ld B push 2 div add ld B push 2 div circle\nnext K 6 cl\ngclose\nld SUD fill push 70 opacity\nld STR jz nost push 0 st K\nstars: push 20 push 1580 rndr push 20 push 640 rndr push 1 push 3 rndr circle next K STR stars\nnost: push 100 opacity\ngradbegin push 0 ld SUC push 100 gradstop push 40 ld SUC push 45 gradstop push 100 ld SUC push 0 gradstop gradend\npush 0x1000000 fill push 800 push 560 push 520 ld WR push 3 div add circle\nld SUD fill push 800 push 560 ld SR circle\npush -1 fill ld SUD stroke push 2 swidth push 45 opacity\npush 800 push 560 ld SR push 40 add circle push 800 push 560 ld SR push 90 add circle push 800 push 560 ld SR push 160 add circle\nld WR jz nohalo\nld WLT stroke push 1 swidth push 12 ld WR push 10 div add opacity\npush 800 push 560 ld SR push 220 add ld WR push 6 div add circle\nld WR push 24 lt jnz nohalo\npush 800 push 560 ld SR push 290 add ld WR push 4 div add circle\nld WR push 80 lt jnz nohalo\npush 800 push 560 ld SR push 370 add ld WR push 3 div add circle\nnohalo: push -1 stroke push 100 opacity\nld INK fill push 8 opacity push 40 st E\nsh: call bigdia ld E push 12 sub st E ld E push 0 gt jnz sh\npush 100 opacity\nld RD ld SHD push 14 call mix fill\npbegin push 140 push 970 m push 800 push 1300 l push 800 push 1340 l push 140 push 1010 l z pend\nld RD ld SHD push 28 call mix fill\npbegin push 1460 push 970 m push 800 push 1300 l push 800 push 1340 l push 1460 push 1010 l z pend\npush 0 st S\nsloop: ld S push 14 sub push 0 max st I\niloop: ld I push 14 le ld I ld S le and jz idone ld S ld I sub st J\ncall tile\nld I push 1 add st I jmp iloop\nidone: nextle S 28 sloop\npush -1 fill ld INK stroke push 3 swidth push 70 opacity\npbegin push 140 push 970 m push 800 push 1300 l push 1460 push 970 l pend\npush -1 stroke push 100 opacity\nld WR jz nowear\n; Gentle atmospheric fireflies / starlight motes rising around the metropolis\npush 1 ld WR push 7 div add st A\npush 0 st K\nmotes: push 180 push 1420 rndr st X push 140 push 1060 rndr st Y\npush 0x1000000 fill push 18 ld WR push 12 div add opacity\nld X ld Y push 10 push 22 rndr circle\nld WLT fill push 45 ld WR push 6 div add push 85 min opacity\nld X ld Y push 1 push 3 rndr circle\nnext K A motes\nnowear: push 100 opacity push -1 fill ld INK stroke push 7 swidth push 36 push 36 push 1528 push 1528 rect halt\ntile: ld I ld J call ix st X\nld I ld J call iy st Y\npush 28 ld S sub push 5 mul push 8 div st FG\npush 44 st DW push 22 st DH\nld I push 4 mod push 3 eq st A\nld J push 4 mod push 3 eq st B\nld A ld B or jz noroad\nld RD ld S1 ld FG call mix fill\nld X ld Y call dia\nld A ld B and jnz plaza\nld A jz alongi\nld WLT stroke push 3 swidth push 60 opacity\nld X push 18 add ld Y push 13 add ld X push 18 sub ld Y push 31 add line\npush -1 stroke push 100 opacity ret\nalongi: ld WLT stroke push 3 swidth push 60 opacity\nld X push 18 sub ld Y push 13 add ld X push 18 add ld Y push 31 add line\npush -1 stroke push 100 opacity ret\nplaza: ld PV2 ld S1 ld FG call mix fill push 30 st DW push 15 st DH ld X ld Y push 7 add call dia\nld I push 7 eq ld J push 7 eq and jz pz\ncall spire\npz: ret\nnoroad: ld I ld J add push 2 mod jz p1 ld PV1 jmp p2\np1: ld PV2\np2: ld S1 ld FG call mix fill\ncall dia0\nld I push 12 and ld J push 2 shr add st BB\nld BB push 256 add ldx st BT\nld BT jnz bld\nld GRS ld S1 ld FG call mix fill push 36 st DW push 18 st DH ld X ld Y push 4 add call dia\npush 0 st K\ntr: push -20 push 20 rndr st A push -6 push 6 rndr st B push 8 push 13 rndr st R\nld TRE ld S1 ld FG call mix fill\nld X ld A add ld Y push 12 add ld B add ld R circle\nld GRS ld S1 ld FG call mix fill\nld X ld A add push 2 sub ld Y push 10 add ld B add ld R push 3 sub circle\nnext K 3 tr\nret\nbld: ld I push 7 sub abs ld J push 7 sub abs add st DC\npush 14 ld DC sub ld BT push 4 mul push 1 add mul push 12 div push 1 push 3 rndr add st H\nld H push 18 min push 1 max st H\nld H push 22 mul st D\nld BB push 272 add ldx st MT\npush 100 call rmod push 30 lt jz km push 3 call rmod st MT\nkm: ld MT jnz ma ld M0 st CT jmp ms\nma: ld MT push 1 eq jz mb ld M1 st CT jmp ms\nmb: ld M2 st CT\nms: ld CT ld WLT ld WR push 24 div call mix st CT\nld CT ld SHD push 12 call mix st CL\nld CT ld SHD push 24 call mix st CR\nld CT ld S1 ld FG call mix st CT\nld CL ld S1 ld FG call mix st CL\nld CR ld S1 ld FG call mix st CR\nld X st BX ld Y push 4 add st BY ld D st BD push 36 st BW push 18 st BWH call cube\nld BY ld BD sub st TY\ncall windows\nld H push 8 lt jnz done2\npush 100 call rmod push 60 lt jz done2\nld X st BX ld TY push 8 add st BY push 20 st BW push 10 st BWH push 2 push 4 rndr push 22 mul st BD call cube\nld H push 10 lt jnz done2\nld BY ld BD sub push 10 add st TY\npush 18 push 40 rndr st A\nld INK stroke push 3 swidth ld X ld TY ld X ld TY ld A sub line push -1 stroke\nld WR jz nocrownhalo\npush 0x1000000 fill push 25 ld WR push 8 div add opacity ld X ld TY ld A sub push 8 ld WR push 18 div add circle push 100 opacity\nnocrownhalo: ld WLT fill ld X ld TY ld A sub push 3 circle\ndone2: ret\ndia0: push 44 st DW push 22 st DH ld X ld Y call dia ret\ndia: pbegin over over m ld DW ld DH lr ld DW neg ld DH lr ld DW neg ld DH neg lr z pend drop drop ret\ncube: ld CT fill\npbegin ld BX ld BY ld BD sub m ld BW ld BWH lr ld BW neg ld BWH lr ld BW neg ld BWH neg lr z pend\nld CL fill\npbegin ld BX ld BW sub ld BY ld BD sub ld BWH add m ld BW ld BWH lr push 0 ld BD lr ld BW neg ld BWH neg lr z pend\nld CR fill\npbegin ld BX ld BW add ld BY ld BD sub ld BWH add m ld BW neg ld BWH lr push 0 ld BD lr ld BW ld BWH neg lr z pend\nret\nwindows: push 0 st K\nwrow: push 0 st COL\nwcol: ld X push 31 sub ld COL push 16 mul add st WX\nld TY push 18 add push 5 ld COL push 16 mul add push 2 div add ld K push 22 mul add push 6 add st WY\npush 1 st SLP call win\nld X push 5 add ld COL push 16 mul add st WX\nld TY push 36 add push 5 ld COL push 16 mul add push 2 div sub ld K push 22 mul add push 6 add st WY\npush -1 st SLP call win\nnext COL 2 wcol\nnext K H wrow\nret\nwin: push 100 call rmod st T\nld LITP ld WR push 10 div add push 78 min st B\nld T ld B lt jz wdark\nld WLT fill push 100 opacity jmp wdraw\nwdark: ld WDK fill push 55 opacity\nwdraw: pbegin ld WX ld WY m push 9 push 4 ld SLP mul lr push 0 push 10 lr push -9 push -4 ld SLP mul lr z pend\npush 100 opacity ret\nspire: ld M2 st CT\nld CT ld SHD push 12 call mix st CL\nld CT ld SHD push 24 call mix st CR\nld X st BX ld Y push 17 add st BY push 10 st BW push 5 st BWH push 540 st BD call cube\nld INK stroke push 3 swidth ld X ld Y push 22 add push 540 sub ld X ld Y push 22 add push 600 sub line push -1 stroke\npush 0x1000000 fill ld X ld Y push 22 add push 604 sub push 80 ld WR push 4 div add circle\nld WR jz nospirehalo\npush -1 fill ld WLT stroke push 1 swidth push 22 ld WR push 8 div add opacity\nld X ld Y push 22 add push 604 sub push 26 ld WR push 6 div add circle\npush -1 stroke push 100 opacity\nnospirehalo: ld SUD fill ld X ld Y push 22 add push 604 sub push 7 circle\nret\nbigdia: pbegin push 800 push 680 ld E push 2 div sub m push 1460 ld E add push 1010 l push 800 push 1340 ld E push 2 div add l push 140 ld E sub push 1010 l z pend ret\nix: sub push 44 mul push 800 add ret\niy: add push 22 mul push 640 add ret\nrmod: push 0 swap push 1 sub rndr ret\nch: st CTT st CB st CA ld CA ld CB ld CA sub ld CTT mul push 63 div add ret\nmix: st MT2 st C1 st C0\nld C0 push 16 ushr push 255 and ld C1 push 16 ushr push 255 and ld MT2 call ch push 16 shl\nld C0 push 8 ushr push 255 and ld C1 push 8 ushr push 255 and ld MT2 call ch push 8 shl or\nld C0 push 255 and ld C1 push 255 and ld MT2 call ch or ret\ntheme: ld TH jnz t1\npush 0xe0d8c0 st S0 push 0xeee7d1 st S1 push 0xe8923a st SUC push 0xffd9a0 st SUD push 0x4b4a3f st M0 push 0xf0e9d3 st M1 push 0x49c5b1 st M2 push 0x1c1c16 st SHD\npush 0x3a3a33 st RD push 0xd8cfb2 st PV1 push 0xe0d8bf st PV2 push 0x7fbfa4 st GRS push 0x2e8f85 st TRE push 0x8fe8d8 st WLT push 0x34332b st WDK push 40 st LITP push 0 st STR push 0x3a3a33 st INK push 150 st SR ret\nt1: ld TH push 1 eq jz t2\npush 0x3b2a5c st S0 push 0xf29a5b st S1 push 0xff7a3d st SUC push 0xffe2a8 st SUD push 0x2d2438 st M0 push 0xf0d5b8 st M1 push 0x49c5b1 st M2 push 0x1a0f26 st SHD\npush 0x2a2233 st RD push 0x8a6a78 st PV1 push 0x967483 st PV2 push 0x3f7f78 st GRS push 0x1f5c58 st TRE push 0xffd27a st WLT push 0x1a1424 st WDK push 55 st LITP push 25 st STR push 0x1a0f26 st INK push 190 st SR ret\nt2: ld TH push 2 eq jz t3\npush 0x060a14 st S0 push 0x1b2f4f st S1 push 0x9ad8e8 st SUC push 0xf4f8ff st SUD push 0x1c2233 st M0 push 0x5b6b8f st M1 push 0x2a8c88 st M2 push 0x000208 st SHD\npush 0x0c1018 st RD push 0x1a2236 st PV1 push 0x202a40 st PV2 push 0x12403f st GRS push 0x0d2c2e st TRE push 0xffe39a st WLT push 0x0a0e18 st WDK push 60 st LITP push 70 st STR push 0x2a3a5c st INK push 90 st SR ret\nt3: push 0xf3cfc8 st S0 push 0xfaf0e0 st S1 push 0xe86a8a st SUC push 0xfff4e0 st SUD push 0x5a3446 st M0 push 0xfff0e6 st M1 push 0xe86a8a st M2 push 0x3a1c2c st SHD\npush 0x6b4a5a st RD push 0xf0d9d0 st PV1 push 0xf6e4dc st PV2 push 0xa8d5b5 st GRS push 0x4f9a78 st TRE push 0xffe8b0 st WLT push 0x5a3446 st WDK push 35 st LITP push 0 st STR push 0x5a3446 st INK push 130 st SR ret\n","dsl_rings":"; Celestial Rings — High-Level Reliks-Script DSL example.\n; Uses .vars (auto-numbered), seedrng, bg, set, rand, for/endfor, and if/else/endif.\n.canvas 1000 1000\n.vars I X Y R C WR\nseedrng\nwear push 1 mul st WR ; wear_toggle (1 = enabled, 0 = disabled)\nbg 0x090d16\n\n; Central radial glow\ngradbegin push 0 push 0xffd9a0 push 95 gradstop push 45 push 0x49c5b1 push 35 gradstop push 100 push 0x090d16 push 0 gradstop gradend\npush 0x1000000 fill push 500 push 500 push 360 ld WR add circle\n\n; Concentric orbital rings (structured for loop + if/else)\npush -1 fill push 2 swidth\nfor I 1 18\n  ld I push 2 mod if\n    push 0x49c5b1 pat push 4096 mul xor stroke\n    push 55 opacity\n  else\n    push 0xe8923a stroke\n    push 35 opacity\n  endif\n  push 500 push 500 ld I push 24 mul circle\nendfor\n\n; Orbiting moons & starlight motes\npush -1 stroke\nfor I 0 48\n  rand 120 880 st X\n  rand 120 880 st Y\n  rand 4 26 st R\n  rand 0 100 push 35 lt if\n    push 0xffd9a0 fill push 85 opacity\n  else\n    push 0x49c5b1 pat push 65536 mul xor fill\n    push 70 ld WR push 6 div add push 95 min opacity\n  endif\n  ld X ld Y ld R circle\nendfor\nhalt\n","vm_circles":"; Starter: 40 circles. Position and size come from the seed (RNG), opacity from wear, colour from patina.\n.canvas 400 400\n.var I 0 .var X 1 .var Y 2 .var R 3\nlane 0 serial xor lane 1 lane 2 lane 3 rnginit\npush 0x0b0f14 fill push 0 push 0 push 400 push 400 rect\npush 0 st I\nloop:\npush 20 push 380 rndr st X\npush 20 push 380 rndr st Y\npush 6 push 40 rndr st R\npush 0x49c5b1 pat push 16 shl xor fill\npush 100 wear push 6 div sub opacity\nld X ld Y ld R circle\nnext I 40 loop\nhalt\n","vm_dagcity":".canvas 1600 1600\n.var RX 0 .var RY 1 .var RZ 2 .var RW 3\n.var X 17 .var Y 18\n.var I 4 .var J 5 .var K 6 .var S 7 .var H 8 .var D 9 .var T 10 .var DK 11 .var C 12\n.var WI 13 .var WJ 14 .var N 15 .var P0 16 .var TM 20 .var TOP 21 .var LF 22 .var RF 23\n.var WN 24 .var AH 25 .var DI 26 .var DJ 27 .var NN 28 .var E2 29 .var QX 30 .var QY 31\n.var BX 32 .var BY 33 .var GX 34 .var GY 35\ngradbegin push 0 push 0xffd9a0 push 100 gradstop push 30 push 0xe8923a push 80 gradstop push 100 push 0xe8923a push 0 gradstop gradend\npush 0xe7dfc8 fill push 0 push 0 push 1600 push 1600 rect\nlane 0 serial xor lane 1 lane 2 lane 3 rnginit\npush 0xd3c9ab stroke push 50 gopen push 0 st I\nscatter: push 60 push 1540 call ri st X push 60 push 1540 call ri st Y push 30 push 130 call ri st K\nld X ld Y ld X ld K add ld Y ld K push 2 div add line next I 150 scatter gclose\npush 0xcfc5a8 stroke push 55 gopen push 0 st I\ngrid: ld I push 0 call ix ld I push 0 call iy ld I push 13 call ix ld I push 13 call iy line\npush 0 ld I call ix push 0 ld I call iy push 13 ld I call ix push 13 ld I call iy line nextle I 13 grid gclose\npush 0 st N push 0 st C\ncanal: ld C push 2 mod jz even push 2 push 11 call ri st WI push 0 st WJ jmp start\neven: push 0 st WI push 2 push 11 call ri st WJ\nstart: ld N st P0 call addpt\nwalk: ld WI push 13 lt ld WJ push 13 lt and jz wdone push 2 call rmod jz incj ld WI push 1 add st WI jmp cont\nincj: ld WJ push 1 add st WJ\ncont: call addpt jmp walk\nwdone: push 30 push 0x2f2f28 push 100 call poly push 22 push 0x49c5b1 push 100 call poly push 6 push 0xbfeee2 push 85 call poly next C 4 canal\npush -1 stroke push 100 opacity\npush 0 st S\nsloop: ld S push 13 sub push 0 max st I\niloop: ld I push 13 le ld I ld S le and jz idone ld S ld I sub st J\nld I push 14 mul ld J add push 256 add ldx jnz inext\npush 10 call rmod st T ld T push 1 lt jz notplaza\npush 0xddd4ba fill ld I ld J call ix ld I ld J call iy call dia jmp inext\nnotplaza: ld T push 7 gt jz lowh push 6 push 9 call ri st H jmp hset\nlowh: push 2 push 5 call ri st H\nhset: ld T push 3 mod st DK\nld DK jnz c1 push 0x4b4a3f st TOP push 0x34332b st LF push 0x26251e st RF jmp cdone\nc1: ld DK push 1 eq jz c2 push 0xf0e9d3 st TOP push 0xd8cfb3 st LF push 0xbfb598 st RF jmp cdone\nc2: push 0x49c5b1 pat push 0x040404 mul xor st TOP push 0x2e8f85 st LF push 0x1f6b64 st RF\ncdone: ld I ld J call ix st X ld I ld J call iy ld H push 22 mul sub st Y ld H push 22 mul st D\nld TOP fill ld X ld Y call dia\nld LF fill pbegin ld X push 36 sub ld Y push 18 add m push 36 push 18 lr push 0 ld D lr push -36 push -18 lr z pend\nld RF fill pbegin ld X push 36 add ld Y push 18 add m push -36 push 18 lr push 0 ld D lr push 36 push -18 lr z pend\npush 2 ld H push 3 gt add st WN\nld DK push 1 eq jz wl1 push 0x34332b fill push 100 opacity jmp wl2\nwl1: push 0x8fe8d8 fill push 90 wear push 50 min sub opacity\nwl2: push 0 st K\nwloop: pbegin ld X push 36 sub push 6 add ld K push 10 mul add ld Y push 18 add push 6 add m push 7 push 4 lr push 0 push 11 lr push -7 push -4 lr z pend next K WN wloop push 100 opacity\nld H push 6 lt jnz nodoor\nld DK push 1 eq jz d1 push 0x26251e fill jmp d2\nd1: push 0x123c36 fill\nd2: pbegin ld X push 6 add ld Y push 18 add ld D add push 24 sub m push 0 push -11 lr push 10 push -12 push 20 push 0 qr push 0 push 11 lr z pend\npush 18 push 42 call ri st AH push 0x26251e stroke push 3 swidth\nld X ld Y push 18 add ld X ld Y push 18 add ld AH sub line\npush -1 stroke push 0x49c5b1 fill ld X ld Y push 18 add ld AH sub push 3 circle\nnodoor: ld T push 6 eq ld T push 7 eq or jz inext\npush 2 call rmod st DI push 1 ld DI sub st DJ push 4 push 7 call ri st NN push 1 st K\nrloop: ld H push 22 mul ld K push 13 mul sub st E2\nld I ld DI ld K mul add ld J ld DJ ld K mul add call ix st QX\nld I ld DI ld K mul add ld J ld DJ ld K mul add call iy ld E2 push 0 max sub st QY\npush 0xefe8d2 fill ld QX ld QY call dia\npush 0x34332b fill pbegin ld QX push 36 sub ld QY push 18 add m push 36 push 18 lr push 0 push 13 lr push -36 push -18 lr z pend nextle K NN rloop\ninext: ld I push 1 add st I jmp iloop\nidone: nextle S 26 sloop\npush 100 gopen push 0 st K\nbloop: ld K ld N lt jz bdone push 3 call rmod jnz bskip\nld K push 512 add ldx push 2 call rmod jz bneg push 26 jmp bx2\nbneg: push -26\nbx2: add st BX ld K push 640 add ldx push 8 add st BY\npush 0x49c5b1 fill push 22 opacity ld BX ld BY push 9 circle push 100 opacity push 0xbfeee2 fill ld BX ld BY push 3 circle\nbskip: ld K push 1 add st K jmp bloop\nbdone: gclose\npush 6 push 6 call ix st GX push 6 push 6 call iy push 2 push 4 call ri push 22 mul sub st GY\npush 0x1000000 fill ld GX ld GY push 110 circle push 0xffffff fill ld GX ld GY push 9 circle\npush -1 fill push 2 swidth push 75 opacity push 14 st K\nrings: ld K push 34 gt jz warm push 0x49c5b1 stroke jmp go\nwarm: push 0xe8923a stroke\ngo: ld GX ld GY ld K circle ld K push 7 add dup st K push 42 le jnz rings\npush -1 fill push 0x3a3a33 stroke push 7 swidth push 100 opacity push 36 push 36 push 1528 push 1528 rect halt\nix: sub push 36 mul push 800 add ret\niy: add push 13 sub push 18 mul push 770 add ret\ndia: pbegin over over m push 36 push 18 lr push -36 push 18 lr push -36 push -18 lr z pend drop drop ret\naddpt: push 1 ld WI push 14 mul ld WJ add push 256 add stx ld WI ld WJ call ix ld N push 512 add stx ld WI ld WJ call iy ld N push 640 add stx ld N push 1 add st N ret\npoly: opacity stroke swidth push -1 fill pbegin ld P0 st K ld K push 512 add ldx ld K push 640 add ldx m ld K push 1 add st K\npl: ld K ld N lt jz pldone ld K push 512 add ldx ld K push 640 add ldx l ld K push 1 add st K jmp pl\npldone: pend ret\nri: over sub push 1 add call rmod add ret\nrmod: push 0 swap push 1 sub rndr ret"},"cap":25641}};
-(function(D){var e=D.engines['reliks-engine-mainnet.js']||'',eh='';for(var i=0;i<e.length;i++){var c=e.charCodeAt(i);eh+=(c<16?'0':'')+c.toString(16);}D.templates.factory.suffixHex=D.templates.factory.suffixHex.split('__ENG12__').join(eh).split('__ED12__').join(D.templates.edition.suffixHex);if(D.bundles&&D.bundles.v12&&D.bundles.v12.series&&!D.bundles.v12.series.engine_src)D.bundles.v12.series.engine_src=e;if(D.studio&&D.studio.templates&&!D.studio.templates.dagcity)D.studio.templates.dagcity=e.trim();})(window.RELIKS_DATA);
-window.__qr=function(){if(!window.qrcode){(0,eval)(document.getElementById('qr-src').textContent);}return window.qrcode;};</script>
 <script id="rvm-src">var RVM=(function(){var module={exports:{}};
 'use strict';
 var MAGIC = [0x52, 0x56, 0x4d, 0x01];
@@ -2364,10 +2362,242 @@ else if (it.kind === 'u16') { var tg = rng(labels.has(it.arg) ? BigInt(labels.ge
 var w = rng(W, 65535, 'canvas', canvasLn), h = rng(H, 65535, 'canvas', canvasLn);
 return Uint8Array.from([0x52, 0x56, 0x4d, 0x01, w & 255, w >> 8, h & 255, h >> 8].concat(code));
 }
-var api = { assemble: assemble, OPS: OPS };
+function hexColorInt(c, fallback) {
+var s = String(c || fallback || '#49c5b1').trim().replace(/^#|^0x/i, '');
+if (!/^[0-9a-fA-F]{6}$/.test(s)) s = '49c5b1';
+return '0x' + s.toLowerCase();
+}
+function clampInt(v, min, max, def) {
+var n = Math.round(Number(v));
+if (!Number.isFinite(n)) n = def;
+return Math.max(min, Math.min(max, n));
+}
+var VISUAL_PRESETS = {
+cyber_orbs: {
+name: 'Cyber Grid & Neon Orbs',
+bg: '#070b12', primary: '#49c5b1', secondary: '#ffd9a0', accent: '#e85d75',
+patinaShift: true, wearEffect: true,
+layers: [
+{ type: 'glow', enabled: true, cx: 500, cy: 500, radius: 420, opacity: 85, colorSlot: 'primary' },
+{ type: 'grid', enabled: true, cols: 8, rows: 8, margin: 120, gap: 12, density: 65, shape: 'mixed', opacity: 55, colorSlot: 'random' },
+{ type: 'rings', enabled: true, count: 12, cx: 500, cy: 500, step: 28, strokeWidth: 2, opacity: 65, colorSlot: 'alternate' },
+{ type: 'particles', enabled: true, count: 36, minR: 4, maxR: 22, spread: 400, opacity: 85, filled: true, colorSlot: 'random' }
+]
+},
+solar_mandala: {
+name: 'Solar Mandala & Waves',
+bg: '#120914', primary: '#ffb347', secondary: '#ff5e62', accent: '#49c5b1',
+patinaShift: true, wearEffect: true,
+layers: [
+{ type: 'glow', enabled: true, cx: 500, cy: 500, radius: 440, opacity: 90, colorSlot: 'primary' },
+{ type: 'rays', enabled: true, count: 28, cx: 500, cy: 500, length: 400, strokeWidth: 2, opacity: 50, colorSlot: 'alternate' },
+{ type: 'rings', enabled: true, count: 16, cx: 500, cy: 500, step: 22, strokeWidth: 3, opacity: 75, colorSlot: 'alternate' },
+{ type: 'waves', enabled: true, count: 10, yStart: 640, spacing: 26, amp: 70, strokeWidth: 3, opacity: 65, colorSlot: 'secondary' },
+{ type: 'polygons', enabled: true, count: 14, size: 65, spread: 320, opacity: 75, strokeWidth: 2, colorSlot: 'random' }
+]
+},
+skyline_monoliths: {
+name: 'Synthwave Skyline Monoliths',
+bg: '#080711', primary: '#49c5b1', secondary: '#f7b267', accent: '#7b61ff',
+patinaShift: true, wearEffect: true,
+layers: [
+{ type: 'glow', enabled: true, cx: 500, cy: 360, radius: 340, opacity: 90, colorSlot: 'secondary' },
+{ type: 'particles', enabled: true, count: 45, minR: 2, maxR: 7, spread: 460, opacity: 80, filled: true, colorSlot: 'secondary' },
+{ type: 'monoliths', enabled: true, count: 18, minW: 36, maxW: 96, minH: 140, maxH: 520, baseY: 880, opacity: 90, colorSlot: 'random' },
+{ type: 'waves', enabled: true, count: 8, yStart: 880, spacing: 14, amp: 24, strokeWidth: 2, opacity: 60, colorSlot: 'primary' }
+]
+},
+bauhaus_blocks: {
+name: 'Bauhaus Geometric Composition',
+bg: '#f4efe6', primary: '#d9381e', secondary: '#1b4965', accent: '#e9b44c',
+patinaShift: false, wearEffect: true,
+layers: [
+{ type: 'grid', enabled: true, cols: 6, rows: 6, margin: 110, gap: 16, density: 80, shape: 'mixed', opacity: 90, colorSlot: 'random' },
+{ type: 'polygons', enabled: true, count: 10, size: 110, spread: 340, opacity: 80, strokeWidth: 3, colorSlot: 'random' },
+{ type: 'rings', enabled: true, count: 6, cx: 500, cy: 500, step: 48, strokeWidth: 4, opacity: 85, colorSlot: 'primary' }
+]
+}
+};
+function compileLayers(spec) {
+spec = spec || VISUAL_PRESETS.cyber_orbs;
+var bgHex = hexColorInt(spec.bg, '#090d16');
+var c1 = hexColorInt(spec.primary, '#49c5b1');
+var c2 = hexColorInt(spec.secondary, '#ffd9a0');
+var c3 = hexColorInt(spec.accent, '#e85d75');
+var patOn = spec.patinaShift !== false;
+var wearOn = spec.wearEffect !== false;
+var layers = Array.isArray(spec.layers) ? spec.layers : [];
+var out = [
+'; Generated by Reliks Studio Visual No-Code Builder',
+'.canvas 1000 1000',
+'.vars I J X Y W H R DX DY C1 C2 C3 PICK WR',
+'seedrng',
+'wear push ' + (wearOn ? '1' : '0') + ' mul st WR ; wear_toggle',
+'bg ' + bgHex
+];
+if (patOn) {
+out.push('push ' + c1 + ' pat push 2048 mul xor st C1');
+out.push('push ' + c2 + ' pat push 512 mul xor st C2');
+out.push('push ' + c3 + ' pat push 4096 mul xor st C3');
+} else {
+out.push('set C1 ' + c1);
+out.push('set C2 ' + c2);
+out.push('set C3 ' + c3);
+}
+var gradCount = 0;
+function colorExpr(slot, targetOp, idxVar) {
+if (slot === 'primary') return 'ld C1 ' + targetOp;
+if (slot === 'secondary') return 'ld C2 ' + targetOp;
+if (slot === 'accent') return 'ld C3 ' + targetOp;
+if (slot === 'alternate') {
+var v = idxVar || 'I';
+return 'ld ' + v + ' push 2 mod if ld C1 ' + targetOp + ' else ld C2 ' + targetOp + ' endif';
+}
+return 'rand 0 2 st PICK ld PICK push 0 eq if ld C1 ' + targetOp + ' else ld PICK push 1 eq if ld C2 ' + targetOp + ' else ld C3 ' + targetOp + ' endif endif';
+}
+layers.forEach(function (L, idx) {
+if (!L || L.enabled === false) return;
+var t = String(L.type || 'rings');
+var op = clampInt(L.opacity, 5, 100, 75);
+var slot = L.colorSlot || 'random';
+out.push('');
+out.push('; Layer ' + (idx + 1) + ': ' + t);
+if (t === 'glow' && gradCount < 8) {
+var gcx = clampInt(L.cx, 0, 1000, 500);
+var gcy = clampInt(L.cy, 0, 1000, 500);
+var gr = clampInt(L.radius, 40, 600, 380);
+var gCol = slot === 'secondary' ? c2 : slot === 'accent' ? c3 : c1;
+var gMid = slot === 'secondary' ? c3 : c2;
+out.push('gradbegin push 0 push ' + gCol + ' push ' + op + ' gradstop push 50 push ' + gMid + ' push ' + Math.max(10, Math.floor(op / 2)) + ' gradstop push 100 push ' + bgHex + ' push 0 gradstop gradend');
+out.push('push -1 stroke push 100 opacity push ' + (0x1000000 + gradCount) + ' fill');
+out.push('push ' + gcx + ' push ' + gcy + ' push ' + gr + ' ld WR push 2 div add circle');
+gradCount++;
+} else if (t === 'rings') {
+var rCount = clampInt(L.count, 1, 40, 12);
+var rcx = clampInt(L.cx, 0, 1000, 500);
+var rcy = clampInt(L.cy, 0, 1000, 500);
+var rStep = clampInt(L.step, 6, 80, 26);
+var rSw = clampInt(L.strokeWidth, 1, 24, 2);
+out.push('push -1 fill push ' + rSw + ' swidth push ' + op + ' opacity');
+out.push('for I 1 ' + (rCount + 1));
+out.push('  ' + colorExpr(slot, 'stroke', 'I'));
+out.push('  push ' + rcx + ' push ' + rcy + ' ld I push ' + rStep + ' mul ld WR push 4 div add circle');
+out.push('endfor');
+} else if (t === 'grid') {
+var cols = clampInt(L.cols, 2, 16, 6);
+var rows = clampInt(L.rows, 2, 16, 6);
+var margin = clampInt(L.margin, 20, 300, 120);
+var gap = clampInt(L.gap, 0, 40, 12);
+var density = clampInt(L.density, 10, 100, 75);
+var span = Math.max(100, 1000 - 2 * margin);
+var cellW = Math.max(8, Math.floor(span / cols));
+var cellH = Math.max(8, Math.floor(span / rows));
+var drawW = Math.max(4, cellW - gap);
+var drawH = Math.max(4, cellH - gap);
+var rad = Math.max(2, Math.floor(Math.min(drawW, drawH) / 2));
+var shp = L.shape || 'mixed';
+out.push('push -1 stroke push ' + op + ' opacity');
+out.push('for I 0 ' + rows);
+out.push('  for J 0 ' + cols);
+out.push('    rand 0 99 push ' + density + ' lt if');
+out.push('      ' + colorExpr(slot, 'fill', 'J'));
+out.push('      ld J push ' + cellW + ' mul push ' + margin + ' add st X');
+out.push('      ld I push ' + cellH + ' mul push ' + margin + ' add st Y');
+if (shp === 'circle') {
+out.push('      ld X push ' + rad + ' add ld Y push ' + rad + ' add push ' + rad + ' circle');
+} else if (shp === 'rect') {
+out.push('      ld X ld Y push ' + drawW + ' push ' + drawH + ' rect');
+} else {
+out.push('      rand 0 1 if ld X ld Y push ' + drawW + ' push ' + drawH + ' rect else ld X push ' + rad + ' add ld Y push ' + rad + ' add push ' + rad + ' circle endif');
+}
+out.push('    endif');
+out.push('  endfor');
+out.push('endfor');
+} else if (t === 'particles') {
+var pCount = clampInt(L.count, 2, 120, 40);
+var minR = clampInt(L.minR, 2, 80, 4);
+var maxR = Math.max(minR, clampInt(L.maxR, 2, 120, 24));
+var pSpread = clampInt(L.spread, 40, 480, 400);
+var pLo = Math.max(20, 500 - pSpread), pHi = Math.min(980, 500 + pSpread);
+var isFilled = L.filled !== false;
+out.push(isFilled ? 'push -1 stroke' : 'push -1 fill push 2 swidth');
+out.push('push ' + op + ' ld WR push 8 div add push 100 min opacity');
+out.push('for I 0 ' + pCount);
+out.push('  ' + colorExpr(slot, isFilled ? 'fill' : 'stroke', 'I'));
+out.push('  rand ' + pLo + ' ' + pHi + ' st X');
+out.push('  rand ' + pLo + ' ' + pHi + ' st Y');
+out.push('  rand ' + minR + ' ' + maxR + ' st R');
+out.push('  ld X ld Y ld R circle');
+out.push('endfor');
+} else if (t === 'rays') {
+var rayCount = clampInt(L.count, 3, 64, 24);
+var lcx = clampInt(L.cx, 0, 1000, 500);
+var lcy = clampInt(L.cy, 0, 1000, 500);
+var lLen = clampInt(L.length, 40, 480, 380);
+var lSw = clampInt(L.strokeWidth, 1, 16, 2);
+out.push('push -1 fill push ' + lSw + ' swidth push ' + op + ' opacity');
+out.push('for I 0 ' + rayCount);
+out.push('  ' + colorExpr(slot, 'stroke', 'I'));
+out.push('  rand ' + (-lLen) + ' ' + lLen + ' st DX');
+out.push('  rand ' + (-lLen) + ' ' + lLen + ' st DY');
+out.push('  push ' + lcx + ' push ' + lcy + ' push ' + lcx + ' ld DX add push ' + lcy + ' ld DY add line');
+out.push('endfor');
+} else if (t === 'polygons') {
+var polyCount = clampInt(L.count, 2, 45, 12);
+var pSize = clampInt(L.size, 16, 240, 70);
+var polySpread = clampInt(L.spread, 50, 440, 340);
+var sLo = Math.max(60, 500 - polySpread), sHi = Math.min(940, 500 + polySpread);
+var polySw = clampInt(L.strokeWidth, 0, 12, 2);
+out.push(polySw > 0 ? ('push ' + c2 + ' stroke push ' + polySw + ' swidth') : 'push -1 stroke');
+out.push('push ' + op + ' opacity');
+out.push('for I 0 ' + polyCount);
+out.push('  ' + colorExpr(slot, 'fill', 'I'));
+out.push('  rand ' + sLo + ' ' + sHi + ' st X');
+out.push('  rand ' + sLo + ' ' + sHi + ' st Y');
+out.push('  rand ' + Math.max(8, Math.floor(pSize / 2)) + ' ' + pSize + ' st R');
+out.push('  pbegin ld X ld Y ld R sub m ld R ld R lr ld R neg ld R lr ld R neg ld R neg lr z pend');
+out.push('endfor');
+} else if (t === 'waves') {
+var wCount = clampInt(L.count, 2, 32, 10);
+var yStart = clampInt(L.yStart, 40, 920, 320);
+var wSpace = clampInt(L.spacing, 6, 60, 28);
+var wAmp = clampInt(L.amp, 8, 200, 65);
+var wSw = clampInt(L.strokeWidth, 1, 16, 3);
+out.push('push -1 fill push ' + wSw + ' swidth push ' + op + ' opacity');
+out.push('for I 0 ' + wCount);
+out.push('  ' + colorExpr(slot, 'stroke', 'I'));
+out.push('  push ' + yStart + ' ld I push ' + wSpace + ' mul add st Y');
+out.push('  rand ' + (-wAmp) + ' ' + wAmp + ' st DY');
+out.push('  pbegin push 60 ld Y m push 220 ld DY push 440 push 0 qr push 220 ld DY neg push 440 push 0 qr pend');
+out.push('endfor');
+} else if (t === 'monoliths') {
+var mCount = clampInt(L.count, 3, 36, 16);
+var minW = clampInt(L.minW, 16, 100, 36);
+var maxW = Math.max(minW, clampInt(L.maxW, 24, 180, 90));
+var minH = clampInt(L.minH, 40, 400, 120);
+var maxH = Math.max(minH, clampInt(L.maxH, 80, 750, 520));
+var baseY = clampInt(L.baseY, 400, 980, 880);
+out.push('push ' + bgHex + ' stroke push 2 swidth push ' + op + ' opacity');
+out.push('for I 0 ' + mCount);
+out.push('  ' + colorExpr(slot, 'fill', 'I'));
+out.push('  rand ' + minW + ' ' + maxW + ' st W');
+out.push('  rand ' + minH + ' ' + maxH + ' st H');
+out.push('  rand 60 860 st X');
+out.push('  push ' + baseY + ' ld H sub st Y');
+out.push('  ld X ld Y ld W ld H rect');
+out.push('endfor');
+}
+});
+out.push('halt');
+return out.join('\n') + '\n';
+}
+var api = { assemble: assemble, OPS: OPS, compileLayers: compileLayers, VISUAL_PRESETS: VISUAL_PRESETS };
 if (typeof module === 'object' && module.exports) module.exports = api; else g.RvmAsm = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 return module.exports;})();window.RvmAsm=RvmAsm;</script>
+<script>window.RELIKS_DATA={"anchors":{"_note":"Claims to be verified, not facts to be trusted. The site recomputes each of these from public chain data and shows PASS or FAIL.","network":"mainnet","hrp":"kaspa","rest":"https://api.kaspa.org","kascov":"https://kascov.io/data/mainnet","explorer":"https://kascov.io/mainnet/tx/","series":[],"wrpc":[],"_wrpc_note":"Kaspire Extension broadcasts with pushTx; Kaspire Mobile users can pick a JSON wRPC preset in the review step."},"templates":{"factory":{"prefixHex":"6b","suffixHex":"6c7604b781beeb8763755b798201209d755a7982519d75597982599f6975587982599f6975537900a0695a79010087695579009c56790400e1f505a29b69547902f401a2557902d007a19a694d300f__FENG__b9ba7eaa20000000000000000000000000000000000000000000000000000000000000000087916957794d300f__FENG__aa8769557900a06355790300002058797e01ac7e5a79c252799c695a79c378876975756858795a7951939c695b795b7900597958795c79b9cf57790f52656c696b7347656e657369735632b9cf7e597958cd7eaa00209106b1426f4bb67ba4133d040b5258a9f177939c338266d249a1f8780e0ea2e5016b827c75519658cd016b7e4d5b09__EDS__827c75519658cd4d5b09__EDS__7e7ed98801205a797e01015a797e01085a7958cd7e01205a797e01085a7958cd7e01205a797e01205a797e01085a7958cd7e01205a797e01085a7958cd7e7e7e7e7e7e7e7e7e7e016b7c7e4d5b09__EDS__7eaa02000001aa7e01207e7c7e01877e011479c388011379c20400e1f505a269b9cb519c69b900cc76c2b9bea26901127901127901127901127901127951940112790112790112795193012058797e012058797e0108587958cd7e0108587958cd7e0108587958cd7e0108587958cd7e012058797e0108587958cd7e7e7e7e7e7e7e7eb976c902414194765193bc7c7eb976c97602b0c0937cbc7eaa02000001aa7e01207e7c7e01877e5979c388757575757575757575757575757575757575757575757575757575757575755167760499ec7fba8763755a798201419d75597982599f6975587982599f6975b9cb5879587958795879587958795879587957795779577957795779577957795779011b79011b79011b7952795a79ac697800a07800a09a6978789357799c69b900ccb951cc78c278c293b9bea26978c20400e1f505a278c20400e1f505a29a695c795d797e5c795d797e5c7958cd5d7958cd7e5c7958cd5d7958cd7e577958cd577958cd7e5c7958cd5d7958cd7e5c795d797e5c7958cd5d795c799358cd7e011d7952a169011d795879827c750120969c6900011e79787853799452a1697652799f6376b978cc5c795279012095760120937f5c795379012095760120937f5c79547958957658937f5c79557958957658937f5c79567958957658937f5c79577958957658937f5c795879012095760120937f5c79597958957658937f012058797e012058797e0108587958cd7e0108587958cd7e0108587958cd7e0108587958cd7e012058797e0108587958cd7e7e7e7e7e7e7e7eb976c902414194765193bc7c7eb976c97602b0c0937cbc7eaa02000001aa7e01207e7c7e01877e5979c388597951935b7a7577777777777777777777687652799f6376b978cc5c795279012095760120937f5c795379012095760120937f5c79547958957658937f5c79557958957658937f5c79567958957658937f5c79577958957658937f5c795879012095760120937f5c79597958957658937f012058797e012058797e0108587958cd7e0108587958cd7e0108587958cd7e0108587958cd7e012058797e0108587958cd7e7e7e7e7e7e7e7eb976c902414194765193bc7c7eb976c97602b0c0937cbc7eaa02000001aa7e01207e7c7e01877e5979c388597951935b7a7577777777777777777777687575757575757575757575757575757575757575757575757575757575757575757575757575757575757575516776045342244487637558798201419d75b9cb5879587958795879587958795879587957795779577957795779577957795779011979765879ac69000000000000000001197951a1690119795879827c750120969c6900011a79787853799451a1697652799f6376b978cc5c795279012095760120937f5c795379012095760120937f5c79547958957658937f5c79557958957658937f5c79567958957658937f5c79577958957658937f5c795879012095760120937f5c79597958957658937f012058797e012058797e0108587958cd7e0108587958cd7e0108587958cd7e0108587958cd7e012058797e0108587958cd7e7e7e7e7e7e7e7eb976c902414194765193bc7c7eb976c97602b0c0937cbc7eaa02000001aa7e01207e7c7e01877e5979c388597951935b7a757777777777777777777768757575757575757575757575757575757575757575757575757575757575757575757575757551676a686868","span":{"offset":1,"len":144},"templateHashHex":"029512ea7fa65643f5bc82f125cd23eb09b4ed5b2fe8fc9d33e5769cc3eb1014","entries":{"close":"53422444","fork":"99ec7fba","mint":"b781beeb"},"fields":["program_hash","artist","price","royalty_bips","mints_left","engine_lang","render_hash","next_serial"]},"edition":{"prefixHex":"6b","suffixHex":"6c7604674a8ea48763755b7982599f69755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979012079012079760120790100876976012279ac69b900cc76c2b9bea26953790400e1f505a25479076588635ddc4603a19a695379011f79950210279603404b4ca2695d795d7955795d795d795d795d795d795d795d79012279519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902270a94765193bc7c7eb976c976025b89937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575755167760488709f258763755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979011f7976011f790100876976012179ac69b900cc76c2b9bea2695c79760100000122790122790122790122790122790122790122795979597959795979597959795979597959795979012c79519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902270a94765193bc7c7eb976c976025b89937cbc7eaa02000001aa7e01207e7c7e01877e78c388757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575516776041cd4096a8763755c798201209d755b7982599f69755a7982599f6975b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979012179012179012179011f7900a069011f79076588635ddc4603a169b900cc76c2b9bea269012079537953790124790100876978789e69b900cc52797851939c5279527952939c9a6953790123799502102796547978947600a269030000200126797e01ac7e03000020012a797e01ac7e5679c25379a2695679c37887695579c254799c695579c3527987695b790f52656c696b734c696e65616765563278010000012c79012c79012c79012c79012c795879012d797e5a797eaa012c7951935979597959795979597959795979597959795979013679519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902270a94765193bc7c7eb976c976025b89937cbc7eaa02000001aa7e01207e7c7e01877e78c3887575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575755167760489cfc99a8763755e798201209d755d7982599f69755c7982599f69755b7982599f69755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979012379012379012379012379012379760123790100876976012579ac69b900cc76c2b9bea26955790400e1f505a25679076588635ddc4603a19a695579012279950210279603404b4ca2695579557955790127790100876978789e69b900cc52797851939c5279527952939c9a6953790126799502102796547978947600a269030000200129797e01ac7e03000020012d797e01ac7e5679c25379a2695679c37887695579c254799c695579c3527987695e790f52656c696b734c696e65616765563278010000012f79012f79012f79012f79012f7958790130797e5a797eaa012f7951935979597959795979597959795979597959795979013979519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902270a94765193bc7c7eb976c976025b89937cbc7eaa02000001aa7e01207e7c7e01877e78c388757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551677604794dca548763755b798201209d755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979012079012079760120790100876976012279ac69b900cc76c2b9bea26953790f52656c696b734c696e6561676556327801000001247901247901247901247901247958790125797e5a797eaa0124795979597959795979597959795979597959795979012e79519c69b900cc01205b797e01015b797e01085b7958cd7e01205b797e01085b7958cd7e01205b797e01205b797e01085b7958cd7e01205b797e01085b7958cd7e7e7e7e7e7e7e7e7e7eb976c902270a94765193bc7c7eb976c976025b89937cbc7eaa02000001aa7e01207e7c7e01877e78c38875757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551677604bf4a16608763755a798201419d75b9cb5a795a795a795a795a795a795a795a795a795a795979597959795979597959795979597959795979011f7976011f790100876976012179ac690000000000000000000001207951a1690120795a79827c750120969c6900012179787853799451a1697652799f6376b978cc5e795279012095760120937f5e79537951957651937f5e79547958957658937f5e795579012095760120937f5e79567958957658937f5e795779012095760120937f5e795879012095760120937f5e79597958957658937f5e795a79012095760120937f5e795b7958957658937f01205a797e01015a797e01085a7958cd7e01205a797e01085a7958cd7e01205a797e01205a797e01085a7958cd7e01205a797e01085a7958cd7e7e7e7e7e7e7e7e7e7eb976c902270a94765193bc7c7eb976c976025b89937cbc7eaa02000001aa7e01207e7c7e01877e5b79c3885b7951935d7a7577777777777777777777777768757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757551676a686868686868","span":{"offset":1,"len":203},"templateHashHex":"9106b1426f4bb67ba4133d040b5258a9f177939c338266d249a1f8780e0ea2e5","entries":{"buy":"1cd4096a","list":"674a8ea4","sell":"89cfc99a","spend":"bf4a1660","transfer":"794dca54","unlist":"88709f25"},"fields":["ownerIdentifier","identifierType","price","artist","royalty_bips","program_hash","factory_covid","serial","lineage","sales"]},"escrow":{"prefixHex":"6b","suffixHex":"6c7604948f25128763755b798201419d755a7982599f6975597982599f6975587982599f69755679010087695b795879ac6954790400e1f505a2695479076588635ddc4603a16954795279950210279603404b4ca269547952799502102796b9be5679a2695a795a799e695b795b799e5c795b799e9a695a795c7951939c5a795d7952939c9a690300002059797e01ac7e0300002055797e01ac7e5c79c258795479949c695c79c3527987695b79c253799c695b79c37887695879d0519c69587900d1b97851939c6976cb519c695e797800cc9c6976bf785279c95102cb0093025b0993945379c95102cb0093025b0993945102cb0093025b099393bcaa02000001aa7e01207e7c7e01877e88209106b1426f4bb67ba4133d040b5258a9f177939c338266d249a1f8780e0ea2e55158cd52795379c95102cb0093025b0993945479c95102cb0093025b0993945193bc7e025b0958cd53795479c95102cb0093025b099394519302cb00935579c95102cb0093025b099394519302cb0093025b0993bc7e7ed9887678c95102cb0093025b099394515193935279c95102cb0093025b09939451519393012093bc785279c95102cb0093025b09939451012293935379c95102cb0093025b09939451012293935193bc52795379c95102cb0093025b09939451012493935479c95102cb0093025b09939451012493935893bc53795479c95102cb0093025b09939451012d93935579c95102cb0093025b09939451012d9393012093bc54795579c95102cb0093025b09939451014e93935679c95102cb0093025b09939451014e93935893bc55795679c95102cb0093025b09939451015793935779c95102cb0093025b0993945101579393012093bc56795779c95102cb0093025b09939451017893935879c95102cb0093025b0993945101789393012093bc57795879c95102cb0093025b0993945102990093935979c95102cb0093025b0993945102990093935893bc58795979c95102cb0093025b0993945102a20093935a79c95102cb0093025b0993945102a2009393012093bc59795a79c95102cb0093025b0993945102c30093935b79c95102cb0093025b0993945102c30093935893bc011879c25b79bea2695979011679876957790113799c695f7956799c696079577987690f52656c696b734c696e6561676556325f790100005a795a795a795a795a7958795b797e0118797eaa5a79519300011679011779c95102cb0093025b099394011879c95102cb0093025b0993945193bc7700011779011879c95102cb0093025b099394519302cb0093011979c95102cb0093025b099394519302cb0093025b0993bc77209106b1426f4bb67ba4133d040b5258a9f177939c338266d249a1f8780e0ea2e55279827c75519658cd53797e5279827c75519658cd53797e7ed98801205c797e01015c797e01085c7958cd7e01205c797e01085c7958cd7e01205c797e01205c797e01085c7958cd7e01205c797e01085c7958cd7e7e7e7e7e7e7e7e7e7e52797c7e787eaa02000001aa7e01207e7c7e01877e012679c388b9cb009c697575757575757575757575757575757575757575757575757575757575757575757575757575755167760412ab1c6187637553797600050000000001a569b1b3529c6903000020787e01ac7eb9c2b9be9c69b9c3788769b9cb009c6975757575757575757551677604a089310987637558798201419d75587978ac69b9cb009c6975757575757575757551676a686868","span":{"offset":1,"len":161},"templateHashHex":"18e3d59aa9403539ccb8bd04ef2c9c81fe21f0602f3ff55e9e6f0ce375d17a2b","entries":{"accept":"948f2512","cancel":"a0893109","expire":"12ab1c61"},"fields":["ownerIdentifier","identifierType","edition_covid","askPrice","expireAge","artist","royalty_bips","offerer"]}},"engines":{},"bundles":{"demo":{"reliks_provenance_bundle":1,"generated_at":"2026-11-15","network":"testnet-10","hrp":"kaspatest","series":{"id":"dag-city-demo","title":"DAG-City (Reliks-VM)","laneCovenantId":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","genesisTxId":"029c14e56034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb904","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","price":"100000000","royalty_bips":"500","mints_left_at_genesis":8,"next_serial_at_genesis":0,"engine_lang":2,"engine_kind":"vm","program_hash":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","render_hash":"9bd989c4375220fbcb87b566c310b1ec6cb1f053ed3a701408d10bd805b9d405"},"editions":[{"index":0,"serial":"0","serial32":0,"lanes":[1132856107,-45773849,427467749,-444993830,1369460897,-139473406,903198752,-1959089697],"pat":6,"wear":0,"covenantId":"969d28de67b9771228c6830d779a50154919b78800c94e5585d998e76fa80758","mintTxId":"c7fc689f54f404e0a770ddb4d303b861592d1d508c779c545a64407fccf72846","outputIndex":1,"ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","state":{"ownerIdentifier":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","identifierType":0,"price":"0","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","royalty_bips":"500","program_hash":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","factory_covid":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","serial":"0","lineage":"3dfad2664a3bcffdb6874b6aae2bd839d2c92721828860bd13657e7a05b14df1","sales":"0"},"expectedSpk":"aa20c966e2f081a903e455efc826f009a1dc28175162258f03c5d7d5bbb0054aa43187","render_hash":"743eb0441d902e2de0491bb52adb3bd8a3d5309d23d95a18fad3f69a927f4d67","svg_bytes":94331,"vm_stats":{"fuel":86515,"elems":1540,"svg_len":94331,"max_stack":6,"max_calls":2,"max_groups":1,"max_segs":11,"grads":1}},{"index":1,"serial":"1","serial32":1,"lanes":[-1198380339,-1966742477,-1681940643,1263394305,414200260,169868953,1009119311,-2063665225],"pat":58,"wear":1,"covenantId":"d4464826974a99e02152a5b8d58edfe419ea4c633cdff5595e74267ceca1b608","mintTxId":"86860766c7a104e0a770ddb4d303b861592d1d508c779c545a64407fccf72847","outputIndex":1,"ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","state":{"ownerIdentifier":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","identifierType":0,"price":"0","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","royalty_bips":"500","program_hash":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","factory_covid":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","serial":"1","lineage":"e4a2645da3ed117a04444a62cff1205938dcceaafec6a0308f434b02e3a8002c","sales":"1"},"expectedSpk":"aa2046ee57b8ef8925af134de2e92e96ce6b49498bea9564877445d2615191209f6487","render_hash":"d08df5503e681e85fde5c6f46b817ef12c3144c9f47e43e57099b131cc50f52c","svg_bytes":83757,"vm_stats":{"fuel":79704,"elems":1349,"svg_len":83757,"max_stack":6,"max_calls":2,"max_groups":1,"max_segs":21,"grads":1}},{"index":2,"serial":"2","serial32":2,"lanes":[1531818317,23976151,-192246399,26895651,1814580642,635889071,75825422,-1230854900],"pat":51,"wear":3,"covenantId":"5e336e86aa75541d9652b161e3e9ea2f07d358451ae21640292c3e5e9c536fd2","mintTxId":"4fef24e96034353f671ab2abdec244d53dc65bf2298304a533e1d6529badb905","outputIndex":1,"ownerAtMint":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","state":{"ownerIdentifier":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","identifierType":0,"price":"0","artist":"25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b","royalty_bips":"500","program_hash":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","factory_covid":"cf1f1e60a7381496d886aaa5dddb2317c848202bdf1abdf9fe0accb7ba826d07","serial":"2","lineage":"0eeecba9f3e7a1021fdafd12710e2b3b2b973f0ea000f4f0f5890c5a3613f468","sales":"3"},"expectedSpk":"aa202639cf4700bcd38c153e9bbc5a24ec0820e340d5c0d7000076b39f10be715e6a87","render_hash":"1ac5944b6b8e210f909e0dd2d10bcaaad975874dc274e85e28c5b9714ff5a775","svg_bytes":87861,"vm_stats":{"fuel":84986,"elems":1421,"svg_len":87861,"max_stack":6,"max_calls":2,"max_groups":1,"max_segs":22,"grads":1}}]}},"studio":{"templates":{"iso":"; Reliks metropolis diorama. Patina: bits 0-1 theme (paper, dusk, night, rose), bits 2-3 district style.\n; Light, gradual, optional sales wear (change \"wear push 1 mul\" to \"wear push 0 mul\" or uncheck Enable Wear in Studio to disable):\n; delicate celestial halo rings, gentle starlight/firefly motes, warmer window life, and glowing spire/rooftop beacons.\n.canvas 1600 1600\n.var X 0 .var Y 1 .var I 2 .var J 3 .var S 4 .var K 5 .var H 6 .var D 7 .var T 8\n.var WR 9 .var TH 10 .var STY 11 .var BB 12 .var BT 13 .var MT 14 .var FG 15 .var DC 16 .var A 17 .var B 18 .var R 19\n.var COL 20 .var TY 21 .var E 22 .var DW 23 .var DH 24\n.var S0 30 .var S1 31 .var SUC 32 .var SUD 33 .var M0 34 .var M1 35 .var M2 36 .var SHD 37 .var RD 38 .var PV1 39 .var PV2 40\n.var GRS 41 .var TRE 42 .var WLT 43 .var WDK 44 .var LITP 45 .var STR 46 .var INK 47 .var SR 48\n.var BX 50 .var BY 51 .var BW 52 .var BWH 53 .var BD 54 .var CT 55 .var CL 56 .var CR 57\n.var C0 58 .var C1 59 .var MT2 60 .var CA 61 .var CB 62 .var CTT 63 .var WX 64 .var WY 65 .var SLP 66\n.var PK 68 .var LO 69 .var MD 70\nlane 0 serial xor lane 1 lane 2 lane 3 rnginit\nwear push 1 mul st WR ; wear_toggle (1 = enabled, 0 = disabled)\npat push 3 and st TH\npat push 2 shr push 3 and st STY\ncall theme\npush 12 st PK push 25 st LO push 30 st MD\nld STY push 3 eq jz y3 push 35 st PK\ny3: ld STY push 1 eq jz y1 push 10 st LO push 20 st MD\ny1: ld STY push 2 eq jz y2 push 50 st LO\ny2: push 0 st K\nbl: push 100 call rmod st T\nld T ld PK lt jz b1 push 0 st BT jmp bset\nb1: ld T ld PK ld LO add lt jz b2 push 1 st BT jmp bset\nb2: ld T ld PK ld LO add ld MD add lt jz b3 push 2 st BT jmp bset\nb3: push 3 st BT\nbset: ld BT ld K push 256 add stx\npush 3 call rmod ld K push 272 add stx\nnext K 16 bl\npush -1 stroke push 100 opacity push 0 st K\nsky: ld S0 ld S1 ld K call mix fill push 0 ld K push 25 mul push 1600 push 26 rect next K 64 sky\npush 30 gopen ld S1 fill push 0 st K\ncl: push -100 push 900 rndr st X push 120 push 520 rndr st Y push 240 push 700 rndr st A push 8 push 16 rndr st B\nld X ld Y ld A ld B rect\nld X ld Y ld B push 2 div add ld B push 2 div circle\nld X ld A add ld Y ld B push 2 div add ld B push 2 div circle\nnext K 6 cl\ngclose\nld SUD fill push 70 opacity\nld STR jz nost push 0 st K\nstars: push 20 push 1580 rndr push 20 push 640 rndr push 1 push 3 rndr circle next K STR stars\nnost: push 100 opacity\ngradbegin push 0 ld SUC push 100 gradstop push 40 ld SUC push 45 gradstop push 100 ld SUC push 0 gradstop gradend\npush 0x1000000 fill push 800 push 560 push 520 ld WR push 3 div add circle\nld SUD fill push 800 push 560 ld SR circle\npush -1 fill ld SUD stroke push 2 swidth push 45 opacity\npush 800 push 560 ld SR push 40 add circle push 800 push 560 ld SR push 90 add circle push 800 push 560 ld SR push 160 add circle\nld WR jz nohalo\nld WLT stroke push 1 swidth push 12 ld WR push 10 div add opacity\npush 800 push 560 ld SR push 220 add ld WR push 6 div add circle\nld WR push 24 lt jnz nohalo\npush 800 push 560 ld SR push 290 add ld WR push 4 div add circle\nld WR push 80 lt jnz nohalo\npush 800 push 560 ld SR push 370 add ld WR push 3 div add circle\nnohalo: push -1 stroke push 100 opacity\nld INK fill push 8 opacity push 40 st E\nsh: call bigdia ld E push 12 sub st E ld E push 0 gt jnz sh\npush 100 opacity\nld RD ld SHD push 14 call mix fill\npbegin push 140 push 970 m push 800 push 1300 l push 800 push 1340 l push 140 push 1010 l z pend\nld RD ld SHD push 28 call mix fill\npbegin push 1460 push 970 m push 800 push 1300 l push 800 push 1340 l push 1460 push 1010 l z pend\npush 0 st S\nsloop: ld S push 14 sub push 0 max st I\niloop: ld I push 14 le ld I ld S le and jz idone ld S ld I sub st J\ncall tile\nld I push 1 add st I jmp iloop\nidone: nextle S 28 sloop\npush -1 fill ld INK stroke push 3 swidth push 70 opacity\npbegin push 140 push 970 m push 800 push 1300 l push 1460 push 970 l pend\npush -1 stroke push 100 opacity\nld WR jz nowear\n; Gentle atmospheric fireflies / starlight motes rising around the metropolis\npush 1 ld WR push 7 div add st A\npush 0 st K\nmotes: push 180 push 1420 rndr st X push 140 push 1060 rndr st Y\npush 0x1000000 fill push 18 ld WR push 12 div add opacity\nld X ld Y push 10 push 22 rndr circle\nld WLT fill push 45 ld WR push 6 div add push 85 min opacity\nld X ld Y push 1 push 3 rndr circle\nnext K A motes\nnowear: push 100 opacity push -1 fill ld INK stroke push 7 swidth push 36 push 36 push 1528 push 1528 rect halt\ntile: ld I ld J call ix st X\nld I ld J call iy st Y\npush 28 ld S sub push 5 mul push 8 div st FG\npush 44 st DW push 22 st DH\nld I push 4 mod push 3 eq st A\nld J push 4 mod push 3 eq st B\nld A ld B or jz noroad\nld RD ld S1 ld FG call mix fill\nld X ld Y call dia\nld A ld B and jnz plaza\nld A jz alongi\nld WLT stroke push 3 swidth push 60 opacity\nld X push 18 add ld Y push 13 add ld X push 18 sub ld Y push 31 add line\npush -1 stroke push 100 opacity ret\nalongi: ld WLT stroke push 3 swidth push 60 opacity\nld X push 18 sub ld Y push 13 add ld X push 18 add ld Y push 31 add line\npush -1 stroke push 100 opacity ret\nplaza: ld PV2 ld S1 ld FG call mix fill push 30 st DW push 15 st DH ld X ld Y push 7 add call dia\nld I push 7 eq ld J push 7 eq and jz pz\ncall spire\npz: ret\nnoroad: ld I ld J add push 2 mod jz p1 ld PV1 jmp p2\np1: ld PV2\np2: ld S1 ld FG call mix fill\ncall dia0\nld I push 12 and ld J push 2 shr add st BB\nld BB push 256 add ldx st BT\nld BT jnz bld\nld GRS ld S1 ld FG call mix fill push 36 st DW push 18 st DH ld X ld Y push 4 add call dia\npush 0 st K\ntr: push -20 push 20 rndr st A push -6 push 6 rndr st B push 8 push 13 rndr st R\nld TRE ld S1 ld FG call mix fill\nld X ld A add ld Y push 12 add ld B add ld R circle\nld GRS ld S1 ld FG call mix fill\nld X ld A add push 2 sub ld Y push 10 add ld B add ld R push 3 sub circle\nnext K 3 tr\nret\nbld: ld I push 7 sub abs ld J push 7 sub abs add st DC\npush 14 ld DC sub ld BT push 4 mul push 1 add mul push 12 div push 1 push 3 rndr add st H\nld H push 18 min push 1 max st H\nld H push 22 mul st D\nld BB push 272 add ldx st MT\npush 100 call rmod push 30 lt jz km push 3 call rmod st MT\nkm: ld MT jnz ma ld M0 st CT jmp ms\nma: ld MT push 1 eq jz mb ld M1 st CT jmp ms\nmb: ld M2 st CT\nms: ld CT ld WLT ld WR push 24 div call mix st CT\nld CT ld SHD push 12 call mix st CL\nld CT ld SHD push 24 call mix st CR\nld CT ld S1 ld FG call mix st CT\nld CL ld S1 ld FG call mix st CL\nld CR ld S1 ld FG call mix st CR\nld X st BX ld Y push 4 add st BY ld D st BD push 36 st BW push 18 st BWH call cube\nld BY ld BD sub st TY\ncall windows\nld H push 8 lt jnz done2\npush 100 call rmod push 60 lt jz done2\nld X st BX ld TY push 8 add st BY push 20 st BW push 10 st BWH push 2 push 4 rndr push 22 mul st BD call cube\nld H push 10 lt jnz done2\nld BY ld BD sub push 10 add st TY\npush 18 push 40 rndr st A\nld INK stroke push 3 swidth ld X ld TY ld X ld TY ld A sub line push -1 stroke\nld WR jz nocrownhalo\npush 0x1000000 fill push 25 ld WR push 8 div add opacity ld X ld TY ld A sub push 8 ld WR push 18 div add circle push 100 opacity\nnocrownhalo: ld WLT fill ld X ld TY ld A sub push 3 circle\ndone2: ret\ndia0: push 44 st DW push 22 st DH ld X ld Y call dia ret\ndia: pbegin over over m ld DW ld DH lr ld DW neg ld DH lr ld DW neg ld DH neg lr z pend drop drop ret\ncube: ld CT fill\npbegin ld BX ld BY ld BD sub m ld BW ld BWH lr ld BW neg ld BWH lr ld BW neg ld BWH neg lr z pend\nld CL fill\npbegin ld BX ld BW sub ld BY ld BD sub ld BWH add m ld BW ld BWH lr push 0 ld BD lr ld BW neg ld BWH neg lr z pend\nld CR fill\npbegin ld BX ld BW add ld BY ld BD sub ld BWH add m ld BW neg ld BWH lr push 0 ld BD lr ld BW ld BWH neg lr z pend\nret\nwindows: push 0 st K\nwrow: push 0 st COL\nwcol: ld X push 31 sub ld COL push 16 mul add st WX\nld TY push 18 add push 5 ld COL push 16 mul add push 2 div add ld K push 22 mul add push 6 add st WY\npush 1 st SLP call win\nld X push 5 add ld COL push 16 mul add st WX\nld TY push 36 add push 5 ld COL push 16 mul add push 2 div sub ld K push 22 mul add push 6 add st WY\npush -1 st SLP call win\nnext COL 2 wcol\nnext K H wrow\nret\nwin: push 100 call rmod st T\nld LITP ld WR push 10 div add push 78 min st B\nld T ld B lt jz wdark\nld WLT fill push 100 opacity jmp wdraw\nwdark: ld WDK fill push 55 opacity\nwdraw: pbegin ld WX ld WY m push 9 push 4 ld SLP mul lr push 0 push 10 lr push -9 push -4 ld SLP mul lr z pend\npush 100 opacity ret\nspire: ld M2 st CT\nld CT ld SHD push 12 call mix st CL\nld CT ld SHD push 24 call mix st CR\nld X st BX ld Y push 17 add st BY push 10 st BW push 5 st BWH push 540 st BD call cube\nld INK stroke push 3 swidth ld X ld Y push 22 add push 540 sub ld X ld Y push 22 add push 600 sub line push -1 stroke\npush 0x1000000 fill ld X ld Y push 22 add push 604 sub push 80 ld WR push 4 div add circle\nld WR jz nospirehalo\npush -1 fill ld WLT stroke push 1 swidth push 22 ld WR push 8 div add opacity\nld X ld Y push 22 add push 604 sub push 26 ld WR push 6 div add circle\npush -1 stroke push 100 opacity\nnospirehalo: ld SUD fill ld X ld Y push 22 add push 604 sub push 7 circle\nret\nbigdia: pbegin push 800 push 680 ld E push 2 div sub m push 1460 ld E add push 1010 l push 800 push 1340 ld E push 2 div add l push 140 ld E sub push 1010 l z pend ret\nix: sub push 44 mul push 800 add ret\niy: add push 22 mul push 640 add ret\nrmod: push 0 swap push 1 sub rndr ret\nch: st CTT st CB st CA ld CA ld CB ld CA sub ld CTT mul push 63 div add ret\nmix: st MT2 st C1 st C0\nld C0 push 16 ushr push 255 and ld C1 push 16 ushr push 255 and ld MT2 call ch push 16 shl\nld C0 push 8 ushr push 255 and ld C1 push 8 ushr push 255 and ld MT2 call ch push 8 shl or\nld C0 push 255 and ld C1 push 255 and ld MT2 call ch or ret\ntheme: ld TH jnz t1\npush 0xe0d8c0 st S0 push 0xeee7d1 st S1 push 0xe8923a st SUC push 0xffd9a0 st SUD push 0x4b4a3f st M0 push 0xf0e9d3 st M1 push 0x49c5b1 st M2 push 0x1c1c16 st SHD\npush 0x3a3a33 st RD push 0xd8cfb2 st PV1 push 0xe0d8bf st PV2 push 0x7fbfa4 st GRS push 0x2e8f85 st TRE push 0x8fe8d8 st WLT push 0x34332b st WDK push 40 st LITP push 0 st STR push 0x3a3a33 st INK push 150 st SR ret\nt1: ld TH push 1 eq jz t2\npush 0x3b2a5c st S0 push 0xf29a5b st S1 push 0xff7a3d st SUC push 0xffe2a8 st SUD push 0x2d2438 st M0 push 0xf0d5b8 st M1 push 0x49c5b1 st M2 push 0x1a0f26 st SHD\npush 0x2a2233 st RD push 0x8a6a78 st PV1 push 0x967483 st PV2 push 0x3f7f78 st GRS push 0x1f5c58 st TRE push 0xffd27a st WLT push 0x1a1424 st WDK push 55 st LITP push 25 st STR push 0x1a0f26 st INK push 190 st SR ret\nt2: ld TH push 2 eq jz t3\npush 0x060a14 st S0 push 0x1b2f4f st S1 push 0x9ad8e8 st SUC push 0xf4f8ff st SUD push 0x1c2233 st M0 push 0x5b6b8f st M1 push 0x2a8c88 st M2 push 0x000208 st SHD\npush 0x0c1018 st RD push 0x1a2236 st PV1 push 0x202a40 st PV2 push 0x12403f st GRS push 0x0d2c2e st TRE push 0xffe39a st WLT push 0x0a0e18 st WDK push 60 st LITP push 70 st STR push 0x2a3a5c st INK push 90 st SR ret\nt3: push 0xf3cfc8 st S0 push 0xfaf0e0 st S1 push 0xe86a8a st SUC push 0xfff4e0 st SUD push 0x5a3446 st M0 push 0xfff0e6 st M1 push 0xe86a8a st M2 push 0x3a1c2c st SHD\npush 0x6b4a5a st RD push 0xf0d9d0 st PV1 push 0xf6e4dc st PV2 push 0xa8d5b5 st GRS push 0x4f9a78 st TRE push 0xffe8b0 st WLT push 0x5a3446 st WDK push 35 st LITP push 0 st STR push 0x5a3446 st INK push 130 st SR ret\n","dsl_rings":"; Celestial Rings — High-Level Reliks-Script DSL example.\n; Uses .vars (auto-numbered), seedrng, bg, set, rand, for/endfor, and if/else/endif.\n.canvas 1000 1000\n.vars I X Y R C WR\nseedrng\nwear push 1 mul st WR ; wear_toggle (1 = enabled, 0 = disabled)\nbg 0x090d16\n\n; Central radial glow\ngradbegin push 0 push 0xffd9a0 push 95 gradstop push 45 push 0x49c5b1 push 35 gradstop push 100 push 0x090d16 push 0 gradstop gradend\npush 0x1000000 fill push 500 push 500 push 360 ld WR add circle\n\n; Concentric orbital rings (structured for loop + if/else)\npush -1 fill push 2 swidth\nfor I 1 18\n  ld I push 2 mod if\n    push 0x49c5b1 pat push 4096 mul xor stroke\n    push 55 opacity\n  else\n    push 0xe8923a stroke\n    push 35 opacity\n  endif\n  push 500 push 500 ld I push 24 mul circle\nendfor\n\n; Orbiting moons & starlight motes\npush -1 stroke\nfor I 0 48\n  rand 120 880 st X\n  rand 120 880 st Y\n  rand 4 26 st R\n  rand 0 100 push 35 lt if\n    push 0xffd9a0 fill push 85 opacity\n  else\n    push 0x49c5b1 pat push 65536 mul xor fill\n    push 70 ld WR push 6 div add push 95 min opacity\n  endif\n  ld X ld Y ld R circle\nendfor\nhalt\n","vm_circles":"; Starter: 40 circles. Position and size come from the seed (RNG), opacity from wear, colour from patina.\n.canvas 400 400\n.var I 0 .var X 1 .var Y 2 .var R 3\nlane 0 serial xor lane 1 lane 2 lane 3 rnginit\npush 0x0b0f14 fill push 0 push 0 push 400 push 400 rect\npush 0 st I\nloop:\npush 20 push 380 rndr st X\npush 20 push 380 rndr st Y\npush 6 push 40 rndr st R\npush 0x49c5b1 pat push 16 shl xor fill\npush 100 wear push 6 div sub opacity\nld X ld Y ld R circle\nnext I 40 loop\nhalt\n","vm_dagcity":".canvas 1600 1600\n.var RX 0 .var RY 1 .var RZ 2 .var RW 3\n.var X 17 .var Y 18\n.var I 4 .var J 5 .var K 6 .var S 7 .var H 8 .var D 9 .var T 10 .var DK 11 .var C 12\n.var WI 13 .var WJ 14 .var N 15 .var P0 16 .var TM 20 .var TOP 21 .var LF 22 .var RF 23\n.var WN 24 .var AH 25 .var DI 26 .var DJ 27 .var NN 28 .var E2 29 .var QX 30 .var QY 31\n.var BX 32 .var BY 33 .var GX 34 .var GY 35\ngradbegin push 0 push 0xffd9a0 push 100 gradstop push 30 push 0xe8923a push 80 gradstop push 100 push 0xe8923a push 0 gradstop gradend\npush 0xe7dfc8 fill push 0 push 0 push 1600 push 1600 rect\nlane 0 serial xor lane 1 lane 2 lane 3 rnginit\npush 0xd3c9ab stroke push 50 gopen push 0 st I\nscatter: push 60 push 1540 call ri st X push 60 push 1540 call ri st Y push 30 push 130 call ri st K\nld X ld Y ld X ld K add ld Y ld K push 2 div add line next I 150 scatter gclose\npush 0xcfc5a8 stroke push 55 gopen push 0 st I\ngrid: ld I push 0 call ix ld I push 0 call iy ld I push 13 call ix ld I push 13 call iy line\npush 0 ld I call ix push 0 ld I call iy push 13 ld I call ix push 13 ld I call iy line nextle I 13 grid gclose\npush 0 st N push 0 st C\ncanal: ld C push 2 mod jz even push 2 push 11 call ri st WI push 0 st WJ jmp start\neven: push 0 st WI push 2 push 11 call ri st WJ\nstart: ld N st P0 call addpt\nwalk: ld WI push 13 lt ld WJ push 13 lt and jz wdone push 2 call rmod jz incj ld WI push 1 add st WI jmp cont\nincj: ld WJ push 1 add st WJ\ncont: call addpt jmp walk\nwdone: push 30 push 0x2f2f28 push 100 call poly push 22 push 0x49c5b1 push 100 call poly push 6 push 0xbfeee2 push 85 call poly next C 4 canal\npush -1 stroke push 100 opacity\npush 0 st S\nsloop: ld S push 13 sub push 0 max st I\niloop: ld I push 13 le ld I ld S le and jz idone ld S ld I sub st J\nld I push 14 mul ld J add push 256 add ldx jnz inext\npush 10 call rmod st T ld T push 1 lt jz notplaza\npush 0xddd4ba fill ld I ld J call ix ld I ld J call iy call dia jmp inext\nnotplaza: ld T push 7 gt jz lowh push 6 push 9 call ri st H jmp hset\nlowh: push 2 push 5 call ri st H\nhset: ld T push 3 mod st DK\nld DK jnz c1 push 0x4b4a3f st TOP push 0x34332b st LF push 0x26251e st RF jmp cdone\nc1: ld DK push 1 eq jz c2 push 0xf0e9d3 st TOP push 0xd8cfb3 st LF push 0xbfb598 st RF jmp cdone\nc2: push 0x49c5b1 pat push 0x040404 mul xor st TOP push 0x2e8f85 st LF push 0x1f6b64 st RF\ncdone: ld I ld J call ix st X ld I ld J call iy ld H push 22 mul sub st Y ld H push 22 mul st D\nld TOP fill ld X ld Y call dia\nld LF fill pbegin ld X push 36 sub ld Y push 18 add m push 36 push 18 lr push 0 ld D lr push -36 push -18 lr z pend\nld RF fill pbegin ld X push 36 add ld Y push 18 add m push -36 push 18 lr push 0 ld D lr push 36 push -18 lr z pend\npush 2 ld H push 3 gt add st WN\nld DK push 1 eq jz wl1 push 0x34332b fill push 100 opacity jmp wl2\nwl1: push 0x8fe8d8 fill push 90 wear push 50 min sub opacity\nwl2: push 0 st K\nwloop: pbegin ld X push 36 sub push 6 add ld K push 10 mul add ld Y push 18 add push 6 add m push 7 push 4 lr push 0 push 11 lr push -7 push -4 lr z pend next K WN wloop push 100 opacity\nld H push 6 lt jnz nodoor\nld DK push 1 eq jz d1 push 0x26251e fill jmp d2\nd1: push 0x123c36 fill\nd2: pbegin ld X push 6 add ld Y push 18 add ld D add push 24 sub m push 0 push -11 lr push 10 push -12 push 20 push 0 qr push 0 push 11 lr z pend\npush 18 push 42 call ri st AH push 0x26251e stroke push 3 swidth\nld X ld Y push 18 add ld X ld Y push 18 add ld AH sub line\npush -1 stroke push 0x49c5b1 fill ld X ld Y push 18 add ld AH sub push 3 circle\nnodoor: ld T push 6 eq ld T push 7 eq or jz inext\npush 2 call rmod st DI push 1 ld DI sub st DJ push 4 push 7 call ri st NN push 1 st K\nrloop: ld H push 22 mul ld K push 13 mul sub st E2\nld I ld DI ld K mul add ld J ld DJ ld K mul add call ix st QX\nld I ld DI ld K mul add ld J ld DJ ld K mul add call iy ld E2 push 0 max sub st QY\npush 0xefe8d2 fill ld QX ld QY call dia\npush 0x34332b fill pbegin ld QX push 36 sub ld QY push 18 add m push 36 push 18 lr push 0 push 13 lr push -36 push -18 lr z pend nextle K NN rloop\ninext: ld I push 1 add st I jmp iloop\nidone: nextle S 26 sloop\npush 100 gopen push 0 st K\nbloop: ld K ld N lt jz bdone push 3 call rmod jnz bskip\nld K push 512 add ldx push 2 call rmod jz bneg push 26 jmp bx2\nbneg: push -26\nbx2: add st BX ld K push 640 add ldx push 8 add st BY\npush 0x49c5b1 fill push 22 opacity ld BX ld BY push 9 circle push 100 opacity push 0xbfeee2 fill ld BX ld BY push 3 circle\nbskip: ld K push 1 add st K jmp bloop\nbdone: gclose\npush 6 push 6 call ix st GX push 6 push 6 call iy push 2 push 4 call ri push 22 mul sub st GY\npush 0x1000000 fill ld GX ld GY push 110 circle push 0xffffff fill ld GX ld GY push 9 circle\npush -1 fill push 2 swidth push 75 opacity push 14 st K\nrings: ld K push 34 gt jz warm push 0x49c5b1 stroke jmp go\nwarm: push 0xe8923a stroke\ngo: ld GX ld GY ld K circle ld K push 7 add dup st K push 42 le jnz rings\npush -1 fill push 0x3a3a33 stroke push 7 swidth push 100 opacity push 36 push 36 push 1528 push 1528 rect halt\nix: sub push 36 mul push 800 add ret\niy: add push 13 sub push 18 mul push 770 add ret\ndia: pbegin over over m push 36 push 18 lr push -36 push 18 lr push -36 push -18 lr z pend drop drop ret\naddpt: push 1 ld WI push 14 mul ld WJ add push 256 add stx ld WI ld WJ call ix ld N push 512 add stx ld WI ld WJ call iy ld N push 640 add stx ld N push 1 add st N ret\npoly: opacity stroke swidth push -1 fill pbegin ld P0 st K ld K push 512 add ldx ld K push 640 add ldx m ld K push 1 add st K\npl: ld K ld N lt jz pldone ld K push 512 add ldx ld K push 640 add ldx l ld K push 1 add st K jmp pl\npldone: pend ret\nri: over sub push 1 add call rmod add ret\nrmod: push 0 swap push 1 sub rndr ret"},"cap":25641}};
+(function(D){var fe='00'.repeat(3888);D.templates.factory.suffixHex=D.templates.factory.suffixHex.split('__FENG__').join(fe).split('__EDS__').join(D.templates.edition.suffixHex);if(D.bundles&&D.bundles.demo&&D.bundles.demo.series&&!D.bundles.demo.series.program_hex&&D.studio&&D.studio.templates&&D.studio.templates.vm_dagcity){var p0=RvmAsm.assemble(D.studio.templates.vm_dagcity),h0='';for(var j=0;j<p0.length;j++)h0+=(p0[j]<16?'0':'')+p0[j].toString(16);D.bundles.demo.series.program_hex=h0;}})(window.RELIKS_DATA);
+window.__qr=function(){if(!window.qrcode){(0,eval)(document.getElementById('qr-src').textContent);}return window.qrcode;};</script>
 <script>(function (root, factory) {
 if (typeof module === 'object' && module.exports) module.exports = factory();
 else root.ReliksBlake2b = factory();
@@ -2494,14 +2724,11 @@ if (a[a.length - 1] & 128) return cat([new Uint8Array([a.length + 1]), a, new Ui
 if (neg) a[a.length - 1] |= 128;
 return cat([new Uint8Array([a.length]), a]);
 }
-var ED = [['ownerIdentifier', 32], ['identifierType', 1], ['price', 8], ['artist', 32], ['royalty_bips', 8], ['program_hash', 32], ['factory_covid', 32], ['serial', 8]];
-var ED13 = ED.concat([['lineage', 32], ['sales', 8]]);
-function edTable(edTpl) {
-var f = (edTpl && edTpl.fields) || (TPL && TPL.edition && TPL.edition.fields);
-return (f && f.indexOf('lineage') >= 0) ? ED13 : ED;
-}
-function editionHasLineage(edTpl) { return edTable(edTpl) === ED13; }
-var FC = [['program_hash', 32], ['artist', 32], ['price', 8], ['royalty_bips', 8], ['mints_left', 8], ['engine_lang', 8], ['render_hash', 32]];
+var MIN_ROYALTY_OUT = 5000000n;  // 0.05 KAS royalty mineability floor
+var MIN_ROYALTY_BIPS = 500n;     // 5% minimum royalty
+var ED = [['ownerIdentifier', 32], ['identifierType', 1], ['price', 8], ['artist', 32], ['royalty_bips', 8], ['program_hash', 32], ['factory_covid', 32], ['serial', 8], ['lineage', 32], ['sales', 8]];
+var FC = [['program_hash', 32], ['artist', 32], ['price', 8], ['royalty_bips', 8], ['mints_left', 8], ['engine_lang', 8], ['render_hash', 32], ['next_serial', 8]];
+function editionHasLineage() { return true; }
 function encFields(tbl, s) {
 var out = [];
 for (var i = 0; i < tbl.length; i++) {
@@ -2520,8 +2747,11 @@ out.push(pushExp(bytes));
 }
 return cat(out);
 }
-function encFactoryState(s) { return encFields(FC, s); }
-function encEditionState(s, edTpl) { return encFields(edTable(edTpl), s); }
+function encFactoryState(s) {
+var st = (s && (s.next_serial === undefined || s.next_serial === null)) ? Object.assign({}, s, { next_serial: 0n }) : s;
+return encFields(FC, st);
+}
+function encEditionState(s) { return encFields(ED, s); }
 var TPL = null;
 function init(templates) {
 if (!templates || !templates.factory || !templates.edition) throw new Error('templates missing');
@@ -2533,58 +2763,39 @@ function redeem(t, encoded) { return cat([hex2u8(t.prefixHex), encoded, hex2u8(t
 function buildFactorySuffix(progBytes, edTemplate) {
 var baseSuf = hex2u8(tpl().factory.suffixHex);
 var edTpl = edTemplate || tpl().edition;
-var isV13 = editionHasLineage(edTpl);
 var prog = progBytes instanceof Uint8Array ? progBytes : hex2u8(progBytes);
 if (prog.length < 1 || prog.length > 25641) throw new Error('program length must be 1..25641 bytes');
 var pushProg = pushMin(prog);
-var edSuf = hex2u8(edTpl.suffixHex);
-var pushEd = pushMin(edSuf);
+var pushEd = pushMin(hex2u8(edTpl.suffixHex));
 var pushTh = pushMin(hex2u8(edTpl.templateHashHex));
-var p0 = baseSuf.subarray(0, 74);
-var p1 = baseSuf.subarray(3965, 4007);
-var p2 = baseSuf.subarray(7898, 8124);
-var v13Lin = isV13 ? hex2u8('0f52656c696b7347656e657369735632b9ba7eb9bb54cd7eaa00') : new Uint8Array(0);
-var p4 = baseSuf.subarray(8157, 8169);
-var p5 = baseSuf.subarray(10174, 10181);
-var p6 = baseSuf.subarray(12186, 12190);
-var p7 = isV13
-? hex2u8('01205a797e01015a797e01085a7958cd7e01205a797e01085a7958cd7e01205a797e01205a797e01085a7958cd7e01205a797e01085a7958cd7e7e7e7e7e7e7e7e7e7e')
-: baseSuf.subarray(12190, 12243);
-var p8 = baseSuf.subarray(12243, 12247);
-var p9 = baseSuf.subarray(14252, 14268);
-var p10 = isV13
-? hex2u8('011779c388011679c20400e1f505a269b9cb519c69b900cc76c2b9bea2690115790115790115790115790115795194011579011579')
-: baseSuf.subarray(14268, 14324);
-var tailHex = u8hex(baseSuf.subarray(14324));
-if (isV13) {
-tailHex = tailHex.replace('75'.repeat(31) + '5167760499ec7fba', '75'.repeat(33) + '5167760499ec7fba');
-}
-var headLen = p0.length + pushProg.length + p1.length + pushProg.length + p2.length + v13Lin.length + pushTh.length + p4.length + pushEd.length + p5.length + pushEd.length + p6.length + p7.length + p8.length + pushEd.length + p9.length + p10.length;
+var c0 = baseSuf.subarray(0, 76);
+var c1 = baseSuf.subarray(3967, 4009);
+var c2 = baseSuf.subarray(7900, 7985);
+var c3 = baseSuf.subarray(8018, 8030);
+var c4 = baseSuf.subarray(10428, 10435);
+var c5 = baseSuf.subarray(12833, 12908);
+var tailHex = u8hex(baseSuf.subarray(15306));
+var headLen = c0.length + pushProg.length + c1.length + pushProg.length + c2.length + pushTh.length + c3.length + pushEd.length + c4.length + pushEd.length + c5.length + pushEd.length;
+var oldPat = 'b976c902414194765193bc7c7eb976c97602b0c0937cbc';
 var patchedTail = hex2u8(tailHex);
-var oldPat = 'b976c902a53c94765193bc7c7eb976c976021dbc937cbc';
 for (var iter = 0; iter < 3; iter++) {
 var sufLen = headLen + patchedTail.length;
-var totLen = 136 + sufLen;
+var totLen = 145 + sufLen;
 var newPat = 'b976c9' + u8hex(pushMinInt(totLen)) + '94765193bc7c7eb976c976' + u8hex(pushMinInt(-sufLen)) + '937cbc';
 patchedTail = hex2u8(tailHex.split(oldPat).join(newPat));
 }
-return cat([p0, pushProg, p1, pushProg, p2, v13Lin, pushTh, p4, pushEd, p5, pushEd, p6, p7, p8, pushEd, p9, p10, patchedTail]);
+return cat([c0, pushProg, c1, pushProg, c2, pushTh, c3, pushEd, c4, pushEd, c5, pushEd, patchedTail]);
 }
 function buildFactoryRedeem(state, progBytes, edTemplate) {
 if (!progBytes) return redeem(tpl().factory, encFactoryState(state));
 return cat([hex2u8(tpl().factory.prefixHex), encFactoryState(state), buildFactorySuffix(progBytes, edTemplate)]);
 }
 function factoryRedeem(s, progBytes, edTemplate) { return buildFactoryRedeem(s, progBytes, edTemplate); }
-function editionRedeem(s, edTemplate) { return redeem(edTemplate || tpl().edition, encEditionState(s, edTemplate)); }
+function editionRedeem(s, edTemplate) { return redeem(edTemplate || tpl().edition, encEditionState(s)); }
 function p2shSpk(redeemBytes) { return 'aa20' + u8hex(hash(redeemBytes)) + '87'; }
 function p2pkSpk(pubkeyHex) { return '20' + pubkeyHex + 'ac'; }
-function serialFromOutpoint(txId, index) {
-var h = hash(cat([utf8('ReliksSerialV10'), hex2u8(txId), le32(index)]));
-var s = 0n;
-for (var i = 0; i < 7; i++) s += BigInt(h[i]) * (256n ** BigInt(i));
-return (s + BigInt(h[7] % 128) * 72057594037927936n).toString();
-}
-function genesisLineage(txId, index) { return u8hex(hash(cat([utf8('ReliksGenesisV2'), hex2u8(txId), le32(index)]))); }
+function genesisLineage(factoryCovId, serial) { return u8hex(hash(cat([utf8('ReliksGenesisV2'), hex2u8(factoryCovId), le64(serial)]))); }
+function genesisLineageCounter(factoryCovId, serial) { return genesisLineage(factoryCovId, serial); }
 function advanceLineage(prevHex, ownerHex) { return u8hex(hash(cat([utf8('ReliksLineageV2'), hex2u8(prevHex), hex2u8(ownerHex)]))); }
 function covenantIdGenesis(authTxId, authIndex, outs) {
 var parts = [hex2u8(authTxId), le32(authIndex), le64(outs.length)];
@@ -2711,18 +2922,15 @@ return neg ? -v : v;
 function decodeFactoryState(revealedHex) {
 var span = tpl().factory.span;
 var pushes = parsePushes(revealedHex.slice(span.offset * 2, (span.offset + span.len) * 2));
-if (pushes.length !== 7) throw new Error('factory state has ' + pushes.length + ' fields, expected 7');
-return { program_hash: pushes[0], artist: pushes[1], price: u64le(pushes[2]), royalty_bips: u64le(pushes[3]), mints_left: u64le(pushes[4]), engine_lang: u64le(pushes[5]), render_hash: pushes[6] };
+if (pushes.length !== 8) throw new Error('factory state has ' + pushes.length + ' fields, expected 8');
+return { program_hash: pushes[0], artist: pushes[1], price: u64le(pushes[2]), royalty_bips: u64le(pushes[3]), mints_left: u64le(pushes[4]), engine_lang: u64le(pushes[5]), render_hash: pushes[6], next_serial: u64le(pushes[7]) };
 }
 function decodeEditionState(revealedHex, edTpl) {
 var et = edTpl || tpl().edition;
 var span = et.span;
 var p = parsePushes(revealedHex.slice(span.offset * 2, (span.offset + span.len) * 2));
-var want = edTable(et).length;
-if (p.length !== want) throw new Error('edition state has ' + p.length + ' fields, expected ' + want);
-var st = { ownerIdentifier: p[0], identifierType: Number(u64le(p[1])), price: u64le(p[2]), artist: p[3], royalty_bips: u64le(p[4]), program_hash: p[5], factory_covid: p[6], serial: u64le(p[7]).toString() };
-if (want === 10) { st.lineage = p[8]; st.sales = u64le(p[9]); }
-return st;
+if (p.length !== 10) throw new Error('edition state has ' + p.length + ' fields, expected 10');
+return { ownerIdentifier: p[0], identifierType: Number(u64le(p[1])), price: u64le(p[2]), artist: p[3], royalty_bips: u64le(p[4]), program_hash: p[5], factory_covid: p[6], serial: u64le(p[7]).toString(), lineage: p[8], sales: u64le(p[9]) };
 }
 function makeIO(cfg, fetchImpl) {
 var f = fetchImpl || (typeof fetch !== 'undefined' ? fetch.bind(globalThis) : null);
@@ -2755,7 +2963,7 @@ var state, source;
 if (laneTx === series.genesisTxId) {
 if (!series.genesisState) throw new Error('series registry lacks genesisState for an unspent lane');
 var g = series.genesisState;
-state = { program_hash: g.program_hash, artist: g.artist, price: BigInt(g.price), royalty_bips: BigInt(g.royalty_bips), mints_left: BigInt(g.mints_left), engine_lang: BigInt(g.engine_lang || 0), render_hash: g.render_hash };
+state = { program_hash: g.program_hash, artist: g.artist, price: BigInt(g.price), royalty_bips: BigInt(g.royalty_bips), mints_left: BigInt(g.mints_left), engine_lang: BigInt(g.engine_lang != null ? g.engine_lang : 2), render_hash: g.render_hash, next_serial: BigInt(g.next_serial != null ? g.next_serial : 0) };
 source = 'registry';
 } else {
 var mintTx = await io.tx(laneTx);
@@ -2763,7 +2971,7 @@ var prev = inputOutpoint(mintTx.inputs[0]);
 var spent = utxos.filter(function (u) { return u.outpoint === prev.txId + ':' + prev.index && u.revealed_hex; })[0];
 if (!spent) throw new Error('previous lane output has no revealed script in kascov');
 var st = decodeFactoryState(spent.revealed_hex);
-state = { program_hash: st.program_hash, artist: st.artist, price: st.price, royalty_bips: st.royalty_bips, mints_left: st.mints_left - 1n, engine_lang: st.engine_lang, render_hash: st.render_hash };
+state = { program_hash: st.program_hash, artist: st.artist, price: st.price, royalty_bips: st.royalty_bips, mints_left: st.mints_left - 1n, engine_lang: st.engine_lang, render_hash: st.render_hash, next_serial: st.next_serial + 1n };
 source = 'chain';
 if (state.mints_left < 0n) throw new Error('lane state underflow');
 }
@@ -2816,11 +3024,8 @@ artist: series.artist, royalty_bips: royBips,
 program_hash: series.programHash, factory_covid: series.laneCovenantId,
 serial: String(ed.serial)
 };
-if (hasLin) {
-var consumed = ed.index === 0 ? series.genesisTxId : (series.editions[ed.index - 1] && series.editions[ed.index - 1].mintTxId) || series.genesisTxId;
-mintState.lineage = ed.lineage || genesisLineage(consumed, 0);
+mintState.lineage = ed.lineage || genesisLineage(series.laneCovenantId, ed.serial);
 mintState.sales = BigInt(ed.sales || 0);
-}
 var kj = null;
 try { kj = await io.covenant(ed.covenantId); } catch (e) { kj = null; }
 var utxos = (kj && kj.utxos) || [];
@@ -2887,11 +3092,13 @@ var st = p.state, funding = p.funding, artist = p.artist, edTpl = p.editionTempl
 if (!/^[0-9a-f]{64}$/.test(artist.pubkey)) throw new Error('artist key must be 32 bytes of lowercase hex');
 if (p2pkAddress(p.hrp, artist.pubkey) !== artist.address) throw new Error('wallet public key does not belong to the connected address');
 var price = BigInt(st.price);
-if (price !== 0n && price < SOMPI) throw new Error('series price must be 0 or at least 1 KAS');
+if (price < SOMPI) throw new Error('series price must be at least 1 KAS');
 var roy = BigInt(st.royalty_bips);
-if (roy < 1n || roy > 2000n) throw new Error('royalty must be between 1 and 2000 bips (0.01% to 20%)');
+if (roy < MIN_ROYALTY_BIPS || roy > 2000n) throw new Error('royalty must be between 500 and 2000 bips (5% to 20%)');
 var supply = BigInt(st.mints_left);
 if (supply < 1n) throw new Error('series supply must be at least 1 edition');
+var nextSerial = BigInt(st.next_serial != null ? st.next_serial : 0);
+if (nextSerial < 0n || nextSerial >= (1n << 40n)) throw new Error('next_serial must be in [0, 2^40)');
 var prog = p.progBytes instanceof Uint8Array ? p.progBytes : hex2u8(p.progBytes);
 if (hashHex(prog) !== st.program_hash) throw new Error('program_hash does not match the assembled program bytes');
 var fee = BigInt(p.fee);
@@ -2902,7 +3109,7 @@ if (change < MIN_CHANGE) { fee += change; change = 0n; }
 var fullState = {
 program_hash: st.program_hash, artist: artist.pubkey, price: price,
 royalty_bips: roy, mints_left: supply, engine_lang: BigInt(st.engine_lang != null ? st.engine_lang : 2),
-render_hash: st.render_hash
+render_hash: st.render_hash, next_serial: nextSerial
 };
 var redeemBytes = buildFactoryRedeem(fullState, prog, edTpl);
 var factorySpk = p2shSpk(redeemBytes);
@@ -2936,14 +3143,15 @@ var need = price + CARRIER + fee;
 if (BigInt(funding.amount) < need) throw new Error('funding output too small');
 var change = BigInt(funding.amount) - need;
 if (change < MIN_CHANGE) { fee += change; change = 0n; }
-var curRedeem = factoryRedeem(st, progBytes, edTpl);
+var curSerial = BigInt(st.next_serial != null ? st.next_serial : 0);
+var curState = Object.assign({}, st, { next_serial: curSerial });
+var curRedeem = factoryRedeem(curState, progBytes, edTpl);
 var curSpk = p2shSpk(curRedeem);
 if (curSpk !== p.lane.spk) throw new Error('lane spk drift');
-var next = { program_hash: st.program_hash, artist: st.artist, price: st.price, royalty_bips: st.royalty_bips, mints_left: st.mints_left - 1n, engine_lang: st.engine_lang, render_hash: st.render_hash };
+var next = { program_hash: st.program_hash, artist: st.artist, price: st.price, royalty_bips: st.royalty_bips, mints_left: st.mints_left - 1n, engine_lang: st.engine_lang, render_hash: st.render_hash, next_serial: curSerial + 1n };
 var nextSpk = p2shSpk(factoryRedeem(next, progBytes, edTpl));
-var serial = serialFromOutpoint(p.lane.outpoint.txId, p.lane.outpoint.index);
-var edState = { ownerIdentifier: buyer.pubkey, identifierType: 0, price: 0, artist: st.artist, royalty_bips: st.royalty_bips, program_hash: st.program_hash, factory_covid: p.lane.covenantId, serial: serial };
-if (editionHasLineage(edTpl)) { edState.lineage = genesisLineage(p.lane.outpoint.txId, p.lane.outpoint.index); edState.sales = 0; }
+var serial = curSerial.toString();
+var edState = { ownerIdentifier: buyer.pubkey, identifierType: 0, price: 0, artist: st.artist, royalty_bips: st.royalty_bips, program_hash: st.program_hash, factory_covid: p.lane.covenantId, serial: serial, lineage: genesisLineage(p.lane.covenantId, curSerial), sales: 0 };
 var edSpk = p2shSpk(editionRedeem(edState, edTpl));
 var edCov = covenantIdGenesis(funding.txId, funding.index, [{ idx: 1, value: Number(CARRIER), script: edSpk }]);
 var outputs = [
@@ -2977,6 +3185,7 @@ if (p2pkAddress(p.hrp, buyer.pubkey) !== buyer.address) throw new Error('wallet 
 var price = BigInt(st.price);
 if (price < SOMPI || price > MAX_PRICE) throw new Error('edition is not listed for sale (minimum 1 KAS)');
 var roy = (price * BigInt(st.royalty_bips)) / 10000n;
+if (roy < MIN_ROYALTY_OUT) throw new Error('royalty output (' + fmtKas(roy) + ' KAS) is below the 0.05 KAS mineability floor');
 var ownerNet = price - roy;
 var fee = BigInt(p.fee);
 var need = price + fee;
@@ -3027,6 +3236,7 @@ if (p2pkAddress(p.hrp, bidder.pubkey) !== bidder.address) throw new Error('walle
 var offerPrice = BigInt(p.offerPrice);
 if (offerPrice < SOMPI || offerPrice > MAX_PRICE) throw new Error('bid / offer must be at least 1 KAS');
 var roy = (offerPrice * BigInt(st.royalty_bips)) / 10000n;
+if (roy < MIN_ROYALTY_OUT) throw new Error('bid royalty (' + fmtKas(roy) + ' KAS) is below the 0.05 KAS mineability floor');
 var ownerNet = offerPrice - roy;
 var fee = BigInt(p.fee);
 var need = offerPrice + fee;
@@ -3093,6 +3303,7 @@ var covMeta = { kind: mode, redeemHex: u8hex(curRedeem) };
 if (mode === 'list') {
 var newPrice = BigInt(p.newPrice);
 if (newPrice < SOMPI || newPrice > MAX_PRICE) throw new Error('listing price must be at least 1 KAS');
+if ((newPrice * BigInt(st.royalty_bips)) / 10000n < MIN_ROYALTY_OUT) throw new Error('listing royalty is below the 0.05 KAS mineability floor');
 nextState.price = newPrice;
 covMeta.newPrice = newPrice;
 covMeta.tag = (edTpl.entries && edTpl.entries.list) || '674a8ea4';
@@ -3285,7 +3496,7 @@ var whole = v / SOMPI, frac = (v % SOMPI).toString().padStart(8, '0').replace(/0
 return (neg ? '-' : '') + whole.toString() + (frac ? '.' + frac : '');
 }
 var api = {
-SOMPI: SOMPI, CARRIER: CARRIER, MAX_PRICE: MAX_PRICE, init: init,
+SOMPI: SOMPI, CARRIER: CARRIER, MAX_PRICE: MAX_PRICE, MIN_ROYALTY_OUT: MIN_ROYALTY_OUT, MIN_ROYALTY_BIPS: MIN_ROYALTY_BIPS, init: init,
 hex2u8: hex2u8, u8hex: u8hex, utf8: utf8, hash: hash, hashHex: hashHex,
 pushExp: pushExp, pushMin: pushMin, pushMinInt: pushMinInt, parseScriptInt: parseScriptInt,
 encFactoryState: encFactoryState, encEditionState: encEditionState,
@@ -3293,8 +3504,8 @@ buildFactorySuffix: buildFactorySuffix, buildFactoryRedeem: buildFactoryRedeem,
 factoryRedeem: factoryRedeem, editionRedeem: editionRedeem,
 p2shSpk: p2shSpk, p2pkSpk: p2pkSpk,
 p2pkAddress: p2pkAddress, p2shAddress: p2shAddress, decodeAddress: decodeAddress, parseOwnerInput: parseOwnerInput,
-serialFromOutpoint: serialFromOutpoint, covenantIdGenesis: covenantIdGenesis,
-genesisLineage: genesisLineage, advanceLineage: advanceLineage, editionHasLineage: editionHasLineage,
+covenantIdGenesis: covenantIdGenesis,
+genesisLineage: genesisLineage, genesisLineageCounter: genesisLineageCounter, advanceLineage: advanceLineage, editionHasLineage: editionHasLineage,
 decodeFactoryState: decodeFactoryState, decodeEditionState: decodeEditionState, parsePushes: parsePushes,
 spkOfOutput: spkOfOutput, outputValue: outputValue, inputOutpoint: inputOutpoint, covenantOf: covenantOf,
 makeIO: makeIO, resolveLane: resolveLane, resolveEdition: resolveEdition,
@@ -3594,10 +3805,10 @@ return isVm ? C.hex2u8(payload) : C.utf8(payload);
 }
 function bindSeriesTemplates(s, enginePayload) {
 var vmMode = isVmPayload(enginePayload, s);
-var isV13 = vmMode || s.protocol_version === 'v13' || (s.editions && s.editions[0] && s.editions[0].lineage !== undefined);
-s._editionTemplate = isV13 && D.templatesV13 ? D.templatesV13.edition : D.templates.edition;
+var isV13 = true;
+s._editionTemplate = D.templates.edition;
 var engBytes = engineBytesOf(enginePayload, vmMode);
-var isDefaultV12 = !isV13 && D.templates.factory.suffixHex.indexOf(C.u8hex(engBytes)) >= 0;
+var isDefaultV12 = false;
 s._progBytes = isDefaultV12 ? null : engBytes;
 return { vmMode: vmMode, isV13: isV13, engBytes: engBytes };
 }
@@ -3694,7 +3905,7 @@ var checks = [], ctx = { lane: null, editionOk: {}, liveEditions: {} };
 function push(c) { checks.push(c); return c; }
 var cHash = push(newCheck('Engine bytes hash to the anchored program_hash', 'BLAKE2b-256 of the ' + engBytes.length + ' ' + (vmMode ? 'Reliks-VM bytecode' : 'JS engine') + ' bytes shipped with this page'));
 var cRender = push(newCheck('Engine reproduces the anchored image', 'BLAKE2b-256 of render(serial 1' + (vmMode ? ', lineage 0, sales 0' : '') + ') compared with render_hash'));
-var cBaked = push(newCheck('Engine is baked into the factory contract template', vmMode ? 'RVM\\x01 header valid and bytecode verified against factory commitment' : 'engine bytes found inside the compiled SeriesFactory-v12 template'));
+var cBaked = push(newCheck('Engine is baked into the factory contract template', 'RVM\\x01 header valid and bytecode verified against factory commitment'));
 var cLane = push(newCheck('Live lane covenant commits to this engine', 'lane state decoded from public chain data must recompute to the on-chain script'));
 var eds = (s.editions || []).map(function (ed) {
 return { ed: ed, serial: push(newCheck('Edition #' + ed.index + ': serial recomputes from its lane outpoint', 'ReliksSerialV10 over the consumed lane outpoint')),
@@ -3722,8 +3933,9 @@ settle(cBaked, facSuf.indexOf(engHex) >= 0, 'template suffix contains the engine
 }
 tick();
 eds.forEach(function (e) {
-var consumed = e.ed.consumedTxId || (e.ed.index === 0 ? s.genesisTxId : s.editions[e.ed.index - 1].mintTxId);
-settle(e.serial, C.serialFromOutpoint(consumed, 0) === String(e.ed.serial), 'serial ' + e.ed.serial);
+var baseSer = BigInt((s.genesisState && s.genesisState.next_serial) || 0);
+var wantSer = String(baseSer + BigInt(e.ed.index));
+settle(e.serial, String(e.ed.serial) === wantSer, 'serial ' + e.ed.serial);
 }); tick();
 var lanePromise = C.resolveLane(io, s).then(function (lane) {
 ctx.lane = lane;
@@ -3738,7 +3950,7 @@ var out = tx.outputs[e.ed.outputIndex];
 if (!out) throw new Error('mint transaction has no output ' + e.ed.outputIndex);
 var consumed = e.ed.consumedTxId || (e.ed.index === 0 ? s.genesisTxId : s.editions[e.ed.index - 1].mintTxId);
 var state = { ownerIdentifier: e.ed.ownerAtMint, identifierType: 0, price: 0, artist: s.artist, royalty_bips: royBips, program_hash: s.programHash, factory_covid: s.laneCovenantId, serial: e.ed.serial };
-if (C.editionHasLineage(edTpl)) { state.lineage = e.ed.lineage || C.genesisLineage(consumed, 0); state.sales = e.ed.sales || 0; }
+state.lineage = e.ed.lineage || C.genesisLineage(s.laneCovenantId, e.ed.serial); state.sales = e.ed.sales || 0;
 var want = C.p2shSpk(C.editionRedeem(state, edTpl)), got = C.spkOfOutput(out);
 var kascovMatch = null;
 try {
@@ -3854,9 +4066,10 @@ function askReview(stepTitle, rows, noteText, draft, extraFields) {
 return new Promise(function (resolve) {
 var wr = h('input', { id: 'wrpc', placeholder: 'wss://... or ws://localhost:17110 (optional)', value: savedWrpc(), autocomplete: 'off', spellcheck: 'false' });
 var presets = h('div', { class: 'row', style: 'margin-top:6px;flex-wrap:wrap;gap:6px' },
-h('span', { style: 'font:11px var(--mono);color:var(--dim)', text: 'Mobile wRPC presets:' }),
-h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = 'wss://wrpc.kaspad.net'; }, text: 'wrpc.kaspad.net' }),
-h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = 'ws://127.0.0.1:17110'; }, text: 'Local 17110' }),
+h('span', { style: 'font:11px var(--mono);color:var(--dim)', text: 'wRPC JSON presets:' }),
+h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = 'wss://emma.kaspa.stream/kaspa/mainnet/wrpc/json'; }, text: 'emma.kaspa.stream' }),
+h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = 'wss://eva.kaspa.green/kaspa/mainnet/wrpc/json'; }, text: 'eva.kaspa.green' }),
+h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = 'ws://127.0.0.1:18110'; }, text: 'Local 18110' }),
 h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = ''; }, text: 'Clear' }));
 var raw = h('pre', { class: 'code', text: JSON.stringify(JSON.parse(C.toSafeJSON(draft)), null, 2) });
 var rev = h('div', { class: 'review' });
@@ -3930,10 +4143,8 @@ var newEd = {
 index: (s.editions || []).length, serial: String(m.serial), covenantId: m.editionCovenantId,
 mintTxId: res.txId, outputIndex: 1, consumedTxId: lane.outpoint.txId, ownerAtMint: st.pubkey
 };
-if (C.editionHasLineage(s._editionTemplate)) {
-newEd.lineage = C.genesisLineage(lane.outpoint.txId, lane.outpoint.index);
+newEd.lineage = C.genesisLineage(lane.covenantId, m.serial);
 newEd.sales = 0;
-}
 s.editions = (s.editions || []).concat([newEd]);
 saveLocalEdition(s.id, newEd);
 var link = A.explorer + res.txId;
@@ -3961,7 +4172,7 @@ var desc = action === 'list'
 ? 'Set a fixed price in KAS (minimum 1 KAS). Anyone can buy the edition on chain, paying ' + (100 - Number(st.royalty_bips) / 100) + '% to you and ' + (Number(st.royalty_bips) / 100) + '% royalty to the artist.'
 : action === 'bid'
 ? 'Create a signed atomic bid in KAS (minimum 1 KAS) using ReliksEdition.sell. Your funds stay in your wallet until the edition owner co-signs and accepts your bid.'
-: 'Transfer this edition to another Kaspa wallet (royalty-free). In v13, transferring advances provenance lineage (patina) without incrementing sales wear.';
+: 'Transfer this edition to another Kaspa wallet (royalty-free). Transferring advances provenance lineage (patina) without incrementing sales wear.';
 var fieldBox = (action === 'list' || action === 'bid')
 ? h('div', { class: 'field', style: 'margin:12px 0' }, h('label', { for: 'trade-price', text: (action === 'bid' ? 'Bid / Offer amount' : 'Listing price') + ' (KAS, min 1)' }), priceIn)
 : h('div', { class: 'field', style: 'margin:12px 0' }, h('label', { for: 'trade-to', text: 'Recipient address (kaspa:qp...) or 64-hex pubkey' }), toIn);
@@ -4125,7 +4336,7 @@ rows = [
 { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(sb.fee) + ' KAS' },
 { label: 'Leaves your wallet', value: '≈ ' + C.fmtKas(sb.price + sb.fee) + ' KAS', total: true }
 ];
-noteText = 'Buying transfers the 1 KAS edition carrier UTXO to your wallet address and advances the v13 provenance lineage and sales wear.';
+noteText = 'Buying transfers the 1 KAS edition carrier UTXO to your wallet address and advances provenance lineage and sales wear.';
 } else if (action === 'list') {
 probe = C.buildListEdition({ edition: liveEd, owner: { pubkey: w.pubkey, address: w.address }, newPrice: params.newPrice, funding: dummyFund, fee: 1n, hrp: A.hrp, editionTemplate: s._editionTemplate });
 var feeList = C.estimateFee(probe);
@@ -4389,7 +4600,7 @@ if (!/^\d{1,19}$/.test(v)) { exNote.textContent = 'Enter a whole number (a seria
 exNote.textContent = 'Rendering…';
 runEngine(engineSrc, v, { series: s }).then(function (svg) {
 clear(frame); frame.appendChild(artFrame(svg));
-exHash.textContent = 'serial      ' + v + '\nseed        ' + seedOf(v) + '  (serial mod 2^32)\nruntime     ' + (vmMode ? 'Reliks-VM v1 (RVM\\x01)' : 'JavaScript v12') + '\nsvg bytes   ' + svg.length + '\nrender_hash ' + bhex(svg);
+exHash.textContent = 'serial      ' + v + '\nseed        ' + seedOf(v) + '  (serial mod 2^32)\nruntime     ' + ('Reliks-VM (RVM\\x01)') + '\nsvg bytes   ' + svg.length + '\nrender_hash ' + bhex(svg);
 var real = (s.editions || []).filter(function (e) { return String(e.serial) === v; })[0];
 exNote.textContent = real ? 'This serial is edition #' + real.index + ', minted on chain.' : 'Preview only: this serial is not a minted edition. Real serials come from the lane outpoint consumed by each mint.';
 }).catch(function (e) { exNote.textContent = 'Engine error: ' + e.message; });
@@ -4407,7 +4618,7 @@ h('summary', {}, h('span', { text: 'Editions & Secondary Market (' + (s.editions
 h('div', { style: 'padding:4px 18px 18px' }, edHost));
 var el = h('article', { class: 'series', 'aria-label': s.title }, art,
 h('div', { class: 'series-body' },
-h('div', {}, h('span', { class: 'eyebrow', text: vmMode ? 'Mainnet Reliks-VM series (v13)' : 'Mainnet series' }), h('h3', { text: s.title }), h('p', { class: 'tagline', text: 'Deterministic artwork drawn by ' + engByteCount.toLocaleString('en-US') + ' bytes of integer-only ' + (vmMode ? 'Reliks-VM bytecode' : 'code') + ' committed inside the covenant.' })),
+h('div', {}, h('span', { class: 'eyebrow', text: 'Mainnet Reliks-VM series' }), h('h3', { text: s.title }), h('p', { class: 'tagline', text: 'Deterministic artwork drawn by ' + engByteCount.toLocaleString('en-US') + ' bytes of integer-only ' + (vmMode ? 'Reliks-VM bytecode' : 'code') + ' committed inside the covenant.' })),
 h('dl', { class: 'facts' }, h('div', {}, h('dt', { text: 'Price' }), facts.price), h('div', {}, h('dt', { text: 'Royalty' }), facts.roy), h('div', {}, h('dt', { text: 'Supply' }), facts.left)),
 cta, ctaNote, proof));
 seriesViews[s.id] = view;
@@ -4480,13 +4691,13 @@ addChk('Anchor render(serial=1) matches render_hash', gotRh === s.render_hash, s
 } catch (e) {
 addChk('Anchor render(serial=1) matches render_hash', false, e.message);
 }
-var edTpl = (b.templates && b.templates.edition) || (s.protocol_version === 'v13' && D.templatesV13 ? D.templatesV13.edition : D.templates.edition);
+var edTpl = (b.templates && b.templates.edition) || D.templates.edition;
 var edCards = [];
+var baseSerOff = BigInt((s && s.next_serial_at_genesis) || 0);
 for (var i = 0; i < b.editions.length; i++) {
 var ed = b.editions[i];
-var opParts = String(ed.consumedLaneOutpoint || '').split(':');
-var serOk = C.serialFromOutpoint(opParts[0], Number(opParts[1] || 0)) === String(ed.serial);
-addChk('Edition #' + ed.index + ': serial recomputes from ' + short(ed.consumedLaneOutpoint, 10, 4), serOk, 'serial ' + ed.serial);
+var serOk = String(baseSerOff + BigInt(ed.index)) === String(ed.serial);
+addChk('Edition #' + ed.index + ': counter serial matches edition index', serOk, 'serial ' + ed.serial);
 var spkGot = C.p2shSpk(C.editionRedeem(ed.state, edTpl));
 var spkOk = spkGot === ed.expectedSpk;
 addChk('Edition #' + ed.index + ': P2SH scriptPubKey recomputes from state', spkOk, short(spkGot, 14, 6));
@@ -4499,7 +4710,7 @@ if (serOk && spkOk && rhOk) {
 edCards.push(h('div', { class: 'card' },
 h('span', { class: 'tag v', text: 'Offline verified · Ed #' + ed.index }),
 h('h3', { text: s.title + ' · serial ' + short(ed.serial, 8, 6) }),
-h('p', { text: (vmMode ? 'Reliks-VM · sales ' + ed.state.sales + ' · wear ' + (ed.wear || 0) + ' · patina ' + (ed.pat || 0) : 'JavaScript v12') + ' · spk ' + short(spkGot, 12, 6) }),
+h('p', { text: ('Reliks-VM · sales ' + ed.state.sales + ' · wear ' + (ed.wear || 0) + ' · patina ' + (ed.pat || 0)) + ' · spk ' + short(spkGot, 12, 6) }),
 h('div', { class: 'art-wrap', style: 'margin-top:10px;border-radius:10px;overflow:hidden' }, artFrame(svgEd))));
 }
 } catch (e) {
@@ -4519,21 +4730,16 @@ if (edCards.length) outBox.appendChild(h('div', { class: 'cards' }, edCards));
 }
 var btns = h('div', { class: 'row', style: 'margin:10px 0' },
 h('button', { class: 'btn primary', id: 'btn-verify-offline', onclick: verifyOffline, text: 'Verify & Render Offline' }));
-if (D.bundles && D.bundles.v12) {
-btns.appendChild(h('button', { class: 'btn', onclick: function () { ta.value = JSON.stringify(D.bundles.v12, null, 2); verifyOffline(); }, text: 'Load v12 Mainnet Bundle (JS)' }));
-}
-if (D.bundles && D.bundles.v13) {
-btns.appendChild(h('button', { class: 'btn', onclick: function () { ta.value = JSON.stringify(D.bundles.v13, null, 2); verifyOffline(); }, text: 'Load v13 Demo Bundle (Reliks-VM)' }));
+if (D.bundles && D.bundles.demo) {
+btns.appendChild(h('button', { class: 'btn', onclick: function () { ta.value = JSON.stringify(D.bundles.demo, null, 2); verifyOffline(); }, text: 'Load Demo Bundle (Reliks-VM)' }));
 }
 host.appendChild(h('div', { class: 'card', style: 'padding:18px' }, statusLine, ta, btns, outBox));
 }
 function initStudio() {
 var ed = $('#ed'), ser = $('#ser'), lin = $('#lin'), wr = $('#wr'), wv = $('#wv'), wearOn = $('#wear-on'), gatesEl = $('#gates-out'), stat = $('#studio-status'), hashes = $('#hashes'), prevBox = $('#prev-box'), tpl = $('#tpl');
-var vmCtrl = $('#vm-controls'), vmWear = $('#vm-wear-row'), exeBtn = $('#exe'), exsrcBtn = $('#exsrc'), pubBtn = $('#pub-kaspire'), pubOut = $('#pub-out');
-var CAP = D.studio.cap, PRELUDE = D.studio.prelude, B = ReliksBlake2b.blake2b;
-var BANNED = [[/\bMath\s*\.\s*(random|sin|cos|tan|asin|acos|atan2?|pow|sqrt|hypot|exp|log2?|log10)\b/, 'Math transcendental/random'], [/\bDate\b/, 'Date'], [/\bperformance\b/, 'performance'], [/\bfetch\s*\(/, 'fetch'], [/\bXMLHttpRequest\b/, 'XHR'], [/\bWebSocket\b/, 'WebSocket'], [/\brequire\s*\(/, 'require'], [/\bimport\s*[\(\{]/, 'import'], [/\beval\s*\(/, 'eval'], [/new\s+Function/, 'new Function'], [/\bwindow\b/, 'window'], [/\bdocument\b/, 'document'], [/\blocalStorage\b/, 'localStorage'], [/\bsetTimeout\b|\bsetInterval\b/, 'timer'], [/\bprocess\b/, 'process'], [/\bglobalThis\b/, 'globalThis']];
+var exeBtn = $('#exe'), exsrcBtn = $('#exsrc'), pubBtn = $('#pub-kaspire'), pubOut = $('#pub-out');
+var CAP = D.studio.cap, B = ReliksBlake2b.blake2b;
 var lastProg = null, timer = 0;
-function isJsSource(raw) { return /\bfunction\s+reliks\s*\(/.test(raw); }
 function applyWearToggle(src, enabled) {
 if (/wear\s+push\s+[01]\s+mul\s+st\s+WR/.test(src)) {
 return src.replace(/wear\s+push\s+[01]\s+mul\s+st\s+WR/, 'wear push ' + (enabled ? '1' : '0') + ' mul st WR');
@@ -4548,19 +4754,8 @@ return C.hex2u8(compact.toLowerCase());
 var src = (wearOn && !wearOn.checked) ? applyWearToggle(raw, false).replace(/\bwear\b(?!\s+push\s+0\s+mul)/g, 'push 0') : raw;
 return RvmAsm.assemble(src);
 }
-function src() { return PRELUDE + '\n' + ed.value; }
-function blen(x) { return C.utf8(x).length; }
-function syncUiMode(vmMode) {
-if (vmCtrl) vmCtrl.style.display = vmMode ? '' : 'none';
-if (vmWear) vmWear.style.display = vmMode ? '' : 'none';
-if (exeBtn) exeBtn.textContent = vmMode ? 'Export bytecode (.hex)' : 'Export engine (.js)';
-if (exsrcBtn) exsrcBtn.style.display = vmMode ? '' : 'none';
-}
 async function gates() {
-var raw = ed.value;
-if (!isJsSource(raw)) {
-syncUiMode(true);
-var out = [], ok = true;
+var raw = ed.value, out = [], ok = true;
 function chkVm(name, pass, info) { out.push({ pass: pass, text: name + (info ? '  ' + info : '') }); if (!pass) ok = false; }
 var prog = null;
 try { prog = parseVmSourceOrHex(raw); lastProg = prog; }
@@ -4613,36 +4808,16 @@ clear(gatesEl); out.forEach(function (o) { gatesEl.appendChild(h('div', {}, h('s
 stat.textContent = ok ? 'All Reliks-VM gates green: ready to publish on chain or export .hex bytecode.' : 'VM gates failed: see report above.';
 return ok;
 }
-syncUiMode(false);
-var s = src(), outJs = [], okJs = true;
-function chk(name, pass, info) { outJs.push({ pass: pass, text: name + (info ? '  ' + info : '') }); if (!pass) okJs = false; }
-chk('L1 size within cap', blen(s) <= CAP, blen(s) + ' / ' + CAP + ' B (prelude ' + PRELUDE.length + ' B included)');
-var bad = BANNED.filter(function (b) { return b[0].test(s); }).map(function (b) { return b[1]; });
-chk('L2 no banned constructs', bad.length === 0, bad.join(', '));
-var a = null, b2 = null, c = null, err = '';
-try { a = await runEngine(s, '42'); b2 = await runEngine(s, '42'); c = await runEngine(s, '42'); } catch (e) { err = e.message; }
-chk('L3 deterministic x3', !err && a === b2 && b2 === c, err);
-var good = false; try { good = !!a && a.indexOf('<svg') === 0 && a.indexOf('xmlns=') > -1 && a.slice(-6) === '</svg>' && !/NaN|undefined|Infinity|null/.test(a); } catch (e) { good = false; }
-chk('L8 svg well-formed', good);
-var conv = false; try { conv = (await runEngine(s, '7')) === (await runEngine(s, '4294967303')); } catch (e) { conv = false; }
-chk('L5 seed = serial mod 2^32', conv);
-clear(gatesEl); outJs.forEach(function (o) { gatesEl.appendChild(h('div', {}, h('span', { class: o.pass ? 'p' : 'f', text: o.pass ? 'PASS ' : 'FAIL ' }), o.text)); });
-stat.textContent = okJs ? 'Gates green: ready to publish or export.' : 'Gates failed: fix these before publishing.';
-return okJs;
-}
 async function show() {
 var v = ser.value.trim() || '1';
 var wEnabled = !wearOn || wearOn.checked;
 if (wv && wr) wv.textContent = wEnabled ? wr.value : '0 (off)';
 if (wr) wr.disabled = !wEnabled;
 if (!/^\d{1,19}$/.test(v) || BigInt(v) >= BigInt('9223372036854775808')) { stat.textContent = 'Serial must be a whole number below 2^63.'; return; }
-var raw = ed.value;
-if (!isJsSource(raw)) {
-syncUiMode(true);
 var l = (lin && lin.value ? lin.value.trim().toLowerCase() : '0'.repeat(64));
 if (!/^[0-9a-f]{64}$/.test(l)) { stat.textContent = 'Lineage must be 64 hex characters.'; return; }
 var prog;
-try { prog = parseVmSourceOrHex(raw); lastProg = prog; }
+try { prog = parseVmSourceOrHex(ed.value); lastProg = prog; }
 catch (e) { lastProg = null; stat.textContent = 'Assemble error: ' + e.message; return; }
 try {
 var hi = RVM.hostInputs(B, v, C.hex2u8(l), wEnabled ? Number((wr && wr.value) || 0) : 0), stats = {};
@@ -4653,13 +4828,6 @@ stat.textContent = 'Rendered Reliks-VM program (' + prog.length + ' B). Click "P
 } catch (e) {
 stat.textContent = 'Render fault: ' + (e.code || e.message);
 }
-return;
-}
-syncUiMode(false);
-var svg; try { svg = await runEngine(src(), v); } catch (e) { stat.textContent = 'Error: ' + e.message; return; }
-clear(prevBox); prevBox.appendChild(artImg(svg));
-hashes.textContent = 'engine_hash ' + bhex(src()) + '\nrender_hash ' + bhex(svg) + '\nengine_bytes ' + blen(src()) + ' / ' + CAP;
-await gates();
 }
 function download(fn, text) { var a = h('a', { href: URL.createObjectURL(new Blob([text], { type: 'text/plain' })), download: fn }); document.body.appendChild(a); a.click(); a.remove(); }
 function slug() { return ($('#name').value || 'my-program').replace(/[^a-z0-9-]/gi, '').slice(0, 40) || 'my-program'; }
@@ -4677,8 +4845,8 @@ var priceStr = $('#price').value.trim(), roy = Number($('#roy').value), n = Numb
 var priceSompi; try { priceSompi = priceStr === '' ? -1n : BigInt(Math.round(Number(priceStr) * 1e8)); } catch (e) { priceSompi = -1n; }
 if (!/^[0-9a-f]{64}$/.test(artistPk)) err = 'Artist key must be 64 hex characters or a kaspa: address (connect Kaspire to fill it automatically).';
 else if (requireConnectedWallet && artistPk !== w.pubkey) err = 'To publish with Kaspire, the artist key must match the connected Kaspire wallet (or leave Artist blank).';
-else if (priceSompi !== 0n && !(priceSompi >= SOMPI)) err = 'Price must be 0 or at least 1 KAS.';
-else if (!(roy >= 0.01 && roy <= 20)) err = 'Royalty must be between 0.01% and 20%.';
+else if (!(priceSompi >= SOMPI)) err = 'Price must be at least 1 KAS (no free mints).';
+else if (!(roy >= 5 && roy <= 20)) err = 'Royalty must be between 5% and 20% (500..2000 bips).';
 else if (!(Number.isInteger(n) && n >= 1)) err = 'Editions must be a whole number of at least 1.';
 if (err) { stat.textContent = err; toast(err, 'bad'); return null; }
 return { artist: artistPk, priceSompi: priceSompi, royaltyBips: Math.round(roy * 100), supply: n };
@@ -4689,20 +4857,19 @@ if (!(await gates())) { toast('Fix the failing gates before publishing.', 'bad')
 var form = readSeriesForm(true);
 if (!form) return;
 var w = K.state();
-var vmMode = !isJsSource(ed.value);
-var progBytes = vmMode ? lastProg : C.utf8(src());
+var progBytes = lastProg;
 var progHash = bhex(progBytes);
-var svg1 = await runEngine(vmMode ? C.u8hex(progBytes) : src(), '1', { kind: vmMode ? 'vm' : 'js' });
+var svg1 = await runEngine(C.u8hex(progBytes), '1', { kind: 'vm' });
 var renHash = bhex(svg1);
-var edTpl = vmMode && D.templatesV13 ? D.templatesV13.edition : D.templates.edition;
+var edTpl = D.templates.edition;
 var depState = {
 program_hash: progHash, artist: w.pubkey, price: form.priceSompi,
 royalty_bips: BigInt(form.royaltyBips), mints_left: BigInt(form.supply),
-engine_lang: vmMode ? 2n : 1n, render_hash: renHash
+engine_lang: 2n, render_hash: renHash, next_serial: 0n
 };
 minting = true;
 try {
-mintScreen(1, 'Building SeriesFactory genesis…', h('p', { class: 'note', text: 'Synthesizing the SeriesFactory-' + (vmMode ? 'v13' : 'v12') + ' covenant script and selecting wallet UTXO(s).' }));
+mintScreen(1, 'Building SeriesFactory genesis…', h('p', { class: 'note', text: 'Synthesizing the SeriesFactory covenant script and selecting wallet UTXO(s).' }));
 var list = await io.utxos(w.address);
 var probe = C.buildDeploySeries({ state: depState, progBytes: progBytes, editionTemplate: edTpl, artist: { pubkey: w.pubkey, address: w.address }, funding: { txId: '00'.repeat(32), index: 0, amount: 10n ** 13n }, fee: 1n, hrp: A.hrp });
 var fee = C.estimateFee(probe);
@@ -4712,7 +4879,7 @@ var draft = C.buildDeploySeries({ state: depState, progBytes: progBytes, edition
 var ds = draft.summary;
 var choice = await askReview('Review Series Deployment', [
 { label: 'Series title', value: $('#name').value.trim() || slug() },
-{ label: 'Protocol / Runtime', value: vmMode ? 'Reliks v13 (Reliks-VM)' : 'Reliks v12 (JS)' },
+{ label: 'Protocol / Runtime', value: 'Reliks (Reliks-VM)' },
 { label: 'Program size / hash', value: progBytes.length + ' B · ' + short(progHash, 10, 6), title: progHash },
 { label: 'Anchor render_hash (serial 1)', value: short(renHash, 10, 6), title: renHash },
 { label: 'Supply / Mint price / Royalty', value: form.supply + ' eds · ' + C.fmtKas(form.priceSompi) + ' KAS · ' + (form.royaltyBips / 100) + '%' },
@@ -4737,21 +4904,19 @@ return;
 var seriesAnchor = {
 id: slug() + '-' + res.txId.slice(0, 6),
 title: $('#name').value.trim() || slug(),
-protocol_version: vmMode ? 'v13' : 'v12',
 laneCovenantId: ds.laneCovenantId,
 genesisTxId: res.txId,
 programHash: progHash,
 renderHash: renHash,
 artist: w.pubkey,
-engine_lang: vmMode ? 2 : 1,
-engineKind: vmMode ? 'vm' : 'js',
-programHex: vmMode ? C.u8hex(progBytes) : undefined,
-engineSrc: vmMode ? undefined : src(),
+engine_lang: 2,
+engineKind: 'vm',
+programHex: C.u8hex(progBytes),
 royalty_bips: form.royaltyBips,
 genesisState: {
 program_hash: progHash, artist: w.pubkey, price: form.priceSompi.toString(),
 royalty_bips: String(form.royaltyBips), mints_left: String(form.supply),
-engine_lang: vmMode ? '2' : '1', render_hash: renHash
+engine_lang: '2', render_hash: renHash, next_serial: '0'
 },
 editions: []
 };
@@ -4784,18 +4949,10 @@ else mintScreen(0, 'Could not publish series', [h('p', { class: 'note bad', text
 if (pubBtn) pubBtn.addEventListener('click', publishWithKaspire);
 $('#exe').addEventListener('click', async function () {
 if (!(await gates())) { toast('Fix the failing gates before exporting.', 'bad'); return; }
-var name = slug();
-if (!isJsSource(ed.value)) {
 if (!lastProg) return;
+var name = slug();
 download(name + '.hex', C.u8hex(lastProg) + '\n');
-stat.textContent = 'Exported ' + name + '.hex. Next: node cli/reliks-lens-vm.js ' + name + '.hex';
-return;
-}
-download(name + '.js', ["const { blake2b: b2 } = require('./web/blake2b.js');", "const blake2b = (m, o) => b2(m, (o && o.dkLen) || 32);", "const B = Buffer;", 'const ENGINE_SRC = ' + JSON.stringify(src()) + ';', 'const TEST_SERIAL = 1;',
-"function seedLanes(serial){const le=B.alloc(8);le.writeBigUInt64LE(BigInt(serial));const h=blake2b(B.concat([B.from('ReliksSeedV10','utf8'),le]),{dkLen:32});const dv=new DataView(h.buffer,h.byteOffset,h.byteLength);const lanes=[];for(let i=0;i<8;i++)lanes.push(dv.getInt32(i*4,true));return lanes;}",
-"const compiled=new Function('L','serial',ENGINE_SRC+'\\nreturn reliks(L,serial);');", 'function render(serial){const s=Number(BigInt(serial)&0xFFFFFFFFn);return compiled(seedLanes(s),s|0);}',
-"const engineHashHex=B.from(blake2b(B.from(ENGINE_SRC,'utf8'),{dkLen:32})).toString('hex');", "const renderHashHex=B.from(blake2b(B.from(render(TEST_SERIAL),'utf8'),{dkLen:32})).toString('hex');", 'module.exports={ENGINE_SRC,seedLanes,render,engineHashHex,renderHashHex,TEST_SERIAL};'].join('\n') + '\n');
-stat.textContent = 'Exported ' + name + '.js. Next: node cli/reliks-lens.js ' + name + '.js';
+stat.textContent = 'Exported ' + name + '.hex. Next: node cli/reliks-lens.js ' + name + '.hex';
 });
 if (exsrcBtn) {
 exsrcBtn.addEventListener('click', function () {
@@ -4805,11 +4962,144 @@ download(slug() + '.rvm.txt', ed.value);
 $('#exs').addEventListener('click', function () {
 var form = readSeriesForm(false);
 if (!form) return;
-var seriesObj = { artist: form.artist, price: Number(form.priceSompi), royalty_bips: form.royaltyBips, mints_left: form.supply, engine_lang: isJsSource(ed.value) ? 1 : 2 };
+var seriesObj = { artist: form.artist, price: Number(form.priceSompi), royalty_bips: form.royaltyBips, mints_left: form.supply, engine_lang: 2 };
 download('series-' + slug() + '.json', JSON.stringify(seriesObj, null, 2) + '\n');
 stat.textContent = 'Exported series-' + slug() + '.json';
 });
-$('#load').addEventListener('click', function () { ed.value = D.studio.templates[tpl.value] || D.studio.templates.iso; if (wearOn) ed.value = applyWearToggle(ed.value, wearOn.checked); clear(gatesEl); show(); });
+var vbHost = $('#visual-builder'), codePane = $('#code-pane'), btnModeVis = $('#mode-visual'), btnModeCode = $('#mode-code');
+var studioMode = 'visual';
+var vSpec = JSON.parse(JSON.stringify(RvmAsm.VISUAL_PRESETS.cyber_orbs));
+var LAYER_DEFS = {
+glow: { label: 'Radial Glow / Aura', defaults: { type: 'glow', enabled: true, cx: 500, cy: 500, radius: 400, opacity: 85, colorSlot: 'primary' }, sliders: [['cx', 'Center X', 0, 1000], ['cy', 'Center Y', 0, 1000], ['radius', 'Radius', 60, 600], ['opacity', 'Opacity %', 10, 100]] },
+rings: { label: 'Concentric Rings', defaults: { type: 'rings', enabled: true, count: 12, cx: 500, cy: 500, step: 28, strokeWidth: 2, opacity: 70, colorSlot: 'alternate' }, sliders: [['count', 'Ring Count', 2, 36], ['step', 'Ring Spacing', 8, 60], ['strokeWidth', 'Stroke Width', 1, 16], ['opacity', 'Opacity %', 10, 100]] },
+grid: { label: 'Generative Matrix Grid', defaults: { type: 'grid', enabled: true, cols: 8, rows: 8, margin: 120, gap: 12, density: 70, shape: 'mixed', opacity: 75, colorSlot: 'random' }, sliders: [['cols', 'Columns', 2, 14], ['rows', 'Rows', 2, 14], ['margin', 'Margin', 40, 260], ['gap', 'Cell Gap', 2, 32], ['density', 'Fill Chance %', 15, 100], ['opacity', 'Opacity %', 10, 100]] },
+particles: { label: 'Starfield / Orbs', defaults: { type: 'particles', enabled: true, count: 36, minR: 4, maxR: 22, spread: 400, opacity: 85, filled: true, colorSlot: 'random' }, sliders: [['count', 'Orb Count', 4, 90], ['minR', 'Min Radius', 2, 40], ['maxR', 'Max Radius', 6, 90], ['spread', 'Spread', 80, 460], ['opacity', 'Opacity %', 10, 100]] },
+rays: { label: 'Radial Starburst Rays', defaults: { type: 'rays', enabled: true, count: 24, cx: 500, cy: 500, length: 380, strokeWidth: 2, opacity: 55, colorSlot: 'alternate' }, sliders: [['count', 'Ray Count', 4, 56], ['length', 'Max Length', 60, 460], ['strokeWidth', 'Stroke Width', 1, 12], ['opacity', 'Opacity %', 10, 100]] },
+polygons: { label: 'Crystal Shards', defaults: { type: 'polygons', enabled: true, count: 12, size: 70, spread: 340, opacity: 75, strokeWidth: 2, colorSlot: 'random' }, sliders: [['count', 'Shard Count', 2, 36], ['size', 'Shard Size', 20, 180], ['spread', 'Spread', 80, 420], ['strokeWidth', 'Border Width', 0, 10], ['opacity', 'Opacity %', 10, 100]] },
+waves: { label: 'Flowing Wave Ribbons', defaults: { type: 'waves', enabled: true, count: 10, yStart: 560, spacing: 26, amp: 65, strokeWidth: 3, opacity: 65, colorSlot: 'secondary' }, sliders: [['count', 'Wave Count', 2, 28], ['yStart', 'Start Y', 60, 880], ['spacing', 'Row Spacing', 8, 56], ['amp', 'Wave Curve', 10, 180], ['strokeWidth', 'Stroke Width', 1, 12], ['opacity', 'Opacity %', 10, 100]] },
+monoliths: { label: 'Skyline Monoliths', defaults: { type: 'monoliths', enabled: true, count: 16, minW: 36, maxW: 90, minH: 120, maxH: 500, baseY: 880, opacity: 90, colorSlot: 'random' }, sliders: [['count', 'Tower Count', 3, 32], ['minW', 'Min Width', 16, 80], ['maxW', 'Max Width', 36, 150], ['maxH', 'Max Height', 120, 680], ['baseY', 'Horizon Y', 500, 960], ['opacity', 'Opacity %', 20, 100]] }
+};
+function setStudioMode(m) {
+studioMode = m;
+if (vbHost) vbHost.hidden = m !== 'visual';
+if (codePane) codePane.hidden = m !== 'code';
+if (btnModeVis) btnModeVis.className = 'btn' + (m === 'visual' ? ' primary' : '');
+if (btnModeCode) btnModeCode.className = 'btn' + (m === 'code' ? ' primary' : '');
+}
+if (btnModeVis) btnModeVis.addEventListener('click', function () { setStudioMode('visual'); syncVisualToCode(); });
+if (btnModeCode) btnModeCode.addEventListener('click', function () { setStudioMode('code'); });
+function syncVisualToCode() {
+if (wearOn) vSpec.wearEffect = !!wearOn.checked;
+ed.value = RvmAsm.compileLayers(vSpec);
+show();
+}
+function rndHexColor() {
+var n = Math.floor(Math.random() * 0xffffff);
+return '#' + n.toString(16).padStart(6, '0');
+}
+function renderVisualBuilder() {
+if (!vbHost) return;
+clear(vbHost);
+var presetSel = h('select', { 'aria-label': 'Visual Preset', style: 'max-width:230px' });
+Object.keys(RvmAsm.VISUAL_PRESETS).forEach(function (k) {
+var opt = h('option', { value: k, text: RvmAsm.VISUAL_PRESETS[k].name });
+if (vSpec.name === RvmAsm.VISUAL_PRESETS[k].name) opt.selected = true;
+presetSel.appendChild(opt);
+});
+presetSel.addEventListener('change', function () {
+vSpec = JSON.parse(JSON.stringify(RvmAsm.VISUAL_PRESETS[presetSel.value]));
+renderVisualBuilder();
+syncVisualToCode();
+});
+var btnRandPal = h('button', { type: 'button', class: 'btn', onclick: function () {
+vSpec.bg = '#' + Math.floor(Math.random() * 0x222233).toString(16).padStart(6, '0');
+vSpec.primary = rndHexColor();
+vSpec.secondary = rndHexColor();
+vSpec.accent = rndHexColor();
+renderVisualBuilder();
+syncVisualToCode();
+}, text: 'Randomize Palette' });
+var palCard = h('div', { class: 'card', style: 'padding:12px' },
+h('div', { class: 'row', style: 'justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px' },
+h('b', { text: '1. Visual Preset & Color Palette' }),
+h('div', { class: 'row', style: 'gap:6px;flex-wrap:wrap' }, presetSel, btnRandPal)),
+h('div', { class: 'row', style: 'flex-wrap:wrap;gap:12px;align-items:center' },
+[['bg', 'Background'], ['primary', 'Primary'], ['secondary', 'Secondary'], ['accent', 'Accent']].map(function (pair) {
+var key = pair[0], lbl = pair[1];
+var inp = h('input', { type: 'color', value: vSpec[key] || '#49c5b1', style: 'width:38px;height:30px;padding:2px;cursor:pointer' });
+inp.addEventListener('input', function () { vSpec[key] = inp.value; syncVisualToCode(); });
+return h('label', { style: 'font:12px var(--mono);color:var(--dim);display:inline-flex;align-items:center;gap:6px' }, inp, lbl);
+}),
+(function () {
+var patChk = h('input', { type: 'checkbox', checked: vSpec.patinaShift !== false, style: 'width:auto;margin:0' });
+patChk.addEventListener('change', function () { vSpec.patinaShift = patChk.checked; syncVisualToCode(); });
+return h('label', { style: 'font:12px var(--mono);color:var(--dim);display:inline-flex;align-items:center;gap:6px;cursor:pointer' }, patChk, 'Patina color shift');
+})()
+)
+);
+vbHost.appendChild(palCard);
+var addTypeSel = h('select', { 'aria-label': 'New layer type', style: 'max-width:220px' });
+Object.keys(LAYER_DEFS).forEach(function (k) {
+addTypeSel.appendChild(h('option', { value: k, text: LAYER_DEFS[k].label }));
+});
+var btnAddLayer = h('button', { type: 'button', class: 'btn primary', onclick: function () {
+var def = LAYER_DEFS[addTypeSel.value] || LAYER_DEFS.rings;
+vSpec.layers.push(JSON.parse(JSON.stringify(def.defaults)));
+renderVisualBuilder();
+syncVisualToCode();
+}, text: '+ Add Layer' });
+vbHost.appendChild(h('div', { class: 'row', style: 'justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px' },
+h('b', { style: 'font-size:14px', text: '2. Generative Layers (' + vSpec.layers.length + ')' }),
+h('div', { class: 'row', style: 'gap:6px' }, addTypeSel, btnAddLayer)));
+vSpec.layers.forEach(function (layer, idx) {
+var def = LAYER_DEFS[layer.type] || LAYER_DEFS.rings;
+var enChk = h('input', { type: 'checkbox', checked: layer.enabled !== false, style: 'width:auto;margin:0' });
+enChk.addEventListener('change', function () { layer.enabled = enChk.checked; syncVisualToCode(); });
+var colSel = h('select', { 'aria-label': 'Layer color mode', style: 'max-width:145px;padding:4px 8px;font-size:12px' });
+[['random', 'Random Palette'], ['primary', 'Primary Color'], ['secondary', 'Secondary Color'], ['accent', 'Accent Color'], ['alternate', 'Alternate C1/C2']].forEach(function (cp) {
+var o = h('option', { value: cp[0], text: cp[1] });
+if ((layer.colorSlot || 'random') === cp[0]) o.selected = true;
+colSel.appendChild(o);
+});
+colSel.addEventListener('change', function () { layer.colorSlot = colSel.value; syncVisualToCode(); });
+var btnUp = h('button', { type: 'button', class: 'btn ghost', style: 'padding:3px 8px;font-size:12px', disabled: idx === 0, onclick: function () {
+var tmp = vSpec.layers[idx - 1]; vSpec.layers[idx - 1] = layer; vSpec.layers[idx] = tmp;
+renderVisualBuilder(); syncVisualToCode();
+}, text: '↑' });
+var btnDn = h('button', { type: 'button', class: 'btn ghost', style: 'padding:3px 8px;font-size:12px', disabled: idx === vSpec.layers.length - 1, onclick: function () {
+var tmp = vSpec.layers[idx + 1]; vSpec.layers[idx + 1] = layer; vSpec.layers[idx] = tmp;
+renderVisualBuilder(); syncVisualToCode();
+}, text: '↓' });
+var btnDel = h('button', { type: 'button', class: 'btn ghost', style: 'padding:3px 8px;font-size:12px', onclick: function () {
+vSpec.layers.splice(idx, 1); renderVisualBuilder(); syncVisualToCode();
+}, text: '×' });
+var slidersBox = h('div', { style: 'display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-top:8px' });
+def.sliders.forEach(function (sl) {
+var sKey = sl[0], sLbl = sl[1], sMin = sl[2], sMax = sl[3];
+var valSpan = h('span', { text: String(layer[sKey] != null ? layer[sKey] : def.defaults[sKey]) });
+var rngIn = h('input', { type: 'range', min: String(sMin), max: String(sMax), value: String(layer[sKey] != null ? layer[sKey] : def.defaults[sKey]), style: 'padding:0;margin-top:2px' });
+rngIn.addEventListener('input', function () {
+layer[sKey] = Number(rngIn.value);
+valSpan.textContent = rngIn.value;
+syncVisualToCode();
+});
+slidersBox.appendChild(h('label', { style: 'font:11px var(--mono);color:var(--dim);display:grid' },
+h('span', { style: 'display:flex;justify-content:space-between' }, h('span', { text: sLbl }), valSpan),
+rngIn));
+});
+vbHost.appendChild(h('div', { class: 'card', style: 'padding:10px 12px' },
+h('div', { style: 'display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap' },
+h('label', { style: 'display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px;cursor:pointer' }, enChk, '#' + (idx + 1) + ' ' + def.label),
+h('div', { class: 'row', style: 'gap:4px;align-items:center' }, colSel, btnUp, btnDn, btnDel)),
+slidersBox));
+});
+}
+$('#load').addEventListener('click', function () {
+setStudioMode('code');
+ed.value = D.studio.templates[tpl.value] || D.studio.templates.iso;
+if (wearOn) ed.value = applyWearToggle(ed.value, wearOn.checked);
+clear(gatesEl); show();
+});
 $('#go').addEventListener('click', show);
 $('#rnd').addEventListener('click', function () { ser.value = String(Math.floor(Math.random() * 4294967296)); show(); });
 if ($('#rnd-lin')) $('#rnd-lin').addEventListener('click', function () { var o = new Uint8Array(32); crypto.getRandomValues(o); lin.value = C.u8hex(o); show(); });
@@ -4819,7 +5109,8 @@ if (wearOn) wearOn.addEventListener('change', function () { ed.value = applyWear
 ed.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(show, 600); });
 $('#run-gates').addEventListener('click', gates);
 K.on(function (st) { var a = $('#artist'); if (st.status === 'connected' && !a.value) a.placeholder = 'from Kaspire: ' + short(st.pubkey, 10, 6); });
-ed.value = D.studio.templates.iso || D.studio.templates.dagcity;
+renderVisualBuilder();
+ed.value = RvmAsm.compileLayers(vSpec);
 return { show: show };
 }
 var studio = null;
@@ -4834,7 +5125,7 @@ window.scrollTo(0, 0);
 document.querySelectorAll('nav.tabs button').forEach(function (b) { b.addEventListener('click', function () { showTab(b.dataset.tab); }); });
 window.addEventListener('hashchange', function () { showTab(location.hash.slice(1)); });
 var host = $('#series-host');
-A.series.forEach(function (s) { host.appendChild(renderSeries(s)); });
+if (!A.series.length) { host.appendChild(h('div', { class: 'card', style: 'margin-bottom:18px' }, h('span', { class: 'tag d', text: 'Ready for Genesis' }), h('h3', { text: 'No mainnet series listed yet' }), h('p', { text: 'Open the Studio tab to design a Reliks-VM program, deploy your SeriesFactory covenant on chain in 1 click with Kaspire, or import a Series Anchor JSON below.' }))); } else { A.series.forEach(function (s) { host.appendChild(renderSeries(s)); }); }
 initCustomSeriesLoader();
 renderGalleryFilters();
 initOfflineVerifier();

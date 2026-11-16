@@ -1,6 +1,6 @@
 'use strict';
 const CH = require('../web/reliks-chain.js'), C = require('./claim.js'), R = require('./read.js');
-CH.init(require('../lib/reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' }));
+CH.init(require('../lib/reliks-templates.js')());
 let bad = 0;
 const t = (n, ok, d) => { if (!ok) bad = 1; console.log((ok ? 'PASS ' : 'FAIL ') + n + (ok ? '' : ' | ' + d)); };
 const hexOf = (u) => Buffer.from(u).toString('hex'), H = (c) => c.repeat(64);
@@ -8,7 +8,7 @@ const program = Uint8Array.from([0x52, 0x56, 0x4d, 0x01, 0x40, 0, 0x40, 0, 0x00]
 const LANE = H('3'), EDC = H('9'), MT = H('f'), PTX = H('e');
 const base = { ownerIdentifier: H('1'), identifierType: 0, price: '0', artist: H('2'), royalty_bips: '500', program_hash: PH, factory_covid: LANE, serial: '12345', lineage: H('4'), sales: '2' };
 const stOf = (s) => Object.assign({}, base, s || {});
-const GEN = { serial: CH.serialFromOutpoint(PTX, 0), lineage: CH.genesisLineage(PTX, 0), sales: '0' };
+const GEN = { serial: '0', lineage: CH.genesisLineage(LANE, 0), sales: '0' };
 const NOW = { ownerIdentifier: H('6'), serial: GEN.serial, lineage: CH.advanceLineage(GEN.lineage, H('6')), sales: '1' };
 const spkOf = (s) => CH.p2shSpk(CH.editionRedeem(stOf(s)));
 const LIVE = (s) => ({ outpoint: H('a') + ':0', live: true, script_hex: spkOf(s), created_daa: 10 });

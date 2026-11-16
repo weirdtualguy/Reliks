@@ -56,10 +56,10 @@
   }
   function bindSeriesTemplates(s, enginePayload) {
     var vmMode = isVmPayload(enginePayload, s);
-    var isV13 = vmMode || s.protocol_version === 'v13' || (s.editions && s.editions[0] && s.editions[0].lineage !== undefined);
-    s._editionTemplate = isV13 && D.templatesV13 ? D.templatesV13.edition : D.templates.edition;
+    var isV13 = true;
+    s._editionTemplate = D.templates.edition;
     var engBytes = engineBytesOf(enginePayload, vmMode);
-    var isDefaultV12 = !isV13 && D.templates.factory.suffixHex.indexOf(C.u8hex(engBytes)) >= 0;
+    var isDefaultV12 = false;
     s._progBytes = isDefaultV12 ? null : engBytes;
     return { vmMode: vmMode, isV13: isV13, engBytes: engBytes };
   }
@@ -164,7 +164,7 @@
     function push(c) { checks.push(c); return c; }
     var cHash = push(newCheck('Engine bytes hash to the anchored program_hash', 'BLAKE2b-256 of the ' + engBytes.length + ' ' + (vmMode ? 'Reliks-VM bytecode' : 'JS engine') + ' bytes shipped with this page'));
     var cRender = push(newCheck('Engine reproduces the anchored image', 'BLAKE2b-256 of render(serial 1' + (vmMode ? ', lineage 0, sales 0' : '') + ') compared with render_hash'));
-    var cBaked = push(newCheck('Engine is baked into the factory contract template', vmMode ? 'RVM\\x01 header valid and bytecode verified against factory commitment' : 'engine bytes found inside the compiled SeriesFactory-v12 template'));
+    var cBaked = push(newCheck('Engine is baked into the factory contract template', 'RVM\\x01 header valid and bytecode verified against factory commitment'));
     var cLane = push(newCheck('Live lane covenant commits to this engine', 'lane state decoded from public chain data must recompute to the on-chain script'));
     var eds = (s.editions || []).map(function (ed) {
       return { ed: ed, serial: push(newCheck('Edition #' + ed.index + ': serial recomputes from its lane outpoint', 'ReliksSerialV10 over the consumed lane outpoint')),
@@ -194,8 +194,9 @@
     }
     tick();
     eds.forEach(function (e) {
-      var consumed = e.ed.consumedTxId || (e.ed.index === 0 ? s.genesisTxId : s.editions[e.ed.index - 1].mintTxId);
-      settle(e.serial, C.serialFromOutpoint(consumed, 0) === String(e.ed.serial), 'serial ' + e.ed.serial);
+      var baseSer = BigInt((s.genesisState && s.genesisState.next_serial) || 0);
+      var wantSer = String(baseSer + BigInt(e.ed.index));
+      settle(e.serial, String(e.ed.serial) === wantSer, 'serial ' + e.ed.serial);
     }); tick();
 
     // ---- chain checks (with multi-source REST + kascov cross-check)
@@ -212,7 +213,7 @@
         if (!out) throw new Error('mint transaction has no output ' + e.ed.outputIndex);
         var consumed = e.ed.consumedTxId || (e.ed.index === 0 ? s.genesisTxId : s.editions[e.ed.index - 1].mintTxId);
         var state = { ownerIdentifier: e.ed.ownerAtMint, identifierType: 0, price: 0, artist: s.artist, royalty_bips: royBips, program_hash: s.programHash, factory_covid: s.laneCovenantId, serial: e.ed.serial };
-        if (C.editionHasLineage(edTpl)) { state.lineage = e.ed.lineage || C.genesisLineage(consumed, 0); state.sales = e.ed.sales || 0; }
+        state.lineage = e.ed.lineage || C.genesisLineage(s.laneCovenantId, e.ed.serial); state.sales = e.ed.sales || 0;
         var want = C.p2shSpk(C.editionRedeem(state, edTpl)), got = C.spkOfOutput(out);
         var kascovMatch = null;
         try {
@@ -333,9 +334,10 @@
     return new Promise(function (resolve) {
       var wr = h('input', { id: 'wrpc', placeholder: 'wss://... or ws://localhost:17110 (optional)', value: savedWrpc(), autocomplete: 'off', spellcheck: 'false' });
       var presets = h('div', { class: 'row', style: 'margin-top:6px;flex-wrap:wrap;gap:6px' },
-        h('span', { style: 'font:11px var(--mono);color:var(--dim)', text: 'Mobile wRPC presets:' }),
-        h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = 'wss://wrpc.kaspad.net'; }, text: 'wrpc.kaspad.net' }),
-        h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = 'ws://127.0.0.1:17110'; }, text: 'Local 17110' }),
+        h('span', { style: 'font:11px var(--mono);color:var(--dim)', text: 'wRPC JSON presets:' }),
+        h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = 'wss://emma.kaspa.stream/kaspa/mainnet/wrpc/json'; }, text: 'emma.kaspa.stream' }),
+        h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = 'wss://eva.kaspa.green/kaspa/mainnet/wrpc/json'; }, text: 'eva.kaspa.green' }),
+        h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = 'ws://127.0.0.1:18110'; }, text: 'Local 18110' }),
         h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 8px;font-size:11px', onclick: function () { wr.value = ''; }, text: 'Clear' }));
       var raw = h('pre', { class: 'code', text: JSON.stringify(JSON.parse(C.toSafeJSON(draft)), null, 2) });
       var rev = h('div', { class: 'review' });
@@ -411,10 +413,8 @@
         index: (s.editions || []).length, serial: String(m.serial), covenantId: m.editionCovenantId,
         mintTxId: res.txId, outputIndex: 1, consumedTxId: lane.outpoint.txId, ownerAtMint: st.pubkey
       };
-      if (C.editionHasLineage(s._editionTemplate)) {
-        newEd.lineage = C.genesisLineage(lane.outpoint.txId, lane.outpoint.index);
-        newEd.sales = 0;
-      }
+      newEd.lineage = C.genesisLineage(lane.covenantId, m.serial);
+      newEd.sales = 0;
       s.editions = (s.editions || []).concat([newEd]);
       saveLocalEdition(s.id, newEd);
       var link = A.explorer + res.txId;
@@ -444,7 +444,7 @@
         ? 'Set a fixed price in KAS (minimum 1 KAS). Anyone can buy the edition on chain, paying ' + (100 - Number(st.royalty_bips) / 100) + '% to you and ' + (Number(st.royalty_bips) / 100) + '% royalty to the artist.'
         : action === 'bid'
           ? 'Create a signed atomic bid in KAS (minimum 1 KAS) using ReliksEdition.sell. Your funds stay in your wallet until the edition owner co-signs and accepts your bid.'
-          : 'Transfer this edition to another Kaspa wallet (royalty-free). In v13, transferring advances provenance lineage (patina) without incrementing sales wear.';
+          : 'Transfer this edition to another Kaspa wallet (royalty-free). Transferring advances provenance lineage (patina) without incrementing sales wear.';
       var fieldBox = (action === 'list' || action === 'bid')
         ? h('div', { class: 'field', style: 'margin:12px 0' }, h('label', { for: 'trade-price', text: (action === 'bid' ? 'Bid / Offer amount' : 'Listing price') + ' (KAS, min 1)' }), priceIn)
         : h('div', { class: 'field', style: 'margin:12px 0' }, h('label', { for: 'trade-to', text: 'Recipient address (kaspa:qp...) or 64-hex pubkey' }), toIn);
@@ -613,7 +613,7 @@
           { label: 'Network fee (estimate)', value: '≈ ' + C.fmtKas(sb.fee) + ' KAS' },
           { label: 'Leaves your wallet', value: '≈ ' + C.fmtKas(sb.price + sb.fee) + ' KAS', total: true }
         ];
-        noteText = 'Buying transfers the 1 KAS edition carrier UTXO to your wallet address and advances the v13 provenance lineage and sales wear.';
+        noteText = 'Buying transfers the 1 KAS edition carrier UTXO to your wallet address and advances provenance lineage and sales wear.';
       } else if (action === 'list') {
         probe = C.buildListEdition({ edition: liveEd, owner: { pubkey: w.pubkey, address: w.address }, newPrice: params.newPrice, funding: dummyFund, fee: 1n, hrp: A.hrp, editionTemplate: s._editionTemplate });
         var feeList = C.estimateFee(probe);
@@ -889,7 +889,7 @@
       exNote.textContent = 'Rendering…';
       runEngine(engineSrc, v, { series: s }).then(function (svg) {
         clear(frame); frame.appendChild(artFrame(svg));
-        exHash.textContent = 'serial      ' + v + '\nseed        ' + seedOf(v) + '  (serial mod 2^32)\nruntime     ' + (vmMode ? 'Reliks-VM v1 (RVM\\x01)' : 'JavaScript v12') + '\nsvg bytes   ' + svg.length + '\nrender_hash ' + bhex(svg);
+        exHash.textContent = 'serial      ' + v + '\nseed        ' + seedOf(v) + '  (serial mod 2^32)\nruntime     ' + ('Reliks-VM (RVM\\x01)') + '\nsvg bytes   ' + svg.length + '\nrender_hash ' + bhex(svg);
         var real = (s.editions || []).filter(function (e) { return String(e.serial) === v; })[0];
         exNote.textContent = real ? 'This serial is edition #' + real.index + ', minted on chain.' : 'Preview only: this serial is not a minted edition. Real serials come from the lane outpoint consumed by each mint.';
       }).catch(function (e) { exNote.textContent = 'Engine error: ' + e.message; });
@@ -909,7 +909,7 @@
 
     var el = h('article', { class: 'series', 'aria-label': s.title }, art,
       h('div', { class: 'series-body' },
-        h('div', {}, h('span', { class: 'eyebrow', text: vmMode ? 'Mainnet Reliks-VM series (v13)' : 'Mainnet series' }), h('h3', { text: s.title }), h('p', { class: 'tagline', text: 'Deterministic artwork drawn by ' + engByteCount.toLocaleString('en-US') + ' bytes of integer-only ' + (vmMode ? 'Reliks-VM bytecode' : 'code') + ' committed inside the covenant.' })),
+        h('div', {}, h('span', { class: 'eyebrow', text: 'Mainnet Reliks-VM series' }), h('h3', { text: s.title }), h('p', { class: 'tagline', text: 'Deterministic artwork drawn by ' + engByteCount.toLocaleString('en-US') + ' bytes of integer-only ' + (vmMode ? 'Reliks-VM bytecode' : 'code') + ' committed inside the covenant.' })),
         h('dl', { class: 'facts' }, h('div', {}, h('dt', { text: 'Price' }), facts.price), h('div', {}, h('dt', { text: 'Royalty' }), facts.roy), h('div', {}, h('dt', { text: 'Supply' }), facts.left)),
         cta, ctaNote, proof));
     seriesViews[s.id] = view;
@@ -989,13 +989,13 @@
         addChk('Anchor render(serial=1) matches render_hash', false, e.message);
       }
 
-      var edTpl = (b.templates && b.templates.edition) || (s.protocol_version === 'v13' && D.templatesV13 ? D.templatesV13.edition : D.templates.edition);
+      var edTpl = (b.templates && b.templates.edition) || D.templates.edition;
       var edCards = [];
+      var baseSerOff = BigInt((s && s.next_serial_at_genesis) || 0);
       for (var i = 0; i < b.editions.length; i++) {
         var ed = b.editions[i];
-        var opParts = String(ed.consumedLaneOutpoint || '').split(':');
-        var serOk = C.serialFromOutpoint(opParts[0], Number(opParts[1] || 0)) === String(ed.serial);
-        addChk('Edition #' + ed.index + ': serial recomputes from ' + short(ed.consumedLaneOutpoint, 10, 4), serOk, 'serial ' + ed.serial);
+        var serOk = String(baseSerOff + BigInt(ed.index)) === String(ed.serial);
+        addChk('Edition #' + ed.index + ': counter serial matches edition index', serOk, 'serial ' + ed.serial);
         var spkGot = C.p2shSpk(C.editionRedeem(ed.state, edTpl));
         var spkOk = spkGot === ed.expectedSpk;
         addChk('Edition #' + ed.index + ': P2SH scriptPubKey recomputes from state', spkOk, short(spkGot, 14, 6));
@@ -1008,7 +1008,7 @@
             edCards.push(h('div', { class: 'card' },
               h('span', { class: 'tag v', text: 'Offline verified · Ed #' + ed.index }),
               h('h3', { text: s.title + ' · serial ' + short(ed.serial, 8, 6) }),
-              h('p', { text: (vmMode ? 'Reliks-VM · sales ' + ed.state.sales + ' · wear ' + (ed.wear || 0) + ' · patina ' + (ed.pat || 0) : 'JavaScript v12') + ' · spk ' + short(spkGot, 12, 6) }),
+              h('p', { text: ('Reliks-VM · sales ' + ed.state.sales + ' · wear ' + (ed.wear || 0) + ' · patina ' + (ed.pat || 0)) + ' · spk ' + short(spkGot, 12, 6) }),
               h('div', { class: 'art-wrap', style: 'margin-top:10px;border-radius:10px;overflow:hidden' }, artFrame(svgEd))));
           }
         } catch (e) {
@@ -1030,24 +1030,19 @@
 
     var btns = h('div', { class: 'row', style: 'margin:10px 0' },
       h('button', { class: 'btn primary', id: 'btn-verify-offline', onclick: verifyOffline, text: 'Verify & Render Offline' }));
-    if (D.bundles && D.bundles.v12) {
-      btns.appendChild(h('button', { class: 'btn', onclick: function () { ta.value = JSON.stringify(D.bundles.v12, null, 2); verifyOffline(); }, text: 'Load v12 Mainnet Bundle (JS)' }));
-    }
-    if (D.bundles && D.bundles.v13) {
-      btns.appendChild(h('button', { class: 'btn', onclick: function () { ta.value = JSON.stringify(D.bundles.v13, null, 2); verifyOffline(); }, text: 'Load v13 Demo Bundle (Reliks-VM)' }));
+    if (D.bundles && D.bundles.demo) {
+      btns.appendChild(h('button', { class: 'btn', onclick: function () { ta.value = JSON.stringify(D.bundles.demo, null, 2); verifyOffline(); }, text: 'Load Demo Bundle (Reliks-VM)' }));
     }
     host.appendChild(h('div', { class: 'card', style: 'padding:18px' }, statusLine, ta, btns, outBox));
   }
 
-  /* ------------------------------------------------------------ studio (Reliks-VM v13 default + High-Level DSL + 1-click Publish) */
+  /* ------------------------------------------------------------ studio (Visual Builder + Reliks-VM DSL + 1-click Publish) */
   function initStudio() {
     var ed = $('#ed'), ser = $('#ser'), lin = $('#lin'), wr = $('#wr'), wv = $('#wv'), wearOn = $('#wear-on'), gatesEl = $('#gates-out'), stat = $('#studio-status'), hashes = $('#hashes'), prevBox = $('#prev-box'), tpl = $('#tpl');
-    var vmCtrl = $('#vm-controls'), vmWear = $('#vm-wear-row'), exeBtn = $('#exe'), exsrcBtn = $('#exsrc'), pubBtn = $('#pub-kaspire'), pubOut = $('#pub-out');
-    var CAP = D.studio.cap, PRELUDE = D.studio.prelude, B = ReliksBlake2b.blake2b;
-    var BANNED = [[/\bMath\s*\.\s*(random|sin|cos|tan|asin|acos|atan2?|pow|sqrt|hypot|exp|log2?|log10)\b/, 'Math transcendental/random'], [/\bDate\b/, 'Date'], [/\bperformance\b/, 'performance'], [/\bfetch\s*\(/, 'fetch'], [/\bXMLHttpRequest\b/, 'XHR'], [/\bWebSocket\b/, 'WebSocket'], [/\brequire\s*\(/, 'require'], [/\bimport\s*[\(\{]/, 'import'], [/\beval\s*\(/, 'eval'], [/new\s+Function/, 'new Function'], [/\bwindow\b/, 'window'], [/\bdocument\b/, 'document'], [/\blocalStorage\b/, 'localStorage'], [/\bsetTimeout\b|\bsetInterval\b/, 'timer'], [/\bprocess\b/, 'process'], [/\bglobalThis\b/, 'globalThis']];
+    var exeBtn = $('#exe'), exsrcBtn = $('#exsrc'), pubBtn = $('#pub-kaspire'), pubOut = $('#pub-out');
+    var CAP = D.studio.cap, B = ReliksBlake2b.blake2b;
     var lastProg = null, timer = 0;
 
-    function isJsSource(raw) { return /\bfunction\s+reliks\s*\(/.test(raw); }
     function applyWearToggle(src, enabled) {
       if (/wear\s+push\s+[01]\s+mul\s+st\s+WR/.test(src)) {
         return src.replace(/wear\s+push\s+[01]\s+mul\s+st\s+WR/, 'wear push ' + (enabled ? '1' : '0') + ' mul st WR');
@@ -1062,89 +1057,60 @@
       var src = (wearOn && !wearOn.checked) ? applyWearToggle(raw, false).replace(/\bwear\b(?!\s+push\s+0\s+mul)/g, 'push 0') : raw;
       return RvmAsm.assemble(src);
     }
-    function src() { return PRELUDE + '\n' + ed.value; }
-    function blen(x) { return C.utf8(x).length; }
-    function syncUiMode(vmMode) {
-      if (vmCtrl) vmCtrl.style.display = vmMode ? '' : 'none';
-      if (vmWear) vmWear.style.display = vmMode ? '' : 'none';
-      if (exeBtn) exeBtn.textContent = vmMode ? 'Export bytecode (.hex)' : 'Export engine (.js)';
-      if (exsrcBtn) exsrcBtn.style.display = vmMode ? '' : 'none';
-    }
 
     async function gates() {
-      var raw = ed.value;
-      if (!isJsSource(raw)) {
-        syncUiMode(true);
-        var out = [], ok = true;
-        function chkVm(name, pass, info) { out.push({ pass: pass, text: name + (info ? '  ' + info : '') }); if (!pass) ok = false; }
-        var prog = null;
-        try { prog = parseVmSourceOrHex(raw); lastProg = prog; }
-        catch (e) {
-          lastProg = null;
-          chkVm('V0 assemble', false, e.message);
-          clear(gatesEl); out.forEach(function (o) { gatesEl.appendChild(h('div', {}, h('span', { class: o.pass ? 'p' : 'f', text: o.pass ? 'PASS ' : 'FAIL ' }), o.text)); });
-          stat.textContent = 'Assemble error: ' + e.message;
-          return false;
-        }
-        chkVm('V1 size <= PUSHDATA2 baking cap', prog.length <= CAP, prog.length + ' / ' + CAP + ' B');
-        var anchorOk = false, anchorHash = '';
-        try {
-          var hi1 = RVM.hostInputs(B, '1', new Uint8Array(32), 0);
-          var svg1 = RVM.render(prog, hi1.lanes, hi1.serial32, hi1.pat, hi1.wear);
-          anchorHash = bhex(svg1).slice(0, 16) + '…';
-          anchorOk = svg1.indexOf('<svg') === 0 && /<\/svg>$/.test(svg1);
-        } catch (e) { anchorHash = e.code || e.message; }
-        chkVm('V2 anchor render (serial=1, lineage=0, sales=0)', anchorOk, anchorHash);
-        var detOk = true;
-        try {
-          var hiD = RVM.hostInputs(B, '42', new Uint8Array(32), 0);
-          var a1 = RVM.render(prog, hiD.lanes, hiD.serial32, hiD.pat, hiD.wear);
-          var a2 = RVM.render(prog, hiD.lanes, hiD.serial32, hiD.pat, hiD.wear);
-          detOk = a1 === a2;
-        } catch (e) { detOk = false; }
-        chkVm('V3 determinism (double-render serial 42)', detOk);
-        var sers = ['1', '42', '999', '8675309', '4294967295', '9223372036854775807'];
-        var corners = [[0, 0], [0, 255], [21, 128], [63, 0], [63, 255]];
-        var maxFuel = 0, maxElems = 0, maxSvg = 0, maxSt = 0, faults = 0, firstFault = '';
-        for (var si = 0; si < sers.length; si++) {
-          var hiS = RVM.hostInputs(B, sers[si], new Uint8Array(32), 0);
-          for (var ci = 0; ci < corners.length; ci++) {
-            var stObj = {};
-            try {
-              RVM.render(prog, hiS.lanes, hiS.serial32, corners[ci][0], corners[ci][1], stObj);
-              if (stObj.fuel > maxFuel) maxFuel = stObj.fuel;
-              if (stObj.elems > maxElems) maxElems = stObj.elems;
-              if (stObj.svg_len > maxSvg) maxSvg = stObj.svg_len;
-              if (stObj.max_stack > maxSt) maxSt = stObj.max_stack;
-            } catch (e) {
-              faults++;
-              if (!firstFault) firstFault = 'serial ' + sers[si] + ' pat ' + corners[ci][0] + ' wear ' + corners[ci][1] + ': ' + (e.code || e.message);
-            }
+      var raw = ed.value, out = [], ok = true;
+      function chkVm(name, pass, info) { out.push({ pass: pass, text: name + (info ? '  ' + info : '') }); if (!pass) ok = false; }
+      var prog = null;
+      try { prog = parseVmSourceOrHex(raw); lastProg = prog; }
+      catch (e) {
+        lastProg = null;
+        chkVm('V0 assemble', false, e.message);
+        clear(gatesEl); out.forEach(function (o) { gatesEl.appendChild(h('div', {}, h('span', { class: o.pass ? 'p' : 'f', text: o.pass ? 'PASS ' : 'FAIL ' }), o.text)); });
+        stat.textContent = 'Assemble error: ' + e.message;
+        return false;
+      }
+      chkVm('V1 size <= PUSHDATA2 baking cap', prog.length <= CAP, prog.length + ' / ' + CAP + ' B');
+      var anchorOk = false, anchorHash = '';
+      try {
+        var hi1 = RVM.hostInputs(B, '1', new Uint8Array(32), 0);
+        var svg1 = RVM.render(prog, hi1.lanes, hi1.serial32, hi1.pat, hi1.wear);
+        anchorHash = bhex(svg1).slice(0, 16) + '…';
+        anchorOk = svg1.indexOf('<svg') === 0 && /<\/svg>$/.test(svg1);
+      } catch (e) { anchorHash = e.code || e.message; }
+      chkVm('V2 anchor render (serial=1, lineage=0, sales=0)', anchorOk, anchorHash);
+      var detOk = true;
+      try {
+        var hiD = RVM.hostInputs(B, '42', new Uint8Array(32), 0);
+        var a1 = RVM.render(prog, hiD.lanes, hiD.serial32, hiD.pat, hiD.wear);
+        var a2 = RVM.render(prog, hiD.lanes, hiD.serial32, hiD.pat, hiD.wear);
+        detOk = a1 === a2;
+      } catch (e) { detOk = false; }
+      chkVm('V3 determinism (double-render serial 42)', detOk);
+      var sers = ['1', '42', '999', '8675309', '4294967295', '9223372036854775807'];
+      var corners = [[0, 0], [0, 255], [21, 128], [63, 0], [63, 255]];
+      var maxFuel = 0, maxElems = 0, maxSvg = 0, maxSt = 0, faults = 0, firstFault = '';
+      for (var si = 0; si < sers.length; si++) {
+        var hiS = RVM.hostInputs(B, sers[si], new Uint8Array(32), 0);
+        for (var ci = 0; ci < corners.length; ci++) {
+          var stObj = {};
+          try {
+            RVM.render(prog, hiS.lanes, hiS.serial32, corners[ci][0], corners[ci][1], stObj);
+            if (stObj.fuel > maxFuel) maxFuel = stObj.fuel;
+            if (stObj.elems > maxElems) maxElems = stObj.elems;
+            if (stObj.svg_len > maxSvg) maxSvg = stObj.svg_len;
+            if (stObj.max_stack > maxSt) maxSt = stObj.max_stack;
+          } catch (e) {
+            faults++;
+            if (!firstFault) firstFault = 'serial ' + sers[si] + ' pat ' + corners[ci][0] + ' wear ' + corners[ci][1] + ': ' + (e.code || e.message);
           }
         }
-        chkVm('V4 corner sweep (30 renders across serials x pat/wear)', faults === 0, faults ? firstFault : '0 faults');
-        chkVm('V5 worst-case headroom', faults === 0, 'fuel ' + maxFuel + '/' + RVM.limits.FUEL_MAX + ' | elems ' + maxElems + '/' + RVM.limits.MAX_ELEMS + ' | svg ' + maxSvg + '/' + RVM.limits.MAX_SVG + ' B | stack ' + maxSt + '/' + RVM.limits.STACK_MAX);
-        clear(gatesEl); out.forEach(function (o) { gatesEl.appendChild(h('div', {}, h('span', { class: o.pass ? 'p' : 'f', text: o.pass ? 'PASS ' : 'FAIL ' }), o.text)); });
-        stat.textContent = ok ? 'All Reliks-VM gates green: ready to publish on chain or export .hex bytecode.' : 'VM gates failed: see report above.';
-        return ok;
       }
-
-      syncUiMode(false);
-      var s = src(), outJs = [], okJs = true;
-      function chk(name, pass, info) { outJs.push({ pass: pass, text: name + (info ? '  ' + info : '') }); if (!pass) okJs = false; }
-      chk('L1 size within cap', blen(s) <= CAP, blen(s) + ' / ' + CAP + ' B (prelude ' + PRELUDE.length + ' B included)');
-      var bad = BANNED.filter(function (b) { return b[0].test(s); }).map(function (b) { return b[1]; });
-      chk('L2 no banned constructs', bad.length === 0, bad.join(', '));
-      var a = null, b2 = null, c = null, err = '';
-      try { a = await runEngine(s, '42'); b2 = await runEngine(s, '42'); c = await runEngine(s, '42'); } catch (e) { err = e.message; }
-      chk('L3 deterministic x3', !err && a === b2 && b2 === c, err);
-      var good = false; try { good = !!a && a.indexOf('<svg') === 0 && a.indexOf('xmlns=') > -1 && a.slice(-6) === '</svg>' && !/NaN|undefined|Infinity|null/.test(a); } catch (e) { good = false; }
-      chk('L8 svg well-formed', good);
-      var conv = false; try { conv = (await runEngine(s, '7')) === (await runEngine(s, '4294967303')); } catch (e) { conv = false; }
-      chk('L5 seed = serial mod 2^32', conv);
-      clear(gatesEl); outJs.forEach(function (o) { gatesEl.appendChild(h('div', {}, h('span', { class: o.pass ? 'p' : 'f', text: o.pass ? 'PASS ' : 'FAIL ' }), o.text)); });
-      stat.textContent = okJs ? 'Gates green: ready to publish or export.' : 'Gates failed: fix these before publishing.';
-      return okJs;
+      chkVm('V4 corner sweep (30 renders across serials x pat/wear)', faults === 0, faults ? firstFault : '0 faults');
+      chkVm('V5 worst-case headroom', faults === 0, 'fuel ' + maxFuel + '/' + RVM.limits.FUEL_MAX + ' | elems ' + maxElems + '/' + RVM.limits.MAX_ELEMS + ' | svg ' + maxSvg + '/' + RVM.limits.MAX_SVG + ' B | stack ' + maxSt + '/' + RVM.limits.STACK_MAX);
+      clear(gatesEl); out.forEach(function (o) { gatesEl.appendChild(h('div', {}, h('span', { class: o.pass ? 'p' : 'f', text: o.pass ? 'PASS ' : 'FAIL ' }), o.text)); });
+      stat.textContent = ok ? 'All Reliks-VM gates green: ready to publish on chain or export .hex bytecode.' : 'VM gates failed: see report above.';
+      return ok;
     }
 
     async function show() {
@@ -1153,31 +1119,20 @@
       if (wv && wr) wv.textContent = wEnabled ? wr.value : '0 (off)';
       if (wr) wr.disabled = !wEnabled;
       if (!/^\d{1,19}$/.test(v) || BigInt(v) >= BigInt('9223372036854775808')) { stat.textContent = 'Serial must be a whole number below 2^63.'; return; }
-      var raw = ed.value;
-      if (!isJsSource(raw)) {
-        syncUiMode(true);
-        var l = (lin && lin.value ? lin.value.trim().toLowerCase() : '0'.repeat(64));
-        if (!/^[0-9a-f]{64}$/.test(l)) { stat.textContent = 'Lineage must be 64 hex characters.'; return; }
-        var prog;
-        try { prog = parseVmSourceOrHex(raw); lastProg = prog; }
-        catch (e) { lastProg = null; stat.textContent = 'Assemble error: ' + e.message; return; }
-        try {
-          var hi = RVM.hostInputs(B, v, C.hex2u8(l), wEnabled ? Number((wr && wr.value) || 0) : 0), stats = {};
-          var svgVm = RVM.render(prog, hi.lanes, hi.serial32, hi.pat, hi.wear, stats);
-          clear(prevBox); prevBox.appendChild(artImg(svgVm));
-          hashes.textContent = 'program       ' + prog.length + ' / ' + CAP + ' B (PUSHDATA2 bake cap)\nprogram_hash  ' + bhex(prog) + '\nrender_hash   ' + bhex(svgVm) + '\nsvg           ' + svgVm.length + ' / ' + RVM.limits.MAX_SVG + ' B\nfuel          ' + stats.fuel + ' / ' + RVM.limits.FUEL_MAX + '\nelements      ' + stats.elems + ' / ' + RVM.limits.MAX_ELEMS + '\nmax_stack     ' + stats.max_stack + ' / ' + RVM.limits.STACK_MAX + '\nwear          ' + hi.wear + ' / 255' + (wEnabled ? '' : ' (disabled in bytecode)') + '\npatina        ' + hi.pat + ' / 63';
-          stat.textContent = 'Rendered Reliks-VM program (' + prog.length + ' B). Click "Publish on Chain (Kaspire)" to deploy.';
-        } catch (e) {
-          stat.textContent = 'Render fault: ' + (e.code || e.message);
-        }
-        return;
+      var l = (lin && lin.value ? lin.value.trim().toLowerCase() : '0'.repeat(64));
+      if (!/^[0-9a-f]{64}$/.test(l)) { stat.textContent = 'Lineage must be 64 hex characters.'; return; }
+      var prog;
+      try { prog = parseVmSourceOrHex(ed.value); lastProg = prog; }
+      catch (e) { lastProg = null; stat.textContent = 'Assemble error: ' + e.message; return; }
+      try {
+        var hi = RVM.hostInputs(B, v, C.hex2u8(l), wEnabled ? Number((wr && wr.value) || 0) : 0), stats = {};
+        var svgVm = RVM.render(prog, hi.lanes, hi.serial32, hi.pat, hi.wear, stats);
+        clear(prevBox); prevBox.appendChild(artImg(svgVm));
+        hashes.textContent = 'program       ' + prog.length + ' / ' + CAP + ' B (PUSHDATA2 bake cap)\nprogram_hash  ' + bhex(prog) + '\nrender_hash   ' + bhex(svgVm) + '\nsvg           ' + svgVm.length + ' / ' + RVM.limits.MAX_SVG + ' B\nfuel          ' + stats.fuel + ' / ' + RVM.limits.FUEL_MAX + '\nelements      ' + stats.elems + ' / ' + RVM.limits.MAX_ELEMS + '\nmax_stack     ' + stats.max_stack + ' / ' + RVM.limits.STACK_MAX + '\nwear          ' + hi.wear + ' / 255' + (wEnabled ? '' : ' (disabled in bytecode)') + '\npatina        ' + hi.pat + ' / 63';
+        stat.textContent = 'Rendered Reliks-VM program (' + prog.length + ' B). Click "Publish on Chain (Kaspire)" to deploy.';
+      } catch (e) {
+        stat.textContent = 'Render fault: ' + (e.code || e.message);
       }
-
-      syncUiMode(false);
-      var svg; try { svg = await runEngine(src(), v); } catch (e) { stat.textContent = 'Error: ' + e.message; return; }
-      clear(prevBox); prevBox.appendChild(artImg(svg));
-      hashes.textContent = 'engine_hash ' + bhex(src()) + '\nrender_hash ' + bhex(svg) + '\nengine_bytes ' + blen(src()) + ' / ' + CAP;
-      await gates();
     }
 
     function download(fn, text) { var a = h('a', { href: URL.createObjectURL(new Blob([text], { type: 'text/plain' })), download: fn }); document.body.appendChild(a); a.click(); a.remove(); }
@@ -1197,8 +1152,8 @@
       var priceSompi; try { priceSompi = priceStr === '' ? -1n : BigInt(Math.round(Number(priceStr) * 1e8)); } catch (e) { priceSompi = -1n; }
       if (!/^[0-9a-f]{64}$/.test(artistPk)) err = 'Artist key must be 64 hex characters or a kaspa: address (connect Kaspire to fill it automatically).';
       else if (requireConnectedWallet && artistPk !== w.pubkey) err = 'To publish with Kaspire, the artist key must match the connected Kaspire wallet (or leave Artist blank).';
-      else if (priceSompi !== 0n && !(priceSompi >= SOMPI)) err = 'Price must be 0 or at least 1 KAS.';
-      else if (!(roy >= 0.01 && roy <= 20)) err = 'Royalty must be between 0.01% and 20%.';
+      else if (!(priceSompi >= SOMPI)) err = 'Price must be at least 1 KAS (no free mints).';
+      else if (!(roy >= 5 && roy <= 20)) err = 'Royalty must be between 5% and 20% (500..2000 bips).';
       else if (!(Number.isInteger(n) && n >= 1)) err = 'Editions must be a whole number of at least 1.';
       if (err) { stat.textContent = err; toast(err, 'bad'); return null; }
       return { artist: artistPk, priceSompi: priceSompi, royaltyBips: Math.round(roy * 100), supply: n };
@@ -1210,20 +1165,19 @@
       var form = readSeriesForm(true);
       if (!form) return;
       var w = K.state();
-      var vmMode = !isJsSource(ed.value);
-      var progBytes = vmMode ? lastProg : C.utf8(src());
+      var progBytes = lastProg;
       var progHash = bhex(progBytes);
-      var svg1 = await runEngine(vmMode ? C.u8hex(progBytes) : src(), '1', { kind: vmMode ? 'vm' : 'js' });
+      var svg1 = await runEngine(C.u8hex(progBytes), '1', { kind: 'vm' });
       var renHash = bhex(svg1);
-      var edTpl = vmMode && D.templatesV13 ? D.templatesV13.edition : D.templates.edition;
+      var edTpl = D.templates.edition;
       var depState = {
         program_hash: progHash, artist: w.pubkey, price: form.priceSompi,
         royalty_bips: BigInt(form.royaltyBips), mints_left: BigInt(form.supply),
-        engine_lang: vmMode ? 2n : 1n, render_hash: renHash
+        engine_lang: 2n, render_hash: renHash, next_serial: 0n
       };
       minting = true;
       try {
-        mintScreen(1, 'Building SeriesFactory genesis…', h('p', { class: 'note', text: 'Synthesizing the SeriesFactory-' + (vmMode ? 'v13' : 'v12') + ' covenant script and selecting wallet UTXO(s).' }));
+        mintScreen(1, 'Building SeriesFactory genesis…', h('p', { class: 'note', text: 'Synthesizing the SeriesFactory covenant script and selecting wallet UTXO(s).' }));
         var list = await io.utxos(w.address);
         var probe = C.buildDeploySeries({ state: depState, progBytes: progBytes, editionTemplate: edTpl, artist: { pubkey: w.pubkey, address: w.address }, funding: { txId: '00'.repeat(32), index: 0, amount: 10n ** 13n }, fee: 1n, hrp: A.hrp });
         var fee = C.estimateFee(probe);
@@ -1233,7 +1187,7 @@
         var ds = draft.summary;
         var choice = await askReview('Review Series Deployment', [
           { label: 'Series title', value: $('#name').value.trim() || slug() },
-          { label: 'Protocol / Runtime', value: vmMode ? 'Reliks v13 (Reliks-VM)' : 'Reliks v12 (JS)' },
+          { label: 'Protocol / Runtime', value: 'Reliks (Reliks-VM)' },
           { label: 'Program size / hash', value: progBytes.length + ' B · ' + short(progHash, 10, 6), title: progHash },
           { label: 'Anchor render_hash (serial 1)', value: short(renHash, 10, 6), title: renHash },
           { label: 'Supply / Mint price / Royalty', value: form.supply + ' eds · ' + C.fmtKas(form.priceSompi) + ' KAS · ' + (form.royaltyBips / 100) + '%' },
@@ -1258,21 +1212,19 @@
         var seriesAnchor = {
           id: slug() + '-' + res.txId.slice(0, 6),
           title: $('#name').value.trim() || slug(),
-          protocol_version: vmMode ? 'v13' : 'v12',
           laneCovenantId: ds.laneCovenantId,
           genesisTxId: res.txId,
           programHash: progHash,
           renderHash: renHash,
           artist: w.pubkey,
-          engine_lang: vmMode ? 2 : 1,
-          engineKind: vmMode ? 'vm' : 'js',
-          programHex: vmMode ? C.u8hex(progBytes) : undefined,
-          engineSrc: vmMode ? undefined : src(),
+          engine_lang: 2,
+          engineKind: 'vm',
+          programHex: C.u8hex(progBytes),
           royalty_bips: form.royaltyBips,
           genesisState: {
             program_hash: progHash, artist: w.pubkey, price: form.priceSompi.toString(),
             royalty_bips: String(form.royaltyBips), mints_left: String(form.supply),
-            engine_lang: vmMode ? '2' : '1', render_hash: renHash
+            engine_lang: '2', render_hash: renHash, next_serial: '0'
           },
           editions: []
         };
@@ -1306,18 +1258,10 @@
     if (pubBtn) pubBtn.addEventListener('click', publishWithKaspire);
     $('#exe').addEventListener('click', async function () {
       if (!(await gates())) { toast('Fix the failing gates before exporting.', 'bad'); return; }
+      if (!lastProg) return;
       var name = slug();
-      if (!isJsSource(ed.value)) {
-        if (!lastProg) return;
-        download(name + '.hex', C.u8hex(lastProg) + '\n');
-        stat.textContent = 'Exported ' + name + '.hex. Next: node cli/reliks-lens-vm.js ' + name + '.hex';
-        return;
-      }
-      download(name + '.js', ["const { blake2b: b2 } = require('./web/blake2b.js');", "const blake2b = (m, o) => b2(m, (o && o.dkLen) || 32);", "const B = Buffer;", 'const ENGINE_SRC = ' + JSON.stringify(src()) + ';', 'const TEST_SERIAL = 1;',
-        "function seedLanes(serial){const le=B.alloc(8);le.writeBigUInt64LE(BigInt(serial));const h=blake2b(B.concat([B.from('ReliksSeedV10','utf8'),le]),{dkLen:32});const dv=new DataView(h.buffer,h.byteOffset,h.byteLength);const lanes=[];for(let i=0;i<8;i++)lanes.push(dv.getInt32(i*4,true));return lanes;}",
-        "const compiled=new Function('L','serial',ENGINE_SRC+'\\nreturn reliks(L,serial);');", 'function render(serial){const s=Number(BigInt(serial)&0xFFFFFFFFn);return compiled(seedLanes(s),s|0);}',
-        "const engineHashHex=B.from(blake2b(B.from(ENGINE_SRC,'utf8'),{dkLen:32})).toString('hex');", "const renderHashHex=B.from(blake2b(B.from(render(TEST_SERIAL),'utf8'),{dkLen:32})).toString('hex');", 'module.exports={ENGINE_SRC,seedLanes,render,engineHashHex,renderHashHex,TEST_SERIAL};'].join('\n') + '\n');
-      stat.textContent = 'Exported ' + name + '.js. Next: node cli/reliks-lens.js ' + name + '.js';
+      download(name + '.hex', C.u8hex(lastProg) + '\n');
+      stat.textContent = 'Exported ' + name + '.hex. Next: node cli/reliks-lens.js ' + name + '.hex';
     });
     if (exsrcBtn) {
       exsrcBtn.addEventListener('click', function () {
@@ -1327,11 +1271,158 @@
     $('#exs').addEventListener('click', function () {
       var form = readSeriesForm(false);
       if (!form) return;
-      var seriesObj = { artist: form.artist, price: Number(form.priceSompi), royalty_bips: form.royaltyBips, mints_left: form.supply, engine_lang: isJsSource(ed.value) ? 1 : 2 };
+      var seriesObj = { artist: form.artist, price: Number(form.priceSompi), royalty_bips: form.royaltyBips, mints_left: form.supply, engine_lang: 2 };
       download('series-' + slug() + '.json', JSON.stringify(seriesObj, null, 2) + '\n');
       stat.textContent = 'Exported series-' + slug() + '.json';
     });
-    $('#load').addEventListener('click', function () { ed.value = D.studio.templates[tpl.value] || D.studio.templates.iso; if (wearOn) ed.value = applyWearToggle(ed.value, wearOn.checked); clear(gatesEl); show(); });
+
+    var vbHost = $('#visual-builder'), codePane = $('#code-pane'), btnModeVis = $('#mode-visual'), btnModeCode = $('#mode-code');
+    var studioMode = 'visual';
+    var vSpec = JSON.parse(JSON.stringify(RvmAsm.VISUAL_PRESETS.cyber_orbs));
+    var LAYER_DEFS = {
+      glow: { label: 'Radial Glow / Aura', defaults: { type: 'glow', enabled: true, cx: 500, cy: 500, radius: 400, opacity: 85, colorSlot: 'primary' }, sliders: [['cx', 'Center X', 0, 1000], ['cy', 'Center Y', 0, 1000], ['radius', 'Radius', 60, 600], ['opacity', 'Opacity %', 10, 100]] },
+      rings: { label: 'Concentric Rings', defaults: { type: 'rings', enabled: true, count: 12, cx: 500, cy: 500, step: 28, strokeWidth: 2, opacity: 70, colorSlot: 'alternate' }, sliders: [['count', 'Ring Count', 2, 36], ['step', 'Ring Spacing', 8, 60], ['strokeWidth', 'Stroke Width', 1, 16], ['opacity', 'Opacity %', 10, 100]] },
+      grid: { label: 'Generative Matrix Grid', defaults: { type: 'grid', enabled: true, cols: 8, rows: 8, margin: 120, gap: 12, density: 70, shape: 'mixed', opacity: 75, colorSlot: 'random' }, sliders: [['cols', 'Columns', 2, 14], ['rows', 'Rows', 2, 14], ['margin', 'Margin', 40, 260], ['gap', 'Cell Gap', 2, 32], ['density', 'Fill Chance %', 15, 100], ['opacity', 'Opacity %', 10, 100]] },
+      particles: { label: 'Starfield / Orbs', defaults: { type: 'particles', enabled: true, count: 36, minR: 4, maxR: 22, spread: 400, opacity: 85, filled: true, colorSlot: 'random' }, sliders: [['count', 'Orb Count', 4, 90], ['minR', 'Min Radius', 2, 40], ['maxR', 'Max Radius', 6, 90], ['spread', 'Spread', 80, 460], ['opacity', 'Opacity %', 10, 100]] },
+      rays: { label: 'Radial Starburst Rays', defaults: { type: 'rays', enabled: true, count: 24, cx: 500, cy: 500, length: 380, strokeWidth: 2, opacity: 55, colorSlot: 'alternate' }, sliders: [['count', 'Ray Count', 4, 56], ['length', 'Max Length', 60, 460], ['strokeWidth', 'Stroke Width', 1, 12], ['opacity', 'Opacity %', 10, 100]] },
+      polygons: { label: 'Crystal Shards', defaults: { type: 'polygons', enabled: true, count: 12, size: 70, spread: 340, opacity: 75, strokeWidth: 2, colorSlot: 'random' }, sliders: [['count', 'Shard Count', 2, 36], ['size', 'Shard Size', 20, 180], ['spread', 'Spread', 80, 420], ['strokeWidth', 'Border Width', 0, 10], ['opacity', 'Opacity %', 10, 100]] },
+      waves: { label: 'Flowing Wave Ribbons', defaults: { type: 'waves', enabled: true, count: 10, yStart: 560, spacing: 26, amp: 65, strokeWidth: 3, opacity: 65, colorSlot: 'secondary' }, sliders: [['count', 'Wave Count', 2, 28], ['yStart', 'Start Y', 60, 880], ['spacing', 'Row Spacing', 8, 56], ['amp', 'Wave Curve', 10, 180], ['strokeWidth', 'Stroke Width', 1, 12], ['opacity', 'Opacity %', 10, 100]] },
+      monoliths: { label: 'Skyline Monoliths', defaults: { type: 'monoliths', enabled: true, count: 16, minW: 36, maxW: 90, minH: 120, maxH: 500, baseY: 880, opacity: 90, colorSlot: 'random' }, sliders: [['count', 'Tower Count', 3, 32], ['minW', 'Min Width', 16, 80], ['maxW', 'Max Width', 36, 150], ['maxH', 'Max Height', 120, 680], ['baseY', 'Horizon Y', 500, 960], ['opacity', 'Opacity %', 20, 100]] }
+    };
+
+    function setStudioMode(m) {
+      studioMode = m;
+      if (vbHost) vbHost.hidden = m !== 'visual';
+      if (codePane) codePane.hidden = m !== 'code';
+      if (btnModeVis) btnModeVis.className = 'btn' + (m === 'visual' ? ' primary' : '');
+      if (btnModeCode) btnModeCode.className = 'btn' + (m === 'code' ? ' primary' : '');
+    }
+    if (btnModeVis) btnModeVis.addEventListener('click', function () { setStudioMode('visual'); syncVisualToCode(); });
+    if (btnModeCode) btnModeCode.addEventListener('click', function () { setStudioMode('code'); });
+
+    function syncVisualToCode() {
+      if (wearOn) vSpec.wearEffect = !!wearOn.checked;
+      ed.value = RvmAsm.compileLayers(vSpec);
+      show();
+    }
+
+    function rndHexColor() {
+      var n = Math.floor(Math.random() * 0xffffff);
+      return '#' + n.toString(16).padStart(6, '0');
+    }
+
+    function renderVisualBuilder() {
+      if (!vbHost) return;
+      clear(vbHost);
+      var presetSel = h('select', { 'aria-label': 'Visual Preset', style: 'max-width:230px' });
+      Object.keys(RvmAsm.VISUAL_PRESETS).forEach(function (k) {
+        var opt = h('option', { value: k, text: RvmAsm.VISUAL_PRESETS[k].name });
+        if (vSpec.name === RvmAsm.VISUAL_PRESETS[k].name) opt.selected = true;
+        presetSel.appendChild(opt);
+      });
+      presetSel.addEventListener('change', function () {
+        vSpec = JSON.parse(JSON.stringify(RvmAsm.VISUAL_PRESETS[presetSel.value]));
+        renderVisualBuilder();
+        syncVisualToCode();
+      });
+      var btnRandPal = h('button', { type: 'button', class: 'btn', onclick: function () {
+        vSpec.bg = '#' + Math.floor(Math.random() * 0x222233).toString(16).padStart(6, '0');
+        vSpec.primary = rndHexColor();
+        vSpec.secondary = rndHexColor();
+        vSpec.accent = rndHexColor();
+        renderVisualBuilder();
+        syncVisualToCode();
+      }, text: 'Randomize Palette' });
+
+      var palCard = h('div', { class: 'card', style: 'padding:12px' },
+        h('div', { class: 'row', style: 'justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px' },
+          h('b', { text: '1. Visual Preset & Color Palette' }),
+          h('div', { class: 'row', style: 'gap:6px;flex-wrap:wrap' }, presetSel, btnRandPal)),
+        h('div', { class: 'row', style: 'flex-wrap:wrap;gap:12px;align-items:center' },
+          [['bg', 'Background'], ['primary', 'Primary'], ['secondary', 'Secondary'], ['accent', 'Accent']].map(function (pair) {
+            var key = pair[0], lbl = pair[1];
+            var inp = h('input', { type: 'color', value: vSpec[key] || '#49c5b1', style: 'width:38px;height:30px;padding:2px;cursor:pointer' });
+            inp.addEventListener('input', function () { vSpec[key] = inp.value; syncVisualToCode(); });
+            return h('label', { style: 'font:12px var(--mono);color:var(--dim);display:inline-flex;align-items:center;gap:6px' }, inp, lbl);
+          }),
+          (function () {
+            var patChk = h('input', { type: 'checkbox', checked: vSpec.patinaShift !== false, style: 'width:auto;margin:0' });
+            patChk.addEventListener('change', function () { vSpec.patinaShift = patChk.checked; syncVisualToCode(); });
+            return h('label', { style: 'font:12px var(--mono);color:var(--dim);display:inline-flex;align-items:center;gap:6px;cursor:pointer' }, patChk, 'Patina color shift');
+          })()
+        )
+      );
+      vbHost.appendChild(palCard);
+
+      var addTypeSel = h('select', { 'aria-label': 'New layer type', style: 'max-width:220px' });
+      Object.keys(LAYER_DEFS).forEach(function (k) {
+        addTypeSel.appendChild(h('option', { value: k, text: LAYER_DEFS[k].label }));
+      });
+      var btnAddLayer = h('button', { type: 'button', class: 'btn primary', onclick: function () {
+        var def = LAYER_DEFS[addTypeSel.value] || LAYER_DEFS.rings;
+        vSpec.layers.push(JSON.parse(JSON.stringify(def.defaults)));
+        renderVisualBuilder();
+        syncVisualToCode();
+      }, text: '+ Add Layer' });
+
+      vbHost.appendChild(h('div', { class: 'row', style: 'justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px' },
+        h('b', { style: 'font-size:14px', text: '2. Generative Layers (' + vSpec.layers.length + ')' }),
+        h('div', { class: 'row', style: 'gap:6px' }, addTypeSel, btnAddLayer)));
+
+      vSpec.layers.forEach(function (layer, idx) {
+        var def = LAYER_DEFS[layer.type] || LAYER_DEFS.rings;
+        var enChk = h('input', { type: 'checkbox', checked: layer.enabled !== false, style: 'width:auto;margin:0' });
+        enChk.addEventListener('change', function () { layer.enabled = enChk.checked; syncVisualToCode(); });
+
+        var colSel = h('select', { 'aria-label': 'Layer color mode', style: 'max-width:145px;padding:4px 8px;font-size:12px' });
+        [['random', 'Random Palette'], ['primary', 'Primary Color'], ['secondary', 'Secondary Color'], ['accent', 'Accent Color'], ['alternate', 'Alternate C1/C2']].forEach(function (cp) {
+          var o = h('option', { value: cp[0], text: cp[1] });
+          if ((layer.colorSlot || 'random') === cp[0]) o.selected = true;
+          colSel.appendChild(o);
+        });
+        colSel.addEventListener('change', function () { layer.colorSlot = colSel.value; syncVisualToCode(); });
+
+        var btnUp = h('button', { type: 'button', class: 'btn ghost', style: 'padding:3px 8px;font-size:12px', disabled: idx === 0, onclick: function () {
+          var tmp = vSpec.layers[idx - 1]; vSpec.layers[idx - 1] = layer; vSpec.layers[idx] = tmp;
+          renderVisualBuilder(); syncVisualToCode();
+        }, text: '↑' });
+        var btnDn = h('button', { type: 'button', class: 'btn ghost', style: 'padding:3px 8px;font-size:12px', disabled: idx === vSpec.layers.length - 1, onclick: function () {
+          var tmp = vSpec.layers[idx + 1]; vSpec.layers[idx + 1] = layer; vSpec.layers[idx] = tmp;
+          renderVisualBuilder(); syncVisualToCode();
+        }, text: '↓' });
+        var btnDel = h('button', { type: 'button', class: 'btn ghost', style: 'padding:3px 8px;font-size:12px', onclick: function () {
+          vSpec.layers.splice(idx, 1); renderVisualBuilder(); syncVisualToCode();
+        }, text: '×' });
+
+        var slidersBox = h('div', { style: 'display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-top:8px' });
+        def.sliders.forEach(function (sl) {
+          var sKey = sl[0], sLbl = sl[1], sMin = sl[2], sMax = sl[3];
+          var valSpan = h('span', { text: String(layer[sKey] != null ? layer[sKey] : def.defaults[sKey]) });
+          var rngIn = h('input', { type: 'range', min: String(sMin), max: String(sMax), value: String(layer[sKey] != null ? layer[sKey] : def.defaults[sKey]), style: 'padding:0;margin-top:2px' });
+          rngIn.addEventListener('input', function () {
+            layer[sKey] = Number(rngIn.value);
+            valSpan.textContent = rngIn.value;
+            syncVisualToCode();
+          });
+          slidersBox.appendChild(h('label', { style: 'font:11px var(--mono);color:var(--dim);display:grid' },
+            h('span', { style: 'display:flex;justify-content:space-between' }, h('span', { text: sLbl }), valSpan),
+            rngIn));
+        });
+
+        vbHost.appendChild(h('div', { class: 'card', style: 'padding:10px 12px' },
+          h('div', { style: 'display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap' },
+            h('label', { style: 'display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px;cursor:pointer' }, enChk, '#' + (idx + 1) + ' ' + def.label),
+            h('div', { class: 'row', style: 'gap:4px;align-items:center' }, colSel, btnUp, btnDn, btnDel)),
+          slidersBox));
+      });
+    }
+
+    $('#load').addEventListener('click', function () {
+      setStudioMode('code');
+      ed.value = D.studio.templates[tpl.value] || D.studio.templates.iso;
+      if (wearOn) ed.value = applyWearToggle(ed.value, wearOn.checked);
+      clear(gatesEl); show();
+    });
     $('#go').addEventListener('click', show);
     $('#rnd').addEventListener('click', function () { ser.value = String(Math.floor(Math.random() * 4294967296)); show(); });
     if ($('#rnd-lin')) $('#rnd-lin').addEventListener('click', function () { var o = new Uint8Array(32); crypto.getRandomValues(o); lin.value = C.u8hex(o); show(); });
@@ -1341,7 +1432,8 @@
     ed.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(show, 600); });
     $('#run-gates').addEventListener('click', gates);
     K.on(function (st) { var a = $('#artist'); if (st.status === 'connected' && !a.value) a.placeholder = 'from Kaspire: ' + short(st.pubkey, 10, 6); });
-    ed.value = D.studio.templates.iso || D.studio.templates.dagcity;
+    renderVisualBuilder();
+    ed.value = RvmAsm.compileLayers(vSpec);
     return { show: show };
   }
 
@@ -1360,7 +1452,7 @@
 
   // Boot
   var host = $('#series-host');
-  A.series.forEach(function (s) { host.appendChild(renderSeries(s)); });
+  if (!A.series.length) { host.appendChild(h('div', { class: 'card', style: 'margin-bottom:18px' }, h('span', { class: 'tag d', text: 'Ready for Genesis' }), h('h3', { text: 'No mainnet series listed yet' }), h('p', { text: 'Open the Studio tab to design a Reliks-VM program, deploy your SeriesFactory covenant on chain in 1 click with Kaspire, or import a Series Anchor JSON below.' }))); } else { A.series.forEach(function (s) { host.appendChild(renderSeries(s)); }); }
   initCustomSeriesLoader();
   renderGalleryFilters();
   initOfflineVerifier();

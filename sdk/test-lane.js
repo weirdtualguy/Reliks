@@ -1,13 +1,13 @@
 'use strict';
 const fs = require('fs');
-const ABI = 'v13/out/factory-vm-v13.json', EAB = 'contracts/edition.json';
+const ABI = 'contracts/factory.json', EAB = 'contracts/edition.json';
 if (!fs.existsSync(ABI) || !fs.existsSync(EAB)) { console.log('SKIP no factory ABI on this machine'); process.exit(0); }
 const CH = require('../web/reliks-chain.js'), T = require('./templates.js'), L = require('./lane.js');
 CH.init(T.templatesFor({ factoryAbi: ABI, editionAbi: EAB }));
 let bad = 0;
 const t = (n, ok, d) => { if (!ok) bad = 1; console.log((ok ? 'PASS ' : 'FAIL ') + n + (ok ? '' : ' | ' + d)); };
 const H = (c) => c.repeat(64), LANE = H('9');
-const mk = (m) => ({ program_hash: H('1'), artist: H('2'), price: 100000000n, royalty_bips: 500n, mints_left: m, engine_lang: 2n, render_hash: H('3') });
+const mk = (m) => ({ program_hash: H('1'), artist: H('2'), price: 100000000n, royalty_bips: 500n, mints_left: m, engine_lang: 2n, render_hash: H('3'), next_serial: 5n - m });
 const S0 = mk(5n), S1 = mk(4n);
 const redeemHex = (s) => Buffer.from(CH.factoryRedeem(s)).toString('hex'), spk = (s) => CH.p2shSpk(CH.factoryRedeem(s));
 const prevOut = (s, o) => Object.assign({ outpoint: H('a') + ':0', live: false, spent_txid: H('b'), revealed_hex: redeemHex(s), script_hex: spk(s), value: 100000000 }, o || {});
@@ -17,7 +17,7 @@ const run = (r, o) => L.resolveLaneKascov(Object.assign({ chain: CH, io: { coven
 const C = async (name, r, status, o, fn) => { const x = await run(r, o); t(name + ' -> ' + status, x.status === status && x.ok === (status === 'resolved') && (!fn || fn(x)), x.status + ' ' + JSON.stringify(x.checks.filter((c) => !c.ok))); };
 const G = { genesis_txid: H('a'), events: [{ kind: 'genesis', txid: H('a') }] };
 const GL = (s) => [{ outpoint: H('a') + ':0', live: true, value: 100000000, script_hex: spk(s) }];
-const SER = { program_hash: H('1'), artist: H('2'), price: 100000000, royalty_bips: 500, mints_left: 5, engine_lang: 2, render_hash: H('3') };
+const SER = { program_hash: H('1'), artist: H('2'), price: 100000000, royalty_bips: 500, mints_left: 5, engine_lang: 2, render_hash: H('3'), next_serial: 0 };
 (async () => {
   await C('previous output gives the state', rec([prevOut(S0), liveOut(S1)]), 'resolved', null, (x) => x.state.mints_left === 4n && x.value === 150000000n && x.outpoint.txId === H('b') && x.outpoint.index === 0 && x.source === 'kascov-previous-output' && x.spk === spk(S1) && x.soldOut === false && x.covenantId === LANE);
   await C('unrelated spent outputs are ignored', rec([prevOut(S0, { outpoint: H('7') + ':0', spent_txid: H('8') }), prevOut(S0), liveOut(S1)]), 'resolved');

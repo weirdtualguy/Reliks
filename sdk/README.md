@@ -1,43 +1,10 @@
-# sdk/ (Reliks, testnet, work in progress)
+# Reliks SDK
 
-Pure-function helpers for reading Reliks editions and building mint transactions. No key is ever read. **No real transaction has been sent through any path here.** Everything below the read half is tested with mocks only.
+Programmatic Node helpers for reading, verifying, planning, signing, and submitting Reliks transactions.
 
-## Read half
-- `read.js`: `verifyEdition` (program hash + render through `v13/vm/rvm.js`), `verifyAnchor` (serial 1, zero lineage, sales 0), `verifyEditionScript` (rebuild the edition script from template + ledger state, offline), `verifyEditionOnChain` (compares against kascov, freshness-gated).
-- `verify-live.js`: read-only CLI. `PC_NET=testnet node sdk/verify-live.js [ledger.json]`.
-
-`verifyEditionOnChain` statuses: `confirmed`, `spent`, `absent`, `live_other_outpoint`, `ledger_mismatch`, `unreachable`, and `index_stale`. The index counts as stale when tip age plus sync lag exceeds 600 s, or when that number cannot be read. A stale index returns `index_stale` and keeps what it showed in `observed`; it never reports `confirmed` or `absent`.
-
-## Write half (planning and safe submission)
-- `plan.js`: `planMint` wraps `web/reliks-chain.js` `buildMint` and checks value conservation, next-state lane script, covenant bindings, edition script, serial, artist payout and fee. `checkSigned` verifies a wallet-returned transaction against the reviewed draft. `classifyRejection` returns `duplicate`, `fee`, `transient`, `stale` or `fatal`; only "already in the mempool" is an observed node message, the other patterns are guesses, and unknown text is `fatal`.
-- `submit.js`: `submitSafe` retries identical bytes only after a transient error and a lookup that says `absent`. Any ambiguity stops. Fee errors return `needs_rebuild` with a `nextFee` (required fee + 10% + 1, as in `lib/reliks-lib.js`); the caller must re-plan and re-sign.
-- `node-lookup.js`: `absent` only if every node answers cleanly, a wallet-signed input is still unspent on every node, and the mempool is empty. `mined` and `mempool` need a txid hint. Anything else is `unknown`.
-- `submit-node.js`: wRPC `submitTransaction`. Dry run unless `send: true`. `allowOrphan` defaults to false; `lib/reliks-lib.js` sends true, and whether covenant spends need it is untested.
-- `flow.js`: `confirmMined`. Write ledger entries only after `mined === true`. "Mined" means the outputs were seen in a node UTXO set; there is no confirmation depth.
-
-## Known limits
-- `estimateSize` is a byte estimate, not network mass.
-- Without a txid, a transaction that mined after a timed-out submit ends as `ambiguous`; check it with `tools/tx-status.js`.
-- The public indexers used here (kascov, the REST API) can lag by many hours and cannot read covenant outputs of recent transactions.
-- Browser use of wRPC from a deployed origin is untested; the probe in `v13/ws-probe.html` only ran from `localhost`.
-
-## Tests
-`sh tools/check.sh` runs everything. Tests that need the author's gitignored ledgers skip without them. `npm test` (and CI) does not run `sdk/`.
-
-## Mainnet v12 (read-only)
-`PC_NET=mainnet PC_MAINNET_WRPC=wss://placeholder.invalid node sdk/verify-v12.js` checks the mainnet series: engine hash, offline edition script rebuild, gated on-chain status. `lib/network.js` demands PC_MAINNET_WRPC on mainnet, but this script never opens a wRPC connection. It does not verify the rendered art (v12 engines are JS; the SDK has no JS runner).
-
-## Escrow (read half)
-`escrow.js`: encode the 161-byte escrow state, rebuild the escrow script from `v13/out/escrow-v6.json`, and check it against a recorded script (`verifyEscrowScript`). Offline, no key. No escrow transaction building yet.
-
-## Claims
-`claim.js`: `verifyClaim` checks a claimed edition state (format in PROTOCOL.md section 11) against an index of the chain. Statuses: current, stale_state, absent, index_stale, unreachable, invalid_claim, program_mismatch, series_mismatch, outpoint_mismatch, ambiguous, history_conflict. "current" proves the state is the committed state of a live output of that covenant; it does not prove provenance (that the edition came from a factory mint) or that the presenter owns the key. CLI: `PC_NET=testnet node sdk/claim-live.js <claim.json> | --ledger <ledger.json>`.
-
-## Lane
-`lane.js` resolveLaneKascov derives a single-lane series' current factory state from a kascov record alone (previous output state minus one mint, checked against the live script). `templates.js` builds the chain templates from a series' own factory ABI (reliks-templates.js is fixed to the mainnet v12 factory). CLI: `PC_NET=testnet node sdk/lane-live.js <ledger> <factory-abi>`.
-
-## Signing
-`sign.js`: signature hash for a mint draft (equal to the sighash in reliks-lib.js on 60 recorded transactions, `sighash-vectors.json`) and `signWallet`, which signs only wallet inputs with a key passed as a parameter and refuses a key that does not own the input. The key is never read from the environment, printed or stored by the SDK. Pass the result through plan.checkSigned before sending.
-
-## Minting (testnet)
-`mint.js` mints one edition on an existing testnet lane. Default is a dry run (plan only, no key). `--sign` signs and verifies, `--send --confirm-serial <serial>` broadcasts (the serial must be typed back). The flow rules are in `mint-flow.js` and covered by mock tests: key must match the wallet, stale index refused, ledger must agree with the chain, fee rejections rebuild with the node fee (cap 0.5 KAS), ambiguity never resubmits, the ledger is written only after the mint is seen on a node. Exercised once against the real testnet nodes (2026-10-03): one VM-lane mint was accepted and mined. The nodes needed a top-level mass field (0) in the submitted transaction, and allowOrphan was not needed.
+## Modules
+- `read.js`: `verifyEdition` (program hash + render through `vm/rvm.js`), `verifyAnchor` (serial 1, zero lineage, sales 0), `verifyEditionScript` (offline script rebuild), `verifyEditionOnChain` (freshness-gated kascov check).
+- `claim.js`: Portable edition state claim verification (`verifyClaim`) and `ReliksOwnerChallengeV1` Schnorr ownership challenge signing/verification (`signOwnershipChallenge`, `verifyOwnershipProof`).
+- `lane.js`: `resolveLaneKascov` resolves a single-lane series' live `SeriesFactory` state from a kascov record and verifies it against the live script.
+- `escrow.js`: Encodes the 161-byte `OfferEscrow` state, rebuilds the escrow P2SH script from `contracts/escrow.json`, and verifies script commitments.
+- `plan.js`, `sign.js`, `submit.js`, `mint-flow.js`: Transaction planning, BIP-340 Schnorr signing, and wRPC broadcast helpers.

@@ -1,161 +1,235 @@
 #!/usr/bin/env node
-// reliks-lens.js - Reliks engine authoring harness (fx(lens) equivalent).
-// Pre-deploy gate suite for generative engines. Templates/codec untouched.
+// reliks-lens.js - Reliks-VM engine authoring & pre-deploy gate harness.
+// Assembles .rvm/.txt source (or loads .hex bytecode), sweeps serials x (pat, wear) corners,
+// reports worst-case fuel / elements / SVG bytes / stack / call depth against machine limits,
+// and enforces the 25,641-byte covenant PUSHDATA2 baking ceiling.
 // Usage:
-//   node reliks-lens.js <engine.js>          run all gates, human report
-//   node reliks-lens.js <engine.js> --json   machine-readable report (CI gate)
-//   node reliks-lens.js html <engine.js>     write interactive reliks-lens.html
+//   node cli/reliks-lens.js <program.rvm|.txt|.hex> [--serials N] [--json]
 // Env: RELIKS_ENGINE_CAP (default 25641, the PUSHDATA2 ceiling)
+'use strict';
 const fs = require('fs');
 const path = require('path');
-const vm = require('vm');
-const { blake2b } = require('@noble/hashes/blake2b');
-const B = Buffer;
-const CAP = Number(process.env.RELIKS_ENGINE_CAP || 25641);
-if (process.env.PC_PRIV) { console.error("LENS SECURITY: PC_PRIV detected in env. Run lens from a clean shell without sourced secrets."); process.exit(1); }
-const hex = (b) => B.from(b).toString('hex');
-const TESTS = [1, 42, 999, 8675309, 4294967295, 5056484704985813865];
-function seedLanes(serial) {
-  const le = B.alloc(8); le.writeBigUInt64LE(BigInt(serial));
-  const h = blake2b(B.concat([B.from('ReliksSeedV10', 'utf8'), le]), { dkLen: 32 });
-  const dv = new DataView(h.buffer, h.byteOffset, h.byteLength);
-  const out = []; for (let i = 0; i < 8; i++) out.push(dv.getInt32(i * 4, true));
-  return out;
+const { blake2b } = require('../web/blake2b.js');
+const RVM = require('../vm/rvm.js');
+const RvmAsm = require('../web/rvm-asm.js');
+
+if (process.env.PC_PRIV) {
+  console.error('LENS SECURITY: PC_PRIV detected in env. Run lens from a clean shell without sourced secrets.');
+  process.exit(1);
 }
-const seed32 = (s) => Number(BigInt(s) & 0xFFFFFFFFn);
-const BANNED = [
-  [/\bMath\s*\.\s*(random|sin|cos|tan|asin|acos|atan2?|pow|sqrt|hypot|exp|log2?|log10)\b/, 'float transcendental / Math.random (ulps differ across JS engines)'],
-  [/\bDate\b/, 'wall-clock time'], [/\bperformance\b/, 'high-res timer'],
-  [/\bfetch\s*\(/, 'network'], [/\bXMLHttpRequest\b/, 'network'], [/\bWebSocket\b/, 'network'],
-  [/\brequire\s*\(/, 'module system (engine must be self-contained)'], [/\bimport\s*[\(\{]/, 'module system'],
-  [/\beval\s*\(/, 'eval'], [/new\s+Function/, 'eval'],
-  [/\bwindow\b/, 'environment'], [/\bdocument\b/, 'environment'], [/\blocalStorage\b/, 'environment'],
-  [/\bsetTimeout\b|\bsetInterval\b/, 'async scheduling'], [/\bprocess\b/, 'Node environment'], [/\bglobalThis\b/, 'environment']
+
+const CAP = Number(process.env.RELIKS_ENGINE_CAP || RVM.limits.BAKE_CAP || 25641);
+const VM_CODE_CAP = 65535;
+const NAMED_SERIALS = ['1', '42', '999', '8675309', '4294967295', '5056484704985813865', '9223372036854775807'];
+const CORNERS = [
+  { pat: 0, wear: 0, label: 'fresh (pat=0,wear=0)' },
+  { pat: 0, wear: 255, label: 'max-wear (pat=0,wear=255)' },
+  { pat: 21, wear: 64, label: 'mid-a (pat=21,wear=64)' },
+  { pat: 42, wear: 128, label: 'mid-b (pat=42,wear=128)' },
+  { pat: 63, wear: 0, label: 'max-pat (pat=63,wear=0)' },
+  { pat: 63, wear: 255, label: 'max-both (pat=63,wear=255)' }
 ];
-const NOTED = [[/\bMath\s*\.\s*(floor|ceil|round|abs|min|max|imul|clz32|trunc)\b/, 'exact-integer Math op (allowed, IEEE-deterministic)']];
-function scan(SRC) {
-  const bad = [], notes = [];
-  for (const [re, why] of BANNED) { const m = SRC.match(re); if (m) bad.push(m[0] + ' - ' + why); }
-  for (const [re, why] of NOTED) { const m = SRC.match(re); if (m) notes.push(m[0] + ' - ' + why); }
-  return { bad, notes };
+
+const hx = (u) => Buffer.from(u).toString('hex');
+const enc = new TextEncoder();
+const hashHex = (u) => hx(blake2b(u instanceof Uint8Array ? u : new Uint8Array(u), 32));
+
+function loadProgram(filePath) {
+  const raw = fs.readFileSync(path.resolve(filePath), 'utf8');
+  const trimmed = raw.trim();
+  if (/^[0-9a-fA-F\s]+$/.test(trimmed) && trimmed.replace(/\s+/g, '').length >= 18 && /^52564d01/i.test(trimmed.replace(/\s+/g, ''))) {
+    const clean = trimmed.replace(/\s+/g, '');
+    if (clean.length % 2 !== 0) throw new Error('hex file has odd length');
+    return { prog: new Uint8Array(Buffer.from(clean, 'hex')), kind: 'hex' };
+  }
+  return { prog: RvmAsm.assemble(raw), kind: 'asm' };
 }
+
+function detSerial(idx) {
+  // Deterministic 63-bit serial generator for sweep cases beyond NAMED_SERIALS
+  const b = new Uint8Array(16);
+  b.set(enc.encode('ReliksLensSweep1'), 0);
+  const le = new Uint8Array(4);
+  new DataView(le.buffer).setUint32(0, idx, true);
+  const h = blake2b(new Uint8Array([...b, ...le]), 32);
+  let s = 0n;
+  for (let i = 0; i < 7; i++) s += BigInt(h[i]) * (256n ** BigInt(i));
+  s += BigInt(h[7] % 128) * 72057594037927936n;
+  return s.toString();
+}
+
 function massFee(nb) {
   const bc = 2 * nb + 7129, ss = bc + 46, tx = ss + 546, mass = 2 * tx;
   return { bc, ss, tx, mass, feeSompi: BigInt(mass) * 100n };
 }
-function gates(enginePath) {
+
+function runLensVm(filePath, opts) {
+  opts = opts || {};
+  const sweepCount = Number(opts.serials || 16);
   const R = [];
   const check = (name, pass, info) => { R.push({ name, pass: !!pass, info: info || '' }); return !!pass; };
-  const M = require(path.resolve(enginePath));
-  const SRC = M.ENGINE_SRC;
-  check('L0 module shape (ENGINE_SRC string + render fn)', typeof SRC === 'string' && SRC.length > 0 && typeof M.render === 'function');
-  const nb = B.byteLength(SRC, 'utf8');
-  check('L1 engine size <= cap', nb <= CAP, nb + '/' + CAP + ' B');
-  const sc = scan(SRC);
-  check('L2 no banned constructs (rand/time/net/eval/env)', sc.bad.length === 0, sc.bad.join('; '));
-  const outs = {}; let det = true;
-  for (const s of TESTS) { const a = M.render(s); const b = M.render(s); if (a !== b) det = false; outs[s] = a; }
-  check('L3 determinism: double-render byte-identical x' + TESTS.length, det);
-  let vmOk = true, vmErr = '', vmReliks = null;
-  try { vmReliks = vm.runInContext('(function(L,serial){' + SRC + '\nreturn reliks(L,serial);})', vm.createContext({}), { timeout: 10000 }); }
-  catch (e) { vmOk = false; vmErr = e.message; }
-  if (vmOk) for (const s of TESTS) { const s32 = seed32(s); if (vmReliks(seedLanes(s32), s32 | 0) !== outs[s]) { vmOk = false; vmErr = 'mismatch at serial ' + s; break; } }
-  check('L4 bare-realm parity (no host globals) + canonical seed pipeline', vmOk, vmErr);
-  check('L5 seed convention: render(x)==render(x+2^32), render(1)!=render(2)', M.render(7) === M.render(7 + 4294967296) && M.render(1) !== M.render(2));
-  const eh = hex(blake2b(B.from(SRC, 'utf8'), { dkLen: 32 }));
-  const ts = M.TEST_SERIAL || 1;
-  const rh = hex(blake2b(B.from(M.render(ts), 'utf8'), { dkLen: 32 }));
-  check('L6 hashes: module exports match recomputed', (M.engineHashHex === undefined || M.engineHashHex === eh) && (M.renderHashHex === undefined || M.renderHashHex === rh), 'engine ' + eh.slice(0, 16) + '... render ' + rh.slice(0, 16) + '...');
-  if (typeof M.seedLanes === 'function') {
-    let ok = true; for (const s of TESTS) if (JSON.stringify(M.seedLanes(seed32(s))) !== JSON.stringify(seedLanes(seed32(s)))) ok = false;
-    check('L7 seedLanes == ReliksSeedV10 canonical', ok);
-  } else R.push({ name: 'L7 seedLanes parity (optional, not exported)', pass: true, info: 'skipped' });
-  let svgOk = true, svgErr = '';
-  for (const s of TESTS) { const o = outs[s];
-    if (!(o.startsWith('<svg') && o.includes('xmlns=') && o.endsWith('</svg>'))) { svgOk = false; svgErr = 'malformed svg @' + s; break; }
-    const m2 = o.match(/NaN|undefined|Infinity|null/); if (m2) { svgOk = false; svgErr = m2[0] + ' @' + s; break; } }
-  check('L8 svg well-formed, no NaN/undefined/Infinity/null', svgOk, svgErr);
-  const mf = massFee(nb);
-  check('L9 mint fee-mass within policy 100000', mf.mass <= 100000, 'mass ' + mf.mass + ' | est fee ' + (Number(mf.feeSompi) / 1e8).toFixed(5) + ' KAS');
-  if (typeof M.features === 'function') {
-    let fok = true; const dist = {};
-    for (const s of TESTS.concat([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18])) {
-      const f = M.features(s);
-      for (const k of Object.keys(f)) { const v = f[k];
-        if (v === null || (typeof v !== 'string' && typeof v !== 'number' && typeof v !== 'boolean')) fok = false;
-        (dist[k] = dist[k] || new Set()).add(v); } }
-    const warn = Object.keys(dist).filter((k) => dist[k].size >= TESTS.length + 18);
-    check('L10 features: primitive values, rarity-meaningful buckets', fok && warn.length === 0, warn.length ? 'continuous values: ' + warn.join(',') : Object.keys(dist).map((k) => k + ':' + dist[k].size).join(' '));
-  } else R.push({ name: 'L10 features (optional, not exported)', pass: true, info: 'skipped' });
-  fs.mkdirSync('lens-out', { recursive: true });
-  for (const s of [1, 42, 999, 8675309]) fs.writeFileSync('lens-out/lens-' + s + '.svg', outs[s]);
-  return { R, sc, eh, rh, nb, mf, ts };
-}
-function report(g, enginePath, json) {
-  const ok = g.R.every((r) => r.pass);
-  if (json) console.log(JSON.stringify({ engine: enginePath, bytes: g.nb, cap: CAP, engineHash: g.eh, renderHash: g.rh, mass: g.mf.mass, feeSompi: g.mf.feeSompi.toString(), banned: g.sc.bad, notes: g.sc.notes, gates: g.R }, null, 2));
-  else {
-    console.log('RELIKS LENS - ' + enginePath);
-    for (const r of g.R) console.log((r.pass ? 'PASS ' : 'FAIL ') + r.name + (r.info ? ' | ' + r.info : ''));
-    for (const n of g.sc.notes) console.log('NOTE ' + n);
-    console.log('engine_hash ' + g.eh + '\nrender_hash ' + g.rh + '\nengine_bytes ' + g.nb + ' | est mint fee ' + (Number(g.mf.feeSompi) / 1e8).toFixed(5) + ' KAS | previews in lens-out/');
-    console.log(ok ? 'LENS: ALL GATES PASS - cleared for gen-factory-args bake.' : 'LENS: GATES FAILED - do not bake.');
+
+  let loaded;
+  try {
+    loaded = loadProgram(filePath);
+  } catch (e) {
+    check('V0 assemble / decode program', false, e.message);
+    return { ok: false, gates: R, error: e.message };
   }
-  process.exitCode = ok ? 0 : 1;
+  const prog = loaded.prog;
+  const codeLen = prog.length - 8;
+
+  let parsed = null;
+  try {
+    parsed = RVM.parse(prog);
+    check('V0 valid RVM\\x01 header, decode & jump targets', true, 'canvas ' + parsed.W + 'x' + parsed.H + ' | ' + parsed.insns.size + ' insns | ' + prog.length + ' B');
+  } catch (e) {
+    check('V0 valid RVM\\x01 header, decode & jump targets', false, e.code || e.message);
+    return { ok: false, gates: R, error: e.code || e.message };
+  }
+
+  const mf = massFee(prog.length);
+  check(
+    'V1 size <= PUSHDATA2 baking cap (' + CAP + ' B)',
+    prog.length <= CAP && codeLen <= VM_CODE_CAP,
+    prog.length + '/' + CAP + ' B (factory redeem ~' + mf.bc + '/65535 B | est mint fee ' + (Number(mf.feeSompi) / 1e8).toFixed(5) + ' KAS)'
+  );
+
+  const progHash = hashHex(prog);
+  let anchorSvg = '', anchorHash = '';
+  const anchorStats = {};
+  try {
+    const hi1 = RVM.hostInputs(blake2b, '1', new Uint8Array(32), 0);
+    anchorSvg = RVM.render(prog, hi1.lanes, hi1.serial32, hi1.pat, hi1.wear, anchorStats);
+    anchorHash = hashHex(enc.encode(anchorSvg));
+    const wf = anchorSvg.startsWith('<svg xmlns="http://www.w3.org/2000/svg"') && anchorSvg.endsWith('</svg>') && !/NaN|undefined|Infinity|null/.test(anchorSvg);
+    check('V2 anchor render (serial=1, lineage=0, sales=0)', wf, 'svg ' + anchorSvg.length + ' B | fuel ' + anchorStats.fuel + ' | elems ' + anchorStats.elems);
+  } catch (e) {
+    check('V2 anchor render (serial=1, lineage=0, sales=0)', false, 'fault ' + (e.code || e.message));
+  }
+
+  // V3: Determinism x3
+  let detOk = true, detErr = '';
+  for (const s of NAMED_SERIALS.slice(0, 5)) {
+    try {
+      const hi = RVM.hostInputs(blake2b, s, new Uint8Array(32), 0);
+      const a = RVM.render(prog, hi.lanes, hi.serial32, hi.pat, hi.wear);
+      const b = RVM.render(prog, hi.lanes, hi.serial32, hi.pat, hi.wear);
+      const c = RVM.render(prog, hi.lanes, hi.serial32, hi.pat, hi.wear);
+      if (a !== b || b !== c) { detOk = false; detErr = 'mismatch at serial ' + s; break; }
+    } catch (e) {
+      detOk = false; detErr = (e.code || e.message) + ' at serial ' + s; break;
+    }
+  }
+  check('V3 determinism: triple-render byte-identical x5', detOk, detErr);
+
+  // V4 & V5: Sweep N serials x 6 (pat, wear) corners
+  const serialList = NAMED_SERIALS.slice();
+  while (serialList.length < sweepCount) serialList.push(detSerial(serialList.length));
+  const worst = { fuel: 0, elems: 0, svg_len: 0, max_stack: 0, max_calls: 0, max_groups: 0, max_segs: 0, grads: 0 };
+  let totalRuns = 0, faults = [];
+  let patDiffs = 0, wearDiffs = 0, serialDiffs = new Set();
+
+  for (const s of serialList) {
+    const hiBase = RVM.hostInputs(blake2b, s, new Uint8Array(32), 0);
+    let svg00 = null, svg0Max = null, svgMax0 = null;
+    for (const c of CORNERS) {
+      totalRuns++;
+      const st = {};
+      try {
+        const svg = RVM.render(prog, hiBase.lanes, hiBase.serial32, c.pat, c.wear, st);
+        if (c.pat === 0 && c.wear === 0) { svg00 = svg; serialDiffs.add(hashHex(enc.encode(svg))); }
+        if (c.pat === 0 && c.wear === 255) svg0Max = svg;
+        if (c.pat === 63 && c.wear === 0) svgMax0 = svg;
+        for (const k of Object.keys(worst)) if (st[k] > worst[k]) worst[k] = st[k];
+      } catch (e) {
+        faults.push('serial ' + s + ' ' + c.label + ': ' + (e.code || e.message));
+      }
+    }
+    if (svg00 !== null && svg0Max !== null && svg00 !== svg0Max) wearDiffs++;
+    if (svg00 !== null && svgMax0 !== null && svg00 !== svgMax0) patDiffs++;
+  }
+
+  check(
+    'V4 corner sweep (' + serialList.length + ' serials x ' + CORNERS.length + ' pat/wear corners = ' + totalRuns + ' renders)',
+    faults.length === 0,
+    faults.length ? faults.slice(0, 3).join('; ') : '0 faults, ' + serialDiffs.size + '/' + serialList.length + ' distinct serial renders'
+  );
+
+  const lim = RVM.limits;
+  const pct = (v, m) => ((v * 100) / m).toFixed(1) + '%';
+  const headroomOk = faults.length === 0 &&
+    worst.fuel <= lim.FUEL_MAX &&
+    worst.elems <= lim.MAX_ELEMS &&
+    worst.svg_len <= lim.MAX_SVG &&
+    worst.max_stack <= lim.STACK_MAX &&
+    worst.max_calls <= lim.CALL_MAX;
+  check(
+    'V5 resource headroom across sweep',
+    headroomOk,
+    'fuel ' + worst.fuel + '/' + lim.FUEL_MAX + ' (' + pct(worst.fuel, lim.FUEL_MAX) + ') | ' +
+    'elems ' + worst.elems + '/' + lim.MAX_ELEMS + ' (' + pct(worst.elems, lim.MAX_ELEMS) + ') | ' +
+    'svg ' + worst.svg_len + '/' + lim.MAX_SVG + ' B (' + pct(worst.svg_len, lim.MAX_SVG) + ') | ' +
+    'stack ' + worst.max_stack + '/' + lim.STACK_MAX + ' | calls ' + worst.max_calls + '/' + lim.CALL_MAX + ' | segs ' + worst.max_segs + '/' + lim.MAX_SEGS
+  );
+
+  check(
+    'V6 history sensitivity (patina / wear)',
+    true,
+    'patina varies ' + patDiffs + '/' + serialList.length + ' serials | wear varies ' + wearDiffs + '/' + serialList.length + ' serials'
+  );
+
+  if (!opts.noWrite && anchorSvg) {
+    fs.mkdirSync('lens-out', { recursive: true });
+    fs.writeFileSync('lens-out/vm-lens-s1-fresh.svg', anchorSvg);
+    try {
+      const hiW = RVM.hostInputs(blake2b, '1', new Uint8Array(32).fill(0xff), 255);
+      fs.writeFileSync('lens-out/vm-lens-s1-worn.svg', RVM.render(prog, hiW.lanes, hiW.serial32, hiW.pat, hiW.wear));
+    } catch (e) {}
+  }
+
+  return {
+    ok: R.every((g) => g.pass),
+    file: filePath,
+    kind: loaded.kind,
+    bytes: prog.length,
+    codeBytes: codeLen,
+    bakeCap: CAP,
+    vmCodeCap: VM_CODE_CAP,
+    canvas: { width: parsed.W, height: parsed.H },
+    programHash: progHash,
+    renderHash: anchorHash,
+    mass: mf.mass,
+    feeSompi: mf.feeSompi.toString(),
+    worstStats: worst,
+    limits: lim,
+    historyEffect: { patVaries: patDiffs > 0, wearVaries: wearDiffs > 0 },
+    gates: R
+  };
 }
-function htmlMode(enginePath) {
-  const M = require(path.resolve(enginePath));
-  const SRC = M.ENGINE_SRC;
-  const nb = B.byteLength(SRC, 'utf8');
-  const sc = scan(SRC);
-  const eh = hex(blake2b(B.from(SRC, 'utf8'), { dkLen: 32 }));
-  const rh = hex(blake2b(B.from(M.render(M.TEST_SERIAL || 1), 'utf8'), { dkLen: 32 }));
-  const blakeSrc = fs.readFileSync(path.join(__dirname, '..', 'web', 'blake2b.js'), 'utf8');
-  const STATIC = JSON.stringify({ bytes: nb, cap: CAP, bad: sc.bad, notes: sc.notes, engineHash: eh, renderHash: rh }).replace(/</g, '\\u003c');
-  const srcJson = JSON.stringify(SRC).replace(/</g, '\\u003c');
-  const page = ['<!doctype html>', '<html lang="en"><head><meta charset="utf-8">',
-    '<meta name="viewport" content="width=device-width, initial-scale=1">',
-    '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\' \'unsafe-eval\'; style-src \'unsafe-inline\'; frame-src \'self\' data: blob:; connect-src \'none\'">',
-    '<title>Reliks Lens</title>',
-    '<style>body{background:#0b0d10;color:#e8e6e3;font-family:ui-monospace,Menlo,Consolas,monospace;margin:0;padding:20px}h1{font-size:18px;letter-spacing:2px}h1 span{color:#7fd1ae}.row{margin:8px 0;font-size:12px;line-height:1.6}.pass{color:#7fd1ae;font-weight:700}.fail{color:#ff6b6b;font-weight:700}input,button{background:#101418;color:#e8e6e3;border:1px solid #23282e;border-radius:6px;padding:8px;font-family:inherit;font-size:12px;margin-right:6px}iframe{width:100%;max-width:520px;aspect-ratio:1/1;border:1px solid #23282e;border-radius:8px;background:#000;display:block;margin-top:12px}</style></head><body>',
-    '<h1>RELIKS <span>// lens</span></h1>',
-    '<div class="row">serial <input id="ser" value="1" size="22"><button id="go">render</button><button id="rnd">random</button><button id="det">determinism x3</button></div>',
-    '<div class="row" id="static"></div>',
-    '<div class="row" id="live"></div>',
-    '<iframe id="art" sandbox=""></iframe>',
-    '<script>' + blakeSrc + '</' + 'script>',
-    '<script>',
-    'var STATIC=' + STATIC + ';',
-    'var ENGINE_SRC=' + srcJson + ';',
-    'var compiled=new Function("L","serial",ENGINE_SRC+"\\nreturn reliks(L,serial);");',
-    'function hx(b){var s="";for(var i=0;i<b.length;i++)s+=("0"+b[i].toString(16)).slice(-2);return s;}',
-    'function le64(v){var b=new Uint8Array(8);new DataView(b.buffer).setBigUint64(0,BigInt(v),true);return b;}',
-    'function utf8(s){return new TextEncoder().encode(s);}',
-    'function cat(a){var n=0,i;for(i=0;i<a.length;i++)n+=a[i].length;var o=new Uint8Array(n),p=0;for(i=0;i<a.length;i++){o.set(a[i],p);p+=a[i].length;}return o;}',
-    'function seedLanes(s){var h=ReliksBlake2b.blake2b(cat([utf8("ReliksSeedV10"),le64(s)]),32);var dv=new DataView(h.buffer,h.byteOffset,h.byteLength);var o=[];for(var i=0;i<8;i++)o.push(dv.getInt32(i*4,true));return o;}',
-    'function render(serial){var s=Number(BigInt(serial)&0xFFFFFFFFn);return compiled(seedLanes(s),s|0);}',
-    'var h="";',
-    'h+="<div>bytes "+STATIC.bytes+" / cap "+STATIC.cap+" - "+(STATIC.bytes<=STATIC.cap?"<span class=\\"pass\\">OK</span>":"<span class=\\"fail\\">OVER CAP</span>")+"</div>";',
-    'h+="<div>banned constructs: "+(STATIC.bad.length===0?"<span class=\\"pass\\">none</span>":"<span class=\\"fail\\">"+STATIC.bad.join("; ")+"</span>")+"</div>";',
-    'for(var i=0;i<STATIC.notes.length;i++)h+="<div>note: "+STATIC.notes[i]+"</div>";',
-    'h+="<div>node-side engine_hash "+STATIC.engineHash+"</div>";',
-    'h+="<div>in-page recompute engine_hash "+hx(ReliksBlake2b.blake2b(utf8(ENGINE_SRC),32))+" | render_hash(1) "+hx(ReliksBlake2b.blake2b(utf8(render(1)),32))+"</div>";',
-    'document.getElementById("static").innerHTML=h;',
-    'function show(){var s=document.getElementById("ser").value.trim();var svg=render(s);document.getElementById("art").srcdoc="<!doctype html><html><head><meta charset=utf-8><style>html,body{margin:0;height:100%;background:#000}svg{display:block;width:100vw;height:100vh}</style></head><body>"+svg+"</body></html>";document.getElementById("live").textContent="serial "+s+" | svg bytes "+svg.length+" | render_hash "+hx(ReliksBlake2b.blake2b(utf8(svg),32));}',
-    'document.getElementById("go").onclick=show;',
-    'document.getElementById("rnd").onclick=function(){document.getElementById("ser").value=String(Math.floor(Math.random()*4294967296));show();};',
-    'document.getElementById("det").onclick=function(){var s=document.getElementById("ser").value.trim();var a=render(s);var b=render(s);var c2=new Function("L","serial",ENGINE_SRC+"\\nreturn reliks(L,serial);");var s32=Number(BigInt(s)&0xFFFFFFFFn);var c=c2(seedLanes(s32),s32|0);var ok=(a===b&&b===c);document.getElementById("live").innerHTML=(ok?"<span class=\\"pass\\">DETERMINISTIC</span>":"<span class=\\"fail\\">NON-DETERMINISTIC</span>")+" - 3 independent compiles @ serial "+s.replace(/[^0-9]/g,"");};',
-    'show();',
-    '</' + 'script>', '</body></html>'].join('\n');
-  fs.writeFileSync('reliks-lens.html', page);
-}
-const argv = process.argv.slice(2);
-if (argv[0] === 'html') {
-  if (!argv[1]) { console.error('usage: node reliks-lens.js html <engine.js>'); process.exit(1); }
-  htmlMode(argv[1]); console.log('reliks-lens.html written | open with: open reliks-lens.html');
-} else {
+
+if (require.main === module) {
+  const argv = process.argv.slice(2);
   const json = argv.includes('--json');
-  const eng = argv.find((a) => !a.startsWith('--'));
-  if (!eng) { console.error('usage: node reliks-lens.js <engine.js> [--json] | html <engine.js>'); process.exit(1); }
-  report(gates(eng), eng, json);
+  const serIdx = argv.indexOf('--serials');
+  const serials = serIdx >= 0 ? Number(argv[serIdx + 1] || 16) : 16;
+  const target = argv.find((a, i) => !a.startsWith('--') && (serIdx < 0 || i !== serIdx + 1));
+  if (!target) {
+    console.error('usage: node cli/reliks-lens.js <program.rvm|.txt|.hex> [--serials N] [--json]');
+    process.exit(1);
+  }
+  const res = runLensVm(target, { serials });
+  if (json) {
+    console.log(JSON.stringify(res, null, 2));
+  } else {
+    console.log('RELIKS VM LENS - ' + target + ' (' + (res.kind || 'unknown') + ')');
+    for (const r of res.gates) console.log((r.pass ? 'PASS ' : 'FAIL ') + r.name + (r.info ? ' | ' + r.info : ''));
+    if (res.programHash) {
+      console.log('program_hash ' + res.programHash + '\nrender_hash  ' + res.renderHash + '\nprogram_bytes ' + res.bytes + ' / ' + res.bakeCap + ' B (PUSHDATA2 cap) | est mint fee ' + (Number(res.feeSompi) / 1e8).toFixed(5) + ' KAS | previews in lens-out/');
+    }
+    console.log(res.ok ? 'VM LENS: ALL GATES PASS - cleared for cli/gen-factory-args.js (engine_lang = 2).' : 'VM LENS: GATES FAILED - do not bake.');
+  }
+  process.exit(res.ok ? 0 : 1);
 }
+
+module.exports = { runLensVm, loadProgram };

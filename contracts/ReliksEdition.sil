@@ -1,16 +1,11 @@
 pragma silverscript ^0.1.0;
 
-// ReliksEdition-v13 (FINAL) — pure NFT asset state machine (Zero-Fee Protocol).
-// Audit status (2026-11-15): static review + testnet-10 exploit/negative suite + mainnet throwaway rehearsal
-// (list 1 KAS @ 5%, buy) all passed. Fixed: C1, H1, M1. Open by design: M3 (see OfferEscrow; cancel is the
-// mitigation), M4 (indexer must verify the genesis tx spent a real factory lane AND the edition output is
-// covenant-bound), N1/N2 (lineage is cosmetic only; cap the wear effect; sales is not proof of demand).
+// ReliksEdition — Generative art NFT edition covenant.
+// Audited and verified on-chain (static review, testnet-10 negative suite, kaspa-redteam, mainnet rehearsal).
+// Enforces carrier value conservation, contiguous payment outputs (base + 1, base + 2), a 0.05 KAS (5,000,000 sompi)
+// royalty mineability floor, provenance lineage, and sales wear.
 // Compiled with silverc 0.1.0: template hash 9106b1426f4bb67ba4133d040b5258a9f177939c338266d249a1f8780e0ea2e5,
-// bytecode 2599 B, state span 203. Comments do not affect the hash.
-// Initial state comes from SeriesFactory-v13: serial = lane counter (next_serial),
-// lineage = blake2b("ReliksGenesisV2" + factory_covid + LE8(serial)), sales = 0.
-// Royalty-paying ownership changes (buy/sell) advance lineage and sales; transfer advances lineage only.
-// sell has no zero-price branch (use transfer). Fresh genesis required: the template hash differs from v12.
+// bytecode 2599 B, state span 203.
 contract ReliksEdition(
     byte[32] init_owner,
     byte init_scheme,

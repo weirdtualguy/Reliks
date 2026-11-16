@@ -60,7 +60,7 @@ async function runMint(d) {
   catch (e) { return out('submitted_not_confirmed', { txId, error: msg(e) }); }
   if (!cm.mined) return out('submitted_not_confirmed', { txId, polls: cm.polls, last: cm.last });
   const edOut = cur.draft.outputs.find((o) => o.role === 'edition');
-  const entry = { txId, index: 1, mintTxId: txId, mintIndex: 1, cov: cur.summary.editionCovenantId, serial, lineage: d.chain.genesisLineage(lane.outpoint.txId, lane.outpoint.index), sales: 0, owner: d.wallet.pubkey, price: 0, amount: Number(CARRIER), spk: Buffer.from(edOut.spk).toString('hex') };
+  const entry = { txId, index: 1, mintTxId: txId, mintIndex: 1, cov: cur.summary.editionCovenantId, serial, lineage: d.chain.genesisLineage(lane.covenantId, serial), sales: 0, owner: d.wallet.pubkey, price: 0, amount: Number(CARRIER), spk: Buffer.from(edOut.spk).toString('hex') };
   let wrote = false;
   try { if (!(await d.ledger.hasTx(txId))) wrote = await d.ledger.append(entry); }
   catch (e) { return out('minted_ledger_write_failed', { txId, entry, error: msg(e) }); }

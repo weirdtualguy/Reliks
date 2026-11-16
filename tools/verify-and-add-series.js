@@ -8,12 +8,11 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const { blake2b } = require(path.join(ROOT, 'web', 'blake2b.js'));
 const C = require(path.join(ROOT, 'web', 'reliks-chain.js'));
-const RVM = require(path.join(ROOT, 'v13', 'vm', 'rvm.js'));
+const RVM = require(path.join(ROOT, 'vm', 'rvm.js'));
 const makeTemplates = require(path.join(ROOT, 'lib', 'reliks-templates.js'));
 
-const t12 = makeTemplates();
-const t13 = makeTemplates({ editionAbi: 'edition-abi-v13.json' });
-C.init(t12);
+const tpl = makeTemplates();
+C.init(tpl);
 
 const ANCHORS_PATH = process.env.RELIKS_ANCHORS || path.join(ROOT, 'data', 'mainnet-anchors.json');
 const hashHex = (u) => C.u8hex(blake2b(u instanceof Uint8Array ? u : new Uint8Array(u), 32));
@@ -43,7 +42,7 @@ async function verifyAndAddSeries(rawText, opts) {
   }
 
   const lang = Number(sub.engine_lang != null ? sub.engine_lang : 2);
-  if (lang !== 2) throw new Error('Only Reliks-VM (engine_lang = 2) series are accepted for permissionless listing (v12 JS is deprecated)');
+  if (lang !== 2) throw new Error('Only Reliks-VM (engine_lang = 2) series are accepted for permissionless listing');
   if (!sub.programHex || !/^52564d01[0-9a-f]+$/i.test(sub.programHex)) {
     throw new Error('Missing or invalid Reliks-VM programHex (must start with RVM\\x01 magic 52564d01)');
   }
@@ -68,6 +67,7 @@ async function verifyAndAddSeries(rawText, opts) {
 
   // Verify genesisState and on-chain genesis transaction
   const gs = sub.genesisState;
+  const nextSerial = BigInt(gs.next_serial != null ? gs.next_serial : 0);
   const facState = {
     program_hash: gotPh,
     artist: sub.artist.toLowerCase(),
@@ -75,10 +75,11 @@ async function verifyAndAddSeries(rawText, opts) {
     royalty_bips: BigInt(gs.royalty_bips),
     mints_left: BigInt(gs.mints_left),
     engine_lang: 2n,
-    render_hash: gotRh
+    render_hash: gotRh,
+    next_serial: nextSerial
   };
-  if (facState.price !== 0n && facState.price < C.SOMPI) throw new Error('Price must be 0 or >= 1 KAS');
-  if (facState.royalty_bips < 1n || facState.royalty_bips > 2000n) throw new Error('Royalty must be 1..2000 bips');
+  if (facState.price < C.SOMPI) throw new Error('Price must be >= 1 KAS (100000000 sompi)');
+  if (facState.royalty_bips < 500n || facState.royalty_bips > 2000n) throw new Error('Royalty must be 500..2000 bips (5%..20%)');
   if (facState.mints_left < 1n) throw new Error('Initial supply must be >= 1');
 
   const tx = await io.tx(sub.genesisTxId.toLowerCase());
@@ -86,9 +87,9 @@ async function verifyAndAddSeries(rawText, opts) {
   if (tx.is_accepted === false || tx.isAccepted === false) throw new Error('Genesis transaction is not yet accepted on mainnet');
 
   const out0 = tx.outputs[0];
-  const expectSpk = C.p2shSpk(C.buildFactoryRedeem(facState, progBytes, t13.edition));
+  const expectSpk = C.p2shSpk(C.buildFactoryRedeem(facState, progBytes, tpl.edition));
   const gotSpk = C.spkOfOutput(out0);
-  if (gotSpk !== expectSpk) throw new Error('On-chain P2SH scriptPubKey does not match synthesized SeriesFactory-v13 script');
+  if (gotSpk !== expectSpk) throw new Error('On-chain P2SH scriptPubKey does not match synthesized SeriesFactory script');
 
   const cov0 = C.covenantOf(out0);
   const authIn = tx.inputs && tx.inputs[Number(cov0.authorizingInput)];
@@ -114,7 +115,6 @@ async function verifyAndAddSeries(rawText, opts) {
   const entry = {
     id: id,
     title: String(sub.title).slice(0, 80),
-    protocol_version: 'v13',
     laneCovenantId: recCov,
     genesisTxId: sub.genesisTxId.toLowerCase(),
     programHash: gotPh,
@@ -131,7 +131,8 @@ async function verifyAndAddSeries(rawText, opts) {
       royalty_bips: facState.royalty_bips.toString(),
       mints_left: facState.mints_left.toString(),
       engine_lang: '2',
-      render_hash: gotRh
+      render_hash: gotRh,
+      next_serial: facState.next_serial.toString()
     },
     editions: []
   };

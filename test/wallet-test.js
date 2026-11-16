@@ -6,7 +6,7 @@ const root = path.join(__dirname, '..');
 const K = require(path.join(root, 'web', 'kaspire.js'));
 const C = require(path.join(root, 'web', 'reliks-chain.js'));
 C.init(require(path.join(root, 'lib', 'reliks-templates.js'))());
-const S = require(path.join(root, 'data', 'mainnet-anchors.json')).series[0];
+const S = require(path.join(root, 'data', 'provenance-demo.json')).series;
 let pass = 0, fail = 0;
 const t = async (name, fn) => { try { await fn(); pass++; console.log('PASS ' + name); } catch (e) { fail++; console.log('FAIL ' + name + ' | ' + e.message); } };
 const eq = (a, b, m) => { if (String(a) !== String(b)) throw new Error((m || 'mismatch') + ': ' + a + ' != ' + b); };
@@ -50,7 +50,7 @@ function mkWin(provider) {
 }
 
 // A mint draft to push through the wallet
-const st = { program_hash: S.programHash, artist: S.artist, price: 100000000n, royalty_bips: 500n, mints_left: 2n, engine_lang: 0n, render_hash: S.renderHash };
+const st = { program_hash: S.program_hash, artist: S.artist, price: 100000000n, royalty_bips: 500n, mints_left: 2n, engine_lang: 2n, render_hash: S.render_hash, next_serial: 0n };
 const lane = { state: st, spk: C.p2shSpk(C.factoryRedeem(st)), outpoint: { txId: '01'.repeat(32), index: 0 }, value: 100000000n, covenantId: S.laneCovenantId };
 const draft = C.buildMint({ lane, buyer: { pubkey: PK, address: ADDR }, funding: { txId: '02'.repeat(32), index: 0, amount: 600000000n, daa: 5n }, fee: 4000000n, hrp: 'kaspa' });
 

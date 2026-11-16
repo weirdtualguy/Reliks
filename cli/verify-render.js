@@ -2,16 +2,16 @@ const fs = require('fs');
 const { blake2b } = require('@noble/hashes/blake2b');
 const V = require('../lib/reliks-lib.js');
 
-const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'data/factory-abi-v12.json'), 'utf8')));
-const Ed = V.parts(JSON.parse(fs.readFileSync('data/edition-abi-v12.json', 'utf8')));
-const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'data/factory-ledger-v12.json'), 'utf8'));
+const F = V.parts(JSON.parse(fs.readFileSync((process.env.RELIKS_FACTORY_ABI || 'contracts/factory.json'), 'utf8')));
+const Ed = V.parts(JSON.parse(fs.readFileSync('contracts/edition.json', 'utf8')));
+const LD = JSON.parse(fs.readFileSync((process.env.RELIKS_LEDGER || 'data/ledger.json'), 'utf8'));
 const ENGINE = require(process.env.RELIKS_ENGINE ? require('path').resolve(process.env.RELIKS_ENGINE) : '../lib/reliks-engine-mainnet.js');
 if (LD.series && LD.series.program_hash && ENGINE.engineHashHex && ENGINE.engineHashHex !== LD.series.program_hash) {
   console.error('PROVENANCE MISMATCH: RELIKS_ENGINE engine_hash ' + ENGINE.engineHashHex.slice(0,16) + '... != ledger program_hash ' + LD.series.program_hash.slice(0,16) + '...');
   console.error('This ledger was baked with a different engine. Point RELIKS_ENGINE at the matching engine, or redeploy with matching args/ABI.');
   process.exit(1);
 }
-const INIT_MINTS = JSON.parse(fs.readFileSync((process.env.RELIKS_ARGS || 'data/factory-args-v12.json'), 'utf8'))[4].value;
+const INIT_MINTS = JSON.parse(fs.readFileSync((process.env.RELIKS_ARGS || 'contracts/factory-args.json'), 'utf8'))[4].value;
 const B = V.B, H = V.H;
 
 const serialOfV10 = (txId, idx) => {

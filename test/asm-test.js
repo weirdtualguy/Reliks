@@ -2,7 +2,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const A = require('../web/rvm-asm.js');
-const dir = path.join(__dirname, '..', 'v13', 'vm', 'asm-corpus');
+const dir = path.join(__dirname, '..', 'vm', 'asm-corpus');
 const hx = u => Buffer.from(u).toString('hex');
 let pass = 0, fail = 0;
 const ok = (n, c, i) => { if (c) pass++; else { fail++; if (fail < 20) console.log('FAIL', n, i || ''); } };

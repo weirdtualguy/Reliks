@@ -1,31 +1,5 @@
 {
-  "updatedAt": "2026-11-15T12:08:04.245Z",
+  "updatedAt": "2026-11-15T17:20:57.962Z",
   "network": "mainnet",
-  "series": [
-    {
-      "id": "genesis-dag-city",
-      "title": "Genesis: DAG-City",
-      "status": "legacy-unsafe",
-      "statusNote": "Legacy contract hashes (v12). Not deployable; listed for reference only.",
-      "editionTemplateHash": "0514190ac75aa6d0c63ba393c37df9ca186c64be048d52e0d9170966d6a75859",
-      "laneCovenantId": "1569a69fd3e82b28ef32d9daea0d1a107cd26a586cf30458416889e689739c09",
-      "mintsLeft": "0",
-      "mintPriceSompi": "100000000",
-      "editionsMinted": 1,
-      "listedCount": 0,
-      "floorSompi": null,
-      "totalSecondarySales": 0,
-      "editions": [
-        {
-          "index": 0,
-          "serial": "2884738305227171331",
-          "covenantId": "6f8f076f72ff39eab63b11cd5e5ee3f7d1a9f31e570c4ac3d1ba5e3394146999",
-          "owner": "25aafe02662998a62b4b4c1a887005ea8c604705c0a3cb29c3f63dfb85332f8b",
-          "priceSompi": "0",
-          "sales": 0,
-          "lineage": null
-        }
-      ]
-    }
-  ]
+  "series": []
 }

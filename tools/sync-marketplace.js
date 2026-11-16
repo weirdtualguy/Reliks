@@ -10,9 +10,8 @@ const ROOT = path.join(__dirname, '..');
 const C = require(path.join(ROOT, 'web', 'reliks-chain.js'));
 const makeTemplates = require(path.join(ROOT, 'lib', 'reliks-templates.js'));
 
-const t12 = makeTemplates();
-const t13 = makeTemplates({ canonical: true });
-C.init(t12);
+const tpl = makeTemplates();
+C.init(tpl);
 
 // Canonical hashes (the only deployable set) + the one live legacy series.
 // The indexer lists a series as canonical only if its edition template is in
@@ -37,7 +36,7 @@ function isVmSeries(s) {
 function loadProgBytes(s) {
   if (s.programHex) return C.hex2u8(s.programHex);
   if (s.programFile) {
-    const p = fs.existsSync(path.join(ROOT, s.programFile)) ? path.join(ROOT, s.programFile) : path.join(ROOT, 'v13', s.programFile);
+    const p = fs.existsSync(path.join(ROOT, s.programFile)) ? path.join(ROOT, s.programFile) : path.join(ROOT, 'vm', s.programFile);
     const raw = fs.readFileSync(p, 'utf8').trim();
     if (/^[0-9a-fA-F\s]+$/.test(raw) && /^52564d01/i.test(raw.replace(/\s+/g, ''))) return C.hex2u8(raw.replace(/\s+/g, '').toLowerCase());
     return require(path.join(ROOT, 'web', 'rvm-asm.js')).assemble(raw);
@@ -75,22 +74,25 @@ async function discoverNewEditions(io, s, progBytes, edTpl) {
     } catch (e) { /* skip unreachable tx */ }
   }
 
+  const baseSerial = BigInt((s.genesisState && s.genesisState.next_serial) || 0);
   let curTxId = s.genesisTxId;
-  let idx = 0;
+  let stepIdx = 0;
   while (nextByPrev.has(curTxId)) {
     const { txId: mintTxId, tx } = nextByPrev.get(curTxId);
     if (!knownMintTxs.has(mintTxId) && tx.outputs && tx.outputs.length >= 2) {
       const edOut = tx.outputs[1];
       const edCov = C.covenantOf(edOut);
-      const authIn = tx.inputs[Number(edCov.authorizingInput)];
+      const authIdx = Number(edCov.authorizingInput);
+      const authIn = (Number.isInteger(authIdx) && authIdx >= 0 && tx.inputs) ? tx.inputs[authIdx] : null;
       const authOp = authIn ? C.inputOutpoint(authIn) : null;
       const mintInp0 = C.inputOutpoint(tx.inputs[0]);
-      if (authOp && mintInp0) {
-        const serial = C.serialFromOutpoint(mintInp0.txId, mintInp0.index);
+      if (authOp && mintInp0 && edCov.id) {
+        const curSerial = baseSerial + BigInt(stepIdx);
+        const serial = curSerial.toString();
         const edSig = String(C.pick(tx.inputs[0], ['signature_script', 'signatureScript']) || '').toLowerCase();
         const pushes = edSig ? C.parsePushes(edSig) : [];
         const buyerPk = pushes[0] && /^[0-9a-f]{64}$/.test(pushes[0]) ? pushes[0] : null;
-        if (buyerPk && edCov.id) {
+        if (buyerPk) {
           const recCov = C.covenantIdGenesis(authOp.txId, authOp.index, [{
             idx: 1,
             value: Number(C.outputValue(edOut)),
@@ -98,17 +100,15 @@ async function discoverNewEditions(io, s, progBytes, edTpl) {
           }]);
           if (recCov === edCov.id) {
             const newEd = {
-              index: idx,
+              index: s.editions.length,
               serial: serial,
               covenantId: edCov.id,
               mintTxId: mintTxId,
               outputIndex: 1,
-              ownerAtMint: buyerPk
+              ownerAtMint: buyerPk,
+              lineage: C.genesisLineage(s.laneCovenantId, curSerial),
+              sales: 0
             };
-            if (C.editionHasLineage(edTpl)) {
-              newEd.lineage = C.genesisLineage(mintInp0.txId, mintInp0.index);
-              newEd.sales = 0;
-            }
             s.editions.push(newEd);
             knownMintTxs.add(mintTxId);
             added++;
@@ -117,7 +117,7 @@ async function discoverNewEditions(io, s, progBytes, edTpl) {
       }
     }
     curTxId = mintTxId;
-    idx++;
+    stepIdx++;
   }
   return added;
 }
@@ -131,7 +131,7 @@ async function sync(opts) {
 
   for (const s of anchors.series) {
     const isVm = isVmSeries(s);
-    const edTpl = (isVm || s.protocol_version === 'v13') ? t13.edition : t12.edition;
+    const edTpl = tpl.edition;
     const progBytes = loadProgBytes(s);
     if (!Array.isArray(s.editions)) s.editions = [];
 
@@ -172,13 +172,13 @@ async function sync(opts) {
       }
     }
 
-    const isLegacy = edTpl.templateHashHex === (LEGACY.edition || '') || s.protocol_version === 'v12' || s.id === (LEGACY.series_id || '');
+    const isLegacy = edTpl.templateHashHex === (LEGACY.edition || '') || s.id === (LEGACY.series_id || '');
     const isCanonical = ALLOWLIST.has(edTpl.templateHashHex);
     marketSeries.push({
       id: s.id,
       title: s.title,
       status: isCanonical ? 'canonical' : (isLegacy ? 'legacy-unsafe' : 'unknown'),
-      statusNote: isCanonical ? undefined : (isLegacy ? 'Legacy contract hashes (v12). Not deployable; listed for reference only.' : 'Template hash is not in the canonical allowlist.'),
+      statusNote: isCanonical ? undefined : (isLegacy ? 'Non-canonical contract hashes.' : 'Template hash is not in the canonical allowlist.'),
       editionTemplateHash: edTpl.templateHashHex,
       laneCovenantId: s.laneCovenantId,
       mintsLeft: laneInfo ? laneInfo.state.mints_left.toString() : null,

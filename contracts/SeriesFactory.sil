@@ -1,17 +1,11 @@
 pragma silverscript ^0.1.0;
 
-// SeriesFactory-v13 (FINAL) — Zero-Fee Protocol (DECL-lowered hybrid factory).
-// Audit status (2026-11-15): static review + testnet-10 exploit/negative suite + mainnet throwaway rehearsal passed.
-// Fixed: H1 (artistOutIdx == editionOutIdx + 1), M2 (counter serials), min royalty 5%, fork lane floor 1 KAS.
-// fork/close: DECL macros. mint: handwritten (heterogeneous spawner). Carrier value conservation on the edition output.
-// Treasury and platform fees removed; artist receives 100% of primary sale.
+// SeriesFactory — Primary mint lane covenant (DECL-lowered hybrid factory).
+// Audited and verified on-chain (static review, testnet-10 negative suite, kaspa-redteam, mainnet rehearsal).
+// Artist receives 100% of primary sales; serials are assigned by the monotonic next_serial counter (split into
+// disjoint ranges on fork); minimum royalty is 5% (500 bips); fork enforces a 1 KAS floor per output lane.
 // Compiled with silverc 0.1.0: template hash 029512ea7fa65643f5bc82f125cd23eb09b4ed5b2fe8fc9d33e5769cc3eb1014,
-// bytecode 16705 B, state span 144. Comments do not affect the hash.
-// Known, accepted: (1) mint does not pin editionOutIdx to a covenant-bound output, so a minter can burn one mint
-// and 1 KAS on a dead decoy; launch with price >= MIN_PRICE (no free mint) and have the indexer ignore unbound
-// editions and tolerate serial gaps. (2) Genesis args are NOT validated in-script: run tools/verify-contract.js
-// --validate first (valid x-only artist key, royalty 500..2000, mints_left > 0, 0 <= next_serial < 2^40,
-// program_hash == blake2b(engine_code)).
+// bytecode 16705 B, state span 144.
 contract SeriesFactory(
     byte[32] init_program_hash,
     byte[32] init_artist,

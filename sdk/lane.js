@@ -21,7 +21,7 @@ async function resolveLaneKascov(a) {
   let state, source;
   if (liveTx === (rec && rec.genesis_txid)) {
     if (!series) { add('genesis_state', false, 'the lane is unspent since genesis; pass the series state'); return out('needs_genesis_state'); }
-    try { state = { program_hash: String(series.program_hash).toLowerCase(), artist: String(series.artist).toLowerCase(), price: BigInt(series.price), royalty_bips: BigInt(series.royalty_bips), mints_left: BigInt(series.mints_left), engine_lang: BigInt(series.engine_lang), render_hash: String(series.render_hash).toLowerCase() }; }
+    try { state = { program_hash: String(series.program_hash).toLowerCase(), artist: String(series.artist).toLowerCase(), price: BigInt(series.price), royalty_bips: BigInt(series.royalty_bips), mints_left: BigInt(series.mints_left), engine_lang: BigInt(series.engine_lang), render_hash: String(series.render_hash).toLowerCase(), next_serial: BigInt(series.next_serial != null ? series.next_serial : 0) }; }
     catch (e) { add('genesis_state', false, 'series state unusable'); return out('needs_genesis_state'); }
     source = 'series-genesis';
   } else {
@@ -30,7 +30,7 @@ async function resolveLaneKascov(a) {
     if (!prev) return out('previous_state_unavailable');
     let st;
     try { st = chain.decodeFactoryState(prev.revealed_hex); } catch (e) { add('decode_previous', false, String(e && e.message || e).slice(0, 80)); return out('previous_state_unreadable'); }
-    state = Object.assign({}, st, { mints_left: BigInt(st.mints_left) - 1n });
+    state = Object.assign({}, st, { mints_left: BigInt(st.mints_left) - 1n, next_serial: BigInt(st.next_serial != null ? st.next_serial : 0) + 1n });
     if (state.mints_left < 0n) { add('mints_left', false, 'the previous state had no mints left'); return out('previous_state_unreadable'); }
     source = 'kascov-previous-output';
   }
