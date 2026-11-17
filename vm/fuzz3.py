@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Differential fuzz generator for Reliks-VM: random programs plus the Python reference result. Usage (from v13/vm): fuzz3.py N SEED OUT.json"""
+"""Differential fuzz generator for Reliks-VM: random programs plus the Python reference result. Usage (from vm/): fuzz3.py N SEED OUT.json"""
 import json, random, sys
 from rvm import assemble, render, Fault, b2
 N = int(sys.argv[1]); SEED = int(sys.argv[2]); OUT = sys.argv[3]

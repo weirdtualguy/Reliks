@@ -231,6 +231,7 @@ const html = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Reliks: generative art whose code lives in a Kaspa covenant</title>
 <meta name="description" content="Reliks anchors a deterministic generative program inside a Kaspa covenant. Re-render and verify every edition in your browser.">
 <meta name="theme-color" content="#06080b">

@@ -23,7 +23,7 @@ const body = `<main>
 <div class="row"><input id="name" value="my-program" aria-label="File name"><button class="btn" id="dlhex">Download .hex</button><button class="btn ghost" id="dlsrc">Download source</button></div>
 <p class="small">The .hex file is the raw program (what the series commits to). Run the full CLI sweep with <code>node cli/reliks-lens.js my-program.hex</code>.</p>
 </main>`;
-const html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reliks-VM Studio</title><style>' + read('web', 'studio-vm.css') + '</style></head><body>' + body +
+const html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="object-src \'none\'; base-uri \'none\'; form-action \'none\'"><title>Reliks-VM Studio</title><style>' + read('web', 'studio-vm.css') + '</style></head><body>' + body +
   '<script>window.STUDIO=' + safe(JSON.stringify({ templates: TEMPLATES })) + ';</script>' +
   '<script>' + safe(read('web', 'blake2b.js')) + '</script>' +
   '<script>var RVM=(function(){var module={exports:{}};' + safe(read('vm', 'rvm.js')) + '\nreturn module.exports;})();</script>' +

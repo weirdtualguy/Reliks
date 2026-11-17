@@ -1,6 +1,6 @@
 # Reliks: project status
 
-Everything below is committed and verified by `npm test`, `node tools/verify-contract.js`, and `node tools/check-deprecated-hashes.js`.
+Everything below is committed and checked by `npm test` (which includes the SDK suites, `vm/check.js` and `verify-contract.js --no-recompile`) and CI. `node tools/verify-contract.js` (full `silverc` recompile) must be run locally; CI has no `silverc`.
 
 ## Canonical contracts
 

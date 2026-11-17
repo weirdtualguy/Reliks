@@ -20,7 +20,7 @@ A Reliks edition is `render(program, serial, lineage, sales)` executed by **Reli
 | **1-Click Browser Publishing** | Assemble, preview patina & wear (with an optional `Enable wear` toggle), run the 6-gate determinism suite, and deploy your `SeriesFactory` covenant in 1 click via Kaspire — no CLI or `silverc` required. |
 | **Permissionless Marketplace** | Submit a deployed Series Anchor JSON via a [GitHub Issue](https://github.com/weirdtualguy/Reliks/issues/new?template=submit-series.yml); GitHub Actions verifies `RVM\x01` determinism and on-chain KIP-20 covenant bindings and auto-syncs live editions every 15 minutes. |
 | **In-Browser Secondary Market** | Mint primary editions, **List for Sale**, **Buy**, **Cancel Listing**, **Transfer**, or place/accept **2-Party Atomic Bids/Offers** (`ReliksEdition.sell` via PSKT) directly in the browser with automatic multi-UTXO coin selection. |
-| **Zero Protocol Rent** | Artists receive **100%** of primary mints and **5%–20%** enforced royalties on covenant-priced resales (`buy`, `sell`, `OfferEscrow.accept`, with a `0.05 KAS` royalty mineability floor). Network fees (~0.04 KAS) and a 1 KAS edition carrier apply. |
+| **Zero Protocol Rent** | Artists receive **100%** of primary mints and **5%–20%** enforced royalties on covenant-priced resales (OTC `transfer` is royalty-free, see [`docs/KNOWN-LIMITATIONS.md`](docs/KNOWN-LIMITATIONS.md)) (`buy`, `sell`, `OfferEscrow.accept`, with a `0.05 KAS` royalty mineability floor). Network fees (~0.04 KAS) and a 1 KAS edition carrier apply. |
 
 ## Canonical Contracts & Security Properties
 

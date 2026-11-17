@@ -1,6 +1,6 @@
 'use strict';
 // Claim verification and self-authenticating ownership challenges (PROTOCOL.md section 11).
-// Read-only, zero external dependencies.
+// Verification has zero external dependencies; signing (secret keys) uses @noble/curves.
 const crypto = require('crypto');
 const B2 = require('../web/blake2b.js');
 const read = require('./read.js');
@@ -9,7 +9,7 @@ const HEX128 = /^[0-9a-f]{128}$/;
 const INTS = ['price', 'royalty_bips', 'serial', 'sales'];
 const HEXES = ['ownerIdentifier', 'artist', 'program_hash', 'factory_covid', 'lineage'];
 
-// Pure-BigInt secp256k1 BIP-340 Schnorr implementation (zero external dependencies; matches @noble/curves/secp256k1 schnorr).
+// Pure-BigInt secp256k1 BIP-340 Schnorr VERIFY (zero external dependencies; matches @noble/curves/secp256k1 schnorr). Variable-time: never feed it secrets.
 const SECP_P = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2Fn;
 const SECP_N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n;
 const SECP_GX = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798n;
@@ -41,26 +41,19 @@ function taggedSha256(tag, ...msgs) {
   for (const m of msgs) h.update(m);
   return h.digest();
 }
+// Secret-key operations use @noble/curves (constant-time scalar multiplication, random aux nonce).
+// The pure-BigInt code in this file is variable-time and is therefore used ONLY for verification of public data.
+function noble() {
+  try { return require('@noble/curves/secp256k1').schnorr; }
+  catch (e) { throw new Error('signing needs @noble/curves (npm ci); verification works without it'); }
+}
 function bip340Pubkey(privHex) {
-  const d0 = bytesToNum(Buffer.from(privHex, 'hex'));
-  if (d0 <= 0n || d0 >= SECP_N) throw new Error('invalid private key');
-  const P = ptMul([SECP_GX, SECP_GY], d0);
-  return numTo32(P[0]).toString('hex');
+  if (!HEX64.test(String(privHex))) throw new Error('invalid private key');
+  return Buffer.from(noble().getPublicKey(Buffer.from(privHex, 'hex'))).toString('hex');
 }
 function bip340Sign(msg32, privHex) {
-  const d0 = bytesToNum(Buffer.from(privHex, 'hex'));
-  if (d0 <= 0n || d0 >= SECP_N) throw new Error('invalid private key');
-  const P = ptMul([SECP_GX, SECP_GY], d0);
-  const d = (P[1] & 1n) === 0n ? d0 : SECP_N - d0;
-  const aux = Buffer.alloc(32, 0);
-  const t = d ^ bytesToNum(taggedSha256('BIP0340/aux', aux));
-  const k0 = mod(bytesToNum(taggedSha256('BIP0340/nonce', numTo32(t), numTo32(P[0]), Buffer.from(msg32))), SECP_N);
-  if (k0 === 0n) throw new Error('nonce zero');
-  const R = ptMul([SECP_GX, SECP_GY], k0);
-  const k = (R[1] & 1n) === 0n ? k0 : SECP_N - k0;
-  const e = mod(bytesToNum(taggedSha256('BIP0340/challenge', numTo32(R[0]), numTo32(P[0]), Buffer.from(msg32))), SECP_N);
-  const s = mod(k + e * d, SECP_N);
-  return Buffer.concat([numTo32(R[0]), numTo32(s)]).toString('hex');
+  if (!HEX64.test(String(privHex))) throw new Error('invalid private key');
+  return Buffer.from(noble().sign(Buffer.from(msg32), Buffer.from(privHex, 'hex'))).toString('hex');
 }
 function bip340Verify(sigHex, msg32, pubHex) {
   try {

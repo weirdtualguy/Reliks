@@ -3,10 +3,16 @@ name: Sync Marketplace & Index Chain
 on:
   schedule:
     - cron: '*/15 * * * *'
+    # Weekly keepalive commit below prevents GitHub from disabling this schedule
+    # after 60 days of repository inactivity.
   workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: marketplace-write
+  cancel-in-progress: false
 
 jobs:
   sync:
@@ -16,6 +22,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - run: npm ci --no-audit --no-fund
 
       - name: Sync new mints and secondary market state from Kaspa
         run: node tools/sync-marketplace.js
@@ -27,12 +35,28 @@ jobs:
 
       - name: Commit & push updated anchors and marketplace index
         run: |
-          git config user.name "weirdtualguy"
-          git config user.email "91307288+weirdtualguy@users.noreply.github.com"
-          if [ -n "$(git status --porcelain data/mainnet-anchors.json docs/index.html docs/marketplace-index.json)" ]; then
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # updatedAt changes on every sync; only commit when the substance changed.
+          git diff --quiet -- data/mainnet-anchors.json docs/index.html || CHANGED=1
+          node tools/index-changed.js && CHANGED=1
+          if [ -n "$CHANGED" ]; then
             git add data/mainnet-anchors.json docs/index.html docs/marketplace-index.json
             git commit -m "chore(market): sync chain editions and marketplace index [skip ci]"
-            git push
+            git pull --rebase origin main
+            git push origin HEAD:main
           else
+            git checkout -- docs/marketplace-index.json
             echo "No marketplace changes to commit."
+          fi
+
+      - name: Keepalive (scheduled workflows are disabled after 60 days without repo activity)
+        run: |
+          last=$(git log -1 --format=%ct)
+          now=$(date +%s)
+          if [ $((now - last)) -gt $((45 * 86400)) ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "chore: keepalive [skip ci]"
+            git push origin HEAD:main
           fi

@@ -1,6 +1,6 @@
 # Reliks-VM v1, revision 2 (specification)
 
-Status: **v1 frozen for mainnet genesis** (revised after porting the DAG-City engine and completing 3-implementation differential verification). Three independent interpreters — Python (`v13/vm/rvm.py`), JavaScript (`v13/vm/rvm.js`), and C99 (`v13/vm/rvm.c`, verified under ASan/UBSan/LSan) — agree on every vector in `v13/vm/vectors.json` (**142 checks** in Python/JS; **135 program cases** in C) plus ~12,000 differential-fuzzed programs. Two testnet-10 series use it (Series A: the clean DAG-City port of section 9, and Series B: `marks3`). The magic version byte `0x01` is frozen for v1; any future instruction or limit additions will route through magic version `0x02` (section 2.1).
+Status: **v1 frozen for mainnet genesis** (revised after porting the DAG-City engine and completing 3-implementation differential verification). Three independent interpreters — Python (`vm/rvm.py`), JavaScript (`vm/rvm.js`), and C99 (`vm/rvm.c`, verified under ASan/UBSan/LSan) — agree on every vector in `vm/vectors.json` (**142 checks** in Python/JS; **135 program cases** in C) plus ~12,000 differential-fuzzed programs. Two testnet-10 series use it (Series A: the clean DAG-City port of section 9, and Series B: `marks3`). The magic version byte `0x01` is frozen for v1; any future instruction or limit additions will route through magic version `0x02` (section 2.1).
 
 ## 0. What the DAG-City port changed
 
@@ -160,7 +160,7 @@ Any fault invalidates the render (no partial output): `E_HEADER E_DECODE E_TARGE
 
 ## 8. Assembler (tooling only)
 
-Free-form tokens, `;` comments, `label:`, numbers decimal or `0x`. Directives `.canvas W H`, `.byte N`, `.var NAME CELL`. Loads and stores accept variable names (`ld X`, `st X`). Macros: `show` (draw a 1x1 rect at the popped x, for tests), `next VAR LIMIT LABEL` and `nextle` (increment and loop while below / at most the limit). Both `v13/vm/rvm.py` and `web/rvm-asm.js` report source line numbers (`line N`) when an assembly error occurs.
+Free-form tokens, `;` comments, `label:`, numbers decimal or `0x`. Directives `.canvas W H`, `.byte N`, `.var NAME CELL`. Loads and stores accept variable names (`ld X`, `st X`). Macros: `show` (draw a 1x1 rect at the popped x, for tests), `next VAR LIMIT LABEL` and `nextle` (increment and loop while below / at most the limit). Both `vm/rvm.py` and `web/rvm-asm.js` report source line numbers (`line N`) when an assembly error occurs.
 
 ## 9. DAG-City port results
 
@@ -177,20 +177,20 @@ Program hashes: faithful `792fed9b8c47d5fbc4f8c60d2929eb929fa8cd34e447317252fbd5
 
 ## 10. Test vectors
 
-`vectors.json` (the harness reports **142 checks**: 7 host-derivation/helper vectors and 135 program cases across arithmetic, PRNG, limits, path/group/gradient rules, SVG size boundaries, fuel boundaries, and full DAG-City renders). `python3 gen_vectors.py` regenerates and self-checks; `node v13/vm/check.js` runs all 142 checks through the JS interpreter; `node v13/vm/check3.js <binary>` runs all 135 program cases through any external conformance binary (such as `v13/vm/rvm.c`). Both `check.js` and `check3.js` (including ASan/UBSan builds of `rvm.c`) run in `npm test` and CI.
+`vectors.json` (the harness reports **142 checks**: 7 host-derivation/helper vectors and 135 program cases across arithmetic, PRNG, limits, path/group/gradient rules, SVG size boundaries, fuel boundaries, and full DAG-City renders). `python3 gen_vectors.py` regenerates and self-checks; `node vm/check.js` runs all 142 checks through the JS interpreter; `node vm/check3.js <binary>` runs all 135 program cases through any external conformance binary (such as `vm/rvm.c`). Both `check.js` and `check3.js` (including ASan/UBSan builds of `rvm.c`) run in `npm test` and CI.
 
 ## 11. Remaining gaps and decisions
 
 1. **Third and fourth implementations.** Three implementations in Python (`rvm.py`), JavaScript (`rvm.js`), and C99 (`rvm.c`) agree on all 135 program vectors and ~12,000 differential-fuzzed programs. Because all three were written by the same author, a fourth implementation (e.g. in Rust or Zig) written solely from this specification by an independent author — together with spec-authored golden vectors — remains a high-value post-release milestone (see section 12 for the plug-in conformance harness interface).
 2. **Faithful or clean city? (Closed 2026-10-03):** Closed. Testnet-10 Series A uses the clean port (`cf1f1e60...`) and Series B uses `marks3` (`ce0f4fc0...`, which renders wear via structural marks rather than patina roof recolor).
 3. **Limits are now measured, not guessed.** Worst case on DAG-City is ~13% of fuel and ~17% of elements; `cli/reliks-lens-vm.js` sweeps serials and `(pat, wear)` corners for any candidate program and reports exact headroom against `FUEL_MAX`, `MAX_ELEMS`, `MAX_SVG`, and the `25,641`-byte PUSHDATA2 baking ceiling.
-4. **Assembly ergonomics.** `v13/vm/rvm.py` and `web/rvm-asm.js` include source line numbers in error messages, and a structured-language compiler targeting RVM v1 bytecode can be layered purely in tooling without changing the frozen v1 machine.
+4. **Assembly ergonomics.** `vm/rvm.py` and `web/rvm-asm.js` include source line numbers in error messages, and a structured-language compiler targeting RVM v1 bytecode can be layered purely in tooling without changing the frozen v1 machine.
 5. **Rasterization is not part of the spec.** Identity is checked on canonical SVG bytes, not pixels.
 6. **Lane derivation for legacy art** (section 5) is handled by the host (`ReliksSeedV10` for v12 JS engines; `ReliksSeedV2` for Reliks-VM).
 
 ## 12. Conformance Harness Protocol (for independent implementations)
 
-Any standalone RVM v1 interpreter in any language (C, Rust, Zig, Go, etc.) can be verified against the full `v13/vm/vectors.json` suite using `node v13/vm/check3.js <path-to-executable>` by implementing the following process contract:
+Any standalone RVM v1 interpreter in any language (C, Rust, Zig, Go, etc.) can be verified against the full `vm/vectors.json` suite using `node vm/check3.js <path-to-executable>` by implementing the following process contract:
 
 1. **Command-line arguments (`argv[1..4]`)**:
    ```
@@ -207,6 +207,6 @@ Any standalone RVM v1 interpreter in any language (C, Rust, Zig, Go, etc.) can b
    - On any fault: print `FAULT <fault_code>\n` (where `<fault_code>` is one of the 17 fault identifiers in section 7, e.g. `FAULT E_RANGE\n`) and exit with status `0`.
 4. **Verification**:
    ```bash
-   node v13/vm/check3.js /path/to/your-rvm-binary
+   node vm/check3.js /path/to/your-rvm-binary
    ```
    `check3.js` runs all 135 program vectors and verifies exact fault codes, exact SVG byte lengths, exact BLAKE2b-256 SVG hashes, and verbatim SVG strings where pinned.

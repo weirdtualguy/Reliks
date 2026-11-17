@@ -154,6 +154,58 @@ const eq = (a, b, m) => { if (String(a) !== String(b)) throw new Error((m || 'mi
     eq(res.indexPayload.series[0].editionsMinted, 1);
   });
 
+  // Fork scenario: genesis -> mint(serial 0) -> fork -> mint(serial 1 on the left lane).
+  // A fork must not consume a serial (the old walker numbered the second mint 2) and the index must flag the fork.
+  const forkTxId = 'f1'.repeat(32), mint2TxId = 'c2'.repeat(32), buyer2 = 'd2'.repeat(32), fund2Tx = 'e2'.repeat(32);
+  const lin1 = C.genesisLineage(laneCov, 1);
+  const edState1 = { ownerIdentifier: buyer2, identifierType: 0, price: 0, artist, royalty_bips: 500, program_hash: progHash, factory_covid: laneCov, serial: '1', lineage: lin1, sales: 0 };
+  const edSpk1 = C.p2shSpk(C.editionRedeem(edState1, tpl.edition));
+  const edCov1 = C.covenantIdGenesis(fund2Tx, 1, [{ idx: 1, value: 100000000, script: edSpk1 }]);
+  const sig2 = C.u8hex(Buffer.concat([Buffer.from(C.pushMin(C.hex2u8(buyer2))), Buffer.from(C.pushMin(facRedeem))]));
+  const laneOut = (cov) => ({ amount: '100000000', script_public_key: '0000' + nextLaneSpk, covenant: { authorizing_input: 0, covenant_id: cov } });
+  const forkTx = { is_accepted: true, inputs: [{ previous_outpoint_hash: mintTxId, previous_outpoint_index: 0 }], outputs: [laneOut(laneCov), laneOut(laneCov)] };
+  const mint2Tx = {
+    is_accepted: true,
+    inputs: [{ previous_outpoint_hash: forkTxId, previous_outpoint_index: 0, signature_script: sig2 }, { previous_outpoint_hash: fund2Tx, previous_outpoint_index: 1 }],
+    outputs: [laneOut(laneCov), { amount: '100000000', script_public_key: '0000' + edSpk1, covenant: { authorizing_input: 1, covenant_id: edCov1 } }]
+  };
+  const io2 = Object.assign({}, io, {
+    tx: async (id) => (id === forkTxId ? forkTx : id === mint2TxId ? mint2Tx : io.tx(id)),
+    covenant: async (id) => {
+      if (id === laneCov) {
+        return { utxos: [
+          { outpoint: genesisTxId + ':0', live: false, revealed_hex: C.u8hex(facRedeem) },
+          { outpoint: mintTxId + ':0', live: false },
+          { outpoint: forkTxId + ':0', live: false },
+          { outpoint: forkTxId + ':1', live: true, value: 100000000, script_hex: nextLaneSpk },
+          { outpoint: mint2TxId + ':0', live: true, value: 100000000, script_hex: nextLaneSpk }
+        ], events: [{ kind: 'genesis' }, { kind: 'transition' }, { kind: 'transition' }, { kind: 'transition' }], live_value: 200000000 };
+      }
+      if (id === edCov1) return { utxos: [{ outpoint: mint2TxId + ':1', live: true, value: 100000000, script_hex: edSpk1 }], events: [{ kind: 'genesis' }], live_value: 100000000 };
+      return io.covenant(id);
+    }
+  });
+  await t('sync: a fork does not consume a serial; the next left-lane mint gets serial 1 and the index flags the fork', async () => {
+    const res = await sync({ io: io2 });
+    eq(res.totalAdded, 1);
+    const saved = JSON.parse(fs.readFileSync(tmpAnchors, 'utf8'));
+    eq(saved.series[0].editions.length, 2);
+    eq(saved.series[0].editions[1].serial, '1');
+    eq(saved.series[0].editions[1].covenantId, edCov1);
+    if (!/forked|live outputs/.test(String(res.indexPayload.series[0].laneError))) throw new Error('index did not flag the forked lane: ' + res.indexPayload.series[0].laneError);
+  });
+
+  // Fail closed: an unrecognisable lane transaction stops discovery instead of guessing serials.
+  await t('sync: an unrecognised lane transaction stops discovery (fail closed)', async () => {
+    const anchors = JSON.parse(fs.readFileSync(tmpAnchors, 'utf8'));
+    anchors.series[0].editions = anchors.series[0].editions.slice(0, 1);
+    fs.writeFileSync(tmpAnchors, JSON.stringify(anchors, null, 2));
+    const weirdTx = Object.assign({}, mint2Tx, { inputs: [Object.assign({}, mint2Tx.inputs[0], { signature_script: '' }), mint2Tx.inputs[1]] });
+    const io3 = Object.assign({}, io2, { tx: async (id) => (id === mint2TxId ? weirdTx : io2.tx(id)) });
+    const res = await sync({ io: io3 });
+    eq(res.totalAdded, 0);
+  });
+
   try { fs.unlinkSync(tmpAnchors); fs.unlinkSync(tmpIndex); } catch (e) {}
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
   process.exit(fail ? 1 : 0);

@@ -29,7 +29,7 @@ function planMint(p) {
   const sum = (xs, f) => xs.reduce((a, x) => a + BigInt(f(x)), 0n);
   const inV = sum(draft.inputs, (i) => i.utxo.amount), outV = sum(draft.outputs, (o) => o.value);
   add('value_conserved', inV === outV + draft.fee, 'in ' + inV + ' out ' + outV + ' fee ' + draft.fee);
-  const nextSt = Object.assign({}, st, { mints_left: BigInt(st.mints_left) - 1n });
+  const nextSt = Object.assign({}, st, { mints_left: BigInt(st.mints_left) - 1n, next_serial: BigInt(st.next_serial != null ? st.next_serial : 0) + 1n });
   const lane = draft.outputs.find((o) => o.role === 'lane');
   add('lane_next_state', lane && lane.spk === CH.p2shSpk(CH.factoryRedeem(nextSt)));
   add('lane_covenant_kept', lane && lane.covenant && lane.covenant.authorizingInput === 0 && lane.covenant.covenantId === p.lane.covenantId);
@@ -37,15 +37,15 @@ function planMint(p) {
   const op = p.lane.outpoint;
   const ed = draft.outputs.find((o) => o.role === 'edition');
   const edState = { ownerIdentifier: p.buyer.pubkey, identifierType: 0, price: 0, artist: st.artist, royalty_bips: st.royalty_bips, program_hash: st.program_hash, factory_covid: p.lane.covenantId, serial: draft.summary.serial };
-  edState.lineage = CH.genesisLineage(lane.covenantId, draft.summary.serial); edState.sales = 0;
+  edState.lineage = CH.genesisLineage(lane.covenant.covenantId, draft.summary.serial); edState.sales = 0;
   add('edition_script', ed && ed.spk === CH.p2shSpk(CH.editionRedeem(edState)));
   add('edition_covenant', ed && ed.covenant && ed.covenant.authorizingInput === 1 && ed.covenant.covenantId === draft.summary.editionCovenantId);
-  add('serial_from_lane_counter', String(draft.summary.serial) === String(lane.state.next_serial != null ? lane.state.next_serial : 0));
+  add('serial_from_lane_counter', String(draft.summary.serial) === String(st.next_serial != null ? st.next_serial : 0));
   add('mints_left_after', BigInt(draft.summary.mintsLeftAfter) === BigInt(st.mints_left) - 1n);
   const price = BigInt(st.price), art = draft.outputs.find((o) => o.role === 'artist');
   add('artist_paid', price === 0n ? !art : (art && art.spk === CH.p2pkSpk(st.artist) && BigInt(art.value) === price));
   const roy = BigInt(st.royalty_bips);
-  add('contract_royalty_range', roy >= 1n && roy <= 2000n, 'royalty_bips ' + roy + ' (factory requires 1..2000)');
+  add('contract_royalty_range', roy >= 500n && roy <= 2000n, 'royalty_bips ' + roy + ' (factory requires 500..2000)');
   add('contract_price_floor', price === 0n || price >= 100000000n, 'price ' + price);
   add('contract_mints_left', BigInt(st.mints_left) > 0n);
   add('edition_output_index_1', !!ed && draft.outputs.indexOf(ed) === 1, 'sigScript hardcodes editionOutIdx = 1');

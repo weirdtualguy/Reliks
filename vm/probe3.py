@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hand-written probes for rules the spec leaves open. Usage (from v13/vm): probe3.py OUT.json. Results come from the Python reference."""
+"""Hand-written probes for rules the spec leaves open. Usage (from vm/): probe3.py OUT.json. Results come from the Python reference."""
 import json, sys
 from rvm import assemble, render, Fault, b2
 G4 = 'push 100 gopen push 100 gopen push 100 gopen push 100 gopen'

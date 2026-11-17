@@ -65,7 +65,10 @@ if (!pins.contracts || !pins.contracts.factory || !pins.contracts.edition || !pi
   fail('TEMPLATE-HASHES.json is missing a contract entry'); console.log('CONTRACT RECOMPILE FAILED'); process.exit(1);
 }
 
-const probe = cp.spawnSync('silverc', ['--help'], { encoding: 'utf8' });
+// --no-recompile: CI mode for runners without silverc. Still hard-fails on any
+// source sha256, ABI template hash, bytecode length or state-span drift from the pins.
+const NO_RECOMPILE = process.argv.includes('--no-recompile');
+const probe = NO_RECOMPILE ? { error: null } : cp.spawnSync('silverc', ['--help'], { encoding: 'utf8' });
 let silverc = 'silverc';
 if (probe.error) {
   const homeBin = path.join(os.homedir(), 'bin', 'silverc');
@@ -96,20 +99,26 @@ CONTRACTS.forEach((c, i) => {
   if (gotSha !== pin.sha256) fail(c.key + ': sha256 mismatch for ' + c.src + ' (got ' + gotSha.slice(0, 16) + '…, want ' + pin.sha256.slice(0, 16) + '…)');
   else pass(c.key + ': sha256 ' + c.src + ' == pinned');
   if (!fs.existsSync(argsPath)) { fail(c.key + ': missing compile args ' + c.args); return; }
-  const out = path.join(os.tmpdir(), 'reliks-recompile-' + process.pid + '-' + i + '.json');
-  const r = cp.spawnSync(silverc, [c.src, '--ctor', c.args, '-o', out], { encoding: 'utf8', cwd: ROOT });
-  if (r.status !== 0 || !fs.existsSync(out)) {
-    fail(c.key + ': silverc failed on ' + c.src + ': ' + String(r.stderr || r.stdout).split('\n')[0]); return;
+  if (!NO_RECOMPILE) {
+    const out = path.join(os.tmpdir(), 'reliks-recompile-' + process.pid + '-' + i + '.json');
+    const r = cp.spawnSync(silverc, [c.src, '--ctor', c.args, '-o', out], { encoding: 'utf8', cwd: ROOT });
+    if (r.status !== 0 || !fs.existsSync(out)) {
+      fail(c.key + ': silverc failed on ' + c.src + ': ' + String(r.stderr || r.stdout).split('\n')[0]); return;
+    }
+    const fresh = templateHash(out);
+    if (fresh !== want) fail(c.key + ': ' + c.src + ' compiles to ' + fresh.slice(0, 16) + '…, want ' + want.slice(0, 16) + '…');
+    else pass(c.key + ': ' + c.src + ' compiles to ' + want.slice(0, 16) + '…');
+    try { fs.unlinkSync(out); } catch (e) {}
   }
-  const fresh = templateHash(out);
-  if (fresh !== want) fail(c.key + ': ' + c.src + ' compiles to ' + fresh.slice(0, 16) + '…, want ' + want.slice(0, 16) + '…');
-  else pass(c.key + ': ' + c.src + ' compiles to ' + want.slice(0, 16) + '…');
-  try { fs.unlinkSync(out); } catch (e) {}
   if (!fs.existsSync(abiPath)) { fail(c.key + ': missing ABI ' + c.abi); return; }
   const abiHash = templateHash(abiPath);
   if (abiHash !== want) fail(c.key + ': ABI ' + c.abi + ' has ' + abiHash.slice(0, 16) + '…, want ' + want.slice(0, 16) + '…');
   else pass(c.key + ': ABI ' + c.abi + ' == ' + want.slice(0, 16) + '…');
+  const cc = JSON.parse(fs.readFileSync(abiPath, 'utf8')).contracts;
+  const comp = cc[Object.keys(cc)[0]].compiled;
+  if (pin.bytecode_bytes !== undefined && comp.bytecode.length !== pin.bytecode_bytes) fail(c.key + ': ABI bytecode is ' + comp.bytecode.length + ' B, pinned ' + pin.bytecode_bytes);
+  if (pin.state_span !== undefined && comp.state_span.len !== pin.state_span) fail(c.key + ': ABI state span is ' + comp.state_span.len + ' B, pinned ' + pin.state_span);
 });
 
-console.log(bad ? 'CONTRACT RECOMPILE FAILED' : 'CONTRACT RECOMPILE OK');
+console.log(bad ? 'CONTRACT RECOMPILE FAILED' : (NO_RECOMPILE ? 'CONTRACT PIN CHECK OK (no recompile)' : 'CONTRACT RECOMPILE OK'));
 process.exit(bad);

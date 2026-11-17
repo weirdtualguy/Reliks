@@ -1,5 +1,7 @@
 name: test
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -10,12 +12,15 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm audit --omit=dev --audit-level=high
       - run: npm test
+      - name: Contract pins (hash/sha256 consistency, no recompile; silverc is not available on runners)
+        run: node tools/verify-contract.js --no-recompile
+      - run: node tools/check-deprecated-hashes.js
       - name: RVM conformance (JS + C99 + ASan/UBSan)
         run: |
-          node v13/vm/check.js
+          node vm/check.js
           mkdir -p .build
-          cc -O2 -std=c99 -o .build/rvm3 v13/vm/rvm.c
-          node v13/vm/check3.js .build/rvm3
-          cc -O2 -std=c99 -fsanitize=address,undefined -fno-omit-frame-pointer -o .build/rvm3_san v13/vm/rvm.c
-          node v13/vm/check3.js .build/rvm3_san
+          cc -O2 -std=c99 -o .build/rvm3 vm/rvm.c
+          node vm/check3.js .build/rvm3
+          cc -O2 -std=c99 -fsanitize=address,undefined -fno-omit-frame-pointer -o .build/rvm3_san vm/rvm.c
+          node vm/check3.js .build/rvm3_san
           rm -rf .build

@@ -2,8 +2,8 @@
 // Read-only, no key. Usage: PC_NET=testnet node sdk/verify-live.js [ledger.json]
 const fs = require('fs');
 const N = require('../lib/network.js'), CH = require('../web/reliks-chain.js'), sdk = require('./read.js');
-CH.init(require('../lib/reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' }));
-const L = JSON.parse(fs.readFileSync(process.argv[2] || 'v13/ledger-vm-v13.json', 'utf8'));
+CH.init(require('../lib/reliks-templates.js')());
+const L = JSON.parse(fs.readFileSync(process.argv[2] || 'data/ledger-vm-v13.json', 'utf8'));
 (async () => {
   const io = CH.makeIO({ rest: N.rest, kascov: N.kascov });
   const age = await sdk.kascovTipAgeSec(N.kascov);

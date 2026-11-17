@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.1
+- **Security:** `submit-series.yml` no longer interpolates issue-derived values into `github-script` code (script injection via series title); values pass through `env:` and are sanitised before being posted. Job-level least-privilege permissions.
+- **CI:** `test.yml` pointed at a removed `v13/` directory; now runs `vm/` conformance (JS, C99, ASan/UBSan), `verify-contract.js --no-recompile` and the deprecated-hash gate. `npm test` now includes the SDK suites, `vm/check.js` and the wRPC rotation regression test.
+- **SDK:** `sdk/plan.js` `planMint` read the wrong fields and expected the pre-counter lane state; its royalty check allowed `1..2000` instead of `500..2000`. `sdk/test-plan.js` is self-contained instead of skipping without a ledger.
+- **Indexer:** `sync-marketplace.js` counted fork transactions as mints (wrong serials after a fork) and guessed on unrecognised lane transactions; it now counts mints only, fails closed, and reports `laneError` in the index.
+- **Broadcast:** a wRPC endpoint that timed out while connecting was rotated past twice, sending duplicate submits. Added `PC_TESTNET_WRPC` (documented but not implemented) and `PC_WRPC_TIMEOUT_MS`.
+- **Crypto:** `sdk/claim.js` signing uses `@noble/curves` instead of a hand-rolled variable-time signer; the BigInt code remains for verification only.
+- **Workflows:** shared `concurrency` group and `pull --rebase` before pushing to `main`; commits only on substantive index changes (not every `updatedAt`); bot identity instead of the owner's; keepalive commit against the 60-day schedule shutoff.
+- **Site:** `<meta>` CSP (`object-src`, `base-uri`, `form-action` = none) on the site and Studio.
+- **Docs:** added `docs/KNOWN-LIMITATIONS.md`; corrected M3 wording; removed stale `v13/` paths; moved `series-mainnet-throwaway.json` to `data/examples/`.
+
 ## 1.0.0 (2026-11-15)
 - **Canonical Silverscript Covenants (`contracts/`, `TEMPLATE-HASHES.json`):**
   - `contracts/SeriesFactory.sil` (`029512ea…`, 8 fields, `144 B` state span): monotonic `next_serial` counter serials, `5%` minimum royalty (`500..2000` bips), contiguous artist payout (`artistOutIdx == editionOutIdx + 1`), and `1 KAS` floor per forked lane.

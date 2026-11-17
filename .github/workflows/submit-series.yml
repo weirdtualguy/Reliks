@@ -5,36 +5,46 @@ on:
     types: [opened, labeled]
 
 permissions:
-  contents: write
-  issues: write
+  contents: read
+
+# Serialize every job that writes to main (shared with sync-marketplace.yml).
+concurrency:
+  group: marketplace-write
+  cancel-in-progress: false
 
 jobs:
   verify-and-list:
     if: contains(github.event.issue.labels.*.name, 'submit-series')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      - run: npm ci --no-audit --no-fund
+
+      # The issue body is untrusted. It only ever reaches the shell and the
+      # scripts below through environment variables or files, never through
+      # ${{ }} interpolation into code.
       - name: Verify submission against Reliks-VM and Kaspa mainnet
         id: verify
         env:
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: |
           set +e
-          printf '%s' "$ISSUE_BODY" > /tmp/issue_body.txt
-          OUT=$(node tools/verify-and-add-series.js /tmp/issue_body.txt 2>&1)
+          printf '%s' "$ISSUE_BODY" > "$RUNNER_TEMP/issue_body.txt"
+          node tools/verify-and-add-series.js "$RUNNER_TEMP/issue_body.txt" > "$RUNNER_TEMP/verify.out" 2>&1
           STATUS=$?
-          echo "$OUT"
+          cat "$RUNNER_TEMP/verify.out"
           if [ $STATUS -ne 0 ]; then
             echo "ok=false" >> "$GITHUB_OUTPUT"
-            echo "err=$(echo "$OUT" | tr '\n' ' ' | head -c 400)" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           echo "ok=true" >> "$GITHUB_OUTPUT"
-          echo "meta=$(echo "$OUT" | grep VERIFIED_SERIES_JSON= | sed 's/VERIFIED_SERIES_JSON=//')" >> "$GITHUB_OUTPUT"
 
       - name: Rebuild site, sync, and run tests
         if: steps.verify.outputs.ok == 'true'
@@ -44,42 +54,37 @@ jobs:
           npm test
 
       - name: Commit & push new series to main
+        id: push
         if: steps.verify.outputs.ok == 'true'
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
-          git config user.name "reliks-bot"
-          git config user.email "reliks-bot@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/mainnet-anchors.json docs/index.html docs/marketplace-index.json
-          git commit -m "feat(market): list verified series from issue #${{ github.event.issue.number }}"
-          git push
+          git commit -m "feat(market): list verified series from issue #${ISSUE_NUMBER}"
+          git pull --rebase origin main
+          git push origin HEAD:main
 
-      - name: Comment success and close issue
-        if: steps.verify.outputs.ok == 'true'
+      - name: Comment result and close issue
+        if: always() && steps.verify.outcome != 'skipped' && (steps.verify.outputs.ok != 'true' || steps.push.outcome == 'success')
         uses: actions/github-script@v7
+        env:
+          OK: ${{ steps.verify.outputs.ok }}
         with:
           script: |
-            const meta = JSON.parse(`${{ steps.verify.outputs.meta }}`);
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `Verified on Kaspa mainnet and added **${meta.title}** (\`${meta.laneCovenantId}\`) to \`data/mainnet-anchors.json\`.\n\nGitHub Pages is rebuilding — your series will appear in the live Gallery shortly at https://weirdtualguy.github.io/Reliks/#gallery`
-            });
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              state: 'closed',
-              state_reason: 'completed'
-            });
-
-      - name: Comment failure
-        if: steps.verify.outputs.ok != 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `Verification failed: \`${{ steps.verify.outputs.err }}\`\n\nMake sure your \`genesisTxId\` is confirmed on Kaspa mainnet and paste the exact JSON from Studio's **Copy Anchor JSON** button.`
-            });
+            const fs = require('fs');
+            const out = fs.readFileSync(`${process.env.RUNNER_TEMP}/verify.out`, 'utf8');
+            // Strip anything that could ping users, open links or break out of inline code.
+            const clean = (s, n) => String(s).replace(/[`@<>\[\]\r\n]+/g, ' ').slice(0, n);
+            const base = { owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number };
+            if (process.env.OK === 'true') {
+              const line = out.split('\n').find((l) => l.startsWith('VERIFIED_SERIES_JSON='));
+              const meta = JSON.parse(line.slice('VERIFIED_SERIES_JSON='.length));
+              await github.rest.issues.createComment({ ...base,
+                body: 'Verified on Kaspa mainnet and added **' + clean(meta.title, 80) + '** (`' + clean(meta.laneCovenantId, 64) + '`) to `data/mainnet-anchors.json`.\n\nGitHub Pages is rebuilding. Your series will appear in the live Gallery shortly at https://weirdtualguy.github.io/Reliks/#gallery' });
+              await github.rest.issues.update({ ...base, state: 'closed', state_reason: 'completed' });
+            } else {
+              await github.rest.issues.createComment({ ...base,
+                body: 'Verification failed: `' + clean(out, 400) + '`\n\nMake sure your `genesisTxId` is confirmed on Kaspa mainnet and paste the exact JSON from Studio\'s **Copy Anchor JSON** button.' });
+            }

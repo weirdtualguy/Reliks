@@ -74,50 +74,50 @@ async function discoverNewEditions(io, s, progBytes, edTpl) {
     } catch (e) { /* skip unreachable tx */ }
   }
 
+  // Walk the left-most lane (output 0 -> input 0) from genesis. Serials advance only on mint transactions:
+  // a fork keeps next_serial for the left lane, so it must not consume a serial. Mints from the right lane of a
+  // fork (input index 1) are not followed here; use the CLI for forked series.
   const baseSerial = BigInt((s.genesisState && s.genesisState.next_serial) || 0);
   let curTxId = s.genesisTxId;
-  let stepIdx = 0;
+  let mintCount = 0;
   while (nextByPrev.has(curTxId)) {
-    const { txId: mintTxId, tx } = nextByPrev.get(curTxId);
-    if (!knownMintTxs.has(mintTxId) && tx.outputs && tx.outputs.length >= 2) {
-      const edOut = tx.outputs[1];
-      const edCov = C.covenantOf(edOut);
-      const authIdx = Number(edCov.authorizingInput);
-      const authIn = (Number.isInteger(authIdx) && authIdx >= 0 && tx.inputs) ? tx.inputs[authIdx] : null;
-      const authOp = authIn ? C.inputOutpoint(authIn) : null;
-      const mintInp0 = C.inputOutpoint(tx.inputs[0]);
-      if (authOp && mintInp0 && edCov.id) {
-        const curSerial = baseSerial + BigInt(stepIdx);
-        const serial = curSerial.toString();
-        const edSig = String(C.pick(tx.inputs[0], ['signature_script', 'signatureScript']) || '').toLowerCase();
-        const pushes = edSig ? C.parsePushes(edSig) : [];
-        const buyerPk = pushes[0] && /^[0-9a-f]{64}$/.test(pushes[0]) ? pushes[0] : null;
-        if (buyerPk) {
-          const recCov = C.covenantIdGenesis(authOp.txId, authOp.index, [{
-            idx: 1,
-            value: Number(C.outputValue(edOut)),
-            script: C.spkOfOutput(edOut)
-          }]);
-          if (recCov === edCov.id) {
-            const newEd = {
-              index: s.editions.length,
-              serial: serial,
-              covenantId: edCov.id,
-              mintTxId: mintTxId,
-              outputIndex: 1,
-              ownerAtMint: buyerPk,
-              lineage: C.genesisLineage(s.laneCovenantId, curSerial),
-              sales: 0
-            };
-            s.editions.push(newEd);
-            knownMintTxs.add(mintTxId);
-            added++;
-          }
-        }
-      }
+    const { txId: stepTxId, tx } = nextByPrev.get(curTxId);
+    curTxId = stepTxId;
+    if (knownMintTxs.has(stepTxId)) { mintCount++; continue; }
+    const edOut = tx.outputs && tx.outputs.length >= 2 ? tx.outputs[1] : null;
+    const edCov = edOut ? C.covenantOf(edOut) : null;
+    if (edCov && edCov.id === s.laneCovenantId) continue; // fork: second output is the right lane, not an edition
+    const authIdx = edCov ? Number(edCov.authorizingInput) : NaN;
+    const authIn = (Number.isInteger(authIdx) && authIdx >= 0 && tx.inputs) ? tx.inputs[authIdx] : null;
+    const authOp = authIn ? C.inputOutpoint(authIn) : null;
+    const mintInp0 = C.inputOutpoint(tx.inputs[0]);
+    const edSig = String(C.pick(tx.inputs[0], ['signature_script', 'signatureScript']) || '').toLowerCase();
+    const pushes = edSig ? C.parsePushes(edSig) : [];
+    const buyerPk = pushes[0] && /^[0-9a-f]{64}$/.test(pushes[0]) ? pushes[0] : null;
+    const recCov = (authOp && edCov && edCov.id) ? C.covenantIdGenesis(authOp.txId, authOp.index, [{
+      idx: 1,
+      value: Number(C.outputValue(edOut)),
+      script: C.spkOfOutput(edOut)
+    }]) : null;
+    if (!(authOp && mintInp0 && buyerPk && recCov === edCov.id)) {
+      // Not a recognisable mint: the serial of anything after it cannot be derived safely. Fail closed.
+      console.warn('[sync] ' + s.id + ': lane tx ' + stepTxId + ' is neither a mint nor a fork; stopping discovery here');
+      break;
     }
-    curTxId = mintTxId;
-    stepIdx++;
+    const curSerial = baseSerial + BigInt(mintCount);
+    s.editions.push({
+      index: s.editions.length,
+      serial: curSerial.toString(),
+      covenantId: edCov.id,
+      mintTxId: stepTxId,
+      outputIndex: 1,
+      ownerAtMint: buyerPk,
+      lineage: C.genesisLineage(s.laneCovenantId, curSerial),
+      sales: 0
+    });
+    knownMintTxs.add(stepTxId);
+    added++;
+    mintCount++;
   }
   return added;
 }
@@ -135,11 +135,12 @@ async function sync(opts) {
     const progBytes = loadProgBytes(s);
     if (!Array.isArray(s.editions)) s.editions = [];
 
-    let laneInfo = null;
+    let laneInfo = null, laneError = null;
     try {
       totalAdded += await discoverNewEditions(io, s, progBytes, edTpl);
       laneInfo = await C.resolveLane(io, s, { progBytes, editionTemplate: edTpl });
     } catch (e) {
+      laneError = e.message;
       console.warn('[sync] lane warning for', s.id, ':', e.message);
     }
 
@@ -181,6 +182,7 @@ async function sync(opts) {
       statusNote: isCanonical ? undefined : (isLegacy ? 'Non-canonical contract hashes.' : 'Template hash is not in the canonical allowlist.'),
       editionTemplateHash: edTpl.templateHashHex,
       laneCovenantId: s.laneCovenantId,
+      laneError: laneError || undefined,
       mintsLeft: laneInfo ? laneInfo.state.mints_left.toString() : null,
       mintPriceSompi: laneInfo ? laneInfo.state.price.toString() : null,
       editionsMinted: s.editions.length,

@@ -2,8 +2,8 @@
 const fs = require('fs');
 const sdk = require('./read.js');
 const CH = require('../web/reliks-chain.js');
-CH.init(require('../lib/reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' }));
-const LP = 'v13/ledger-vm-v13.json';
+CH.init(require('../lib/reliks-templates.js')());
+const LP = 'data/ledger-vm-v13.json';
 if (!fs.existsSync(LP)) { console.log('SKIP no ledger'); process.exit(0); }
 const LD = JSON.parse(fs.readFileSync(LP, 'utf8')), S = LD.series, ed = LD.editions[0];
 const spk = sdk.normSpk(ed.spk).spk, op = ed.txId + ':' + ed.index;

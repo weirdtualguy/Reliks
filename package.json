@@ -1,6 +1,6 @@
 {
   "name": "reliks",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Reliks: UTXO-native generative art NFTs on Kaspa covenants. The artwork is a deterministic Reliks-VM program whose hash lives in the contract.",
   "license": "MIT",
   "private": false,
@@ -26,7 +26,7 @@
     "reliks-vm"
   ],
   "scripts": {
-    "test": "node test/self-test.js && node test/chain-test.js && node test/codec-test.js && node test/wallet-test.js && node test/site-test.js && node test/kaspire-mass-test.js && node test/asm-test.js && node test/studio-test.js && node test/vm-conformance-test.js && node test/marketplace-test.js",
+    "test": "node test/self-test.js && node test/chain-test.js && node test/codec-test.js && node test/wallet-test.js && node test/site-test.js && node test/kaspire-mass-test.js && node test/asm-test.js && node test/studio-test.js && node test/vm-conformance-test.js && node test/marketplace-test.js && node test/wrpc-rotation-test.js && node tools/run-sdk-tests.js && node vm/check.js && node tools/verify-contract.js --no-recompile",
     "args": "node cli/gen-factory-args.js",
     "deploy": "node cli/deploy.js",
     "mint": "node cli/mint.js",
@@ -43,7 +43,9 @@
     "bundle": "node tools/gen-provenance-bundle.js",
     "bundle:verify": "node tools/gen-provenance-bundle.js --verify",
     "sync:market": "node tools/sync-marketplace.js",
-    "submit:series": "node tools/verify-and-add-series.js"
+    "submit:series": "node tools/verify-and-add-series.js",
+    "test:sdk": "node tools/run-sdk-tests.js",
+    "verify:contracts": "node tools/verify-contract.js"
   },
   "dependencies": {
     "@noble/curves": "^1.6.0",

@@ -1,6 +1,6 @@
-/* rvm.c: third Reliks-VM implementation (C99), written from v13/RELIKS-VM-SPEC.md sections 2-8.
-   Build: cc -O2 -std=c99 -o rvm3 v13/vm/rvm.c
-   Sanitizers: cc -O2 -std=c99 -fsanitize=address,undefined -fno-omit-frame-pointer -o rvm3_san v13/vm/rvm.c
+/* rvm.c: third Reliks-VM implementation (C99), written from vm/RELIKS-VM-SPEC.md sections 2-8.
+   Build: cc -O2 -std=c99 -o rvm3 vm/rvm.c
+   Sanitizers: cc -O2 -std=c99 -fsanitize=address,undefined -fno-omit-frame-pointer -o rvm3_san vm/rvm.c
    Run:   rvm3 <lane0,...,lane7> <serial32> <pat> <wear> < program.hex   ->   "FAULT <code>"  or  "OK <len>\n<svg>" */
 #include <stdio.h>
 #include <stdlib.h>

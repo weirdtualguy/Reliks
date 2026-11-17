@@ -5,7 +5,7 @@ if (!fs.existsSync(ABI)) { console.log('SKIP no escrow ABI'); process.exit(0); }
 const abi = JSON.parse(fs.readFileSync(ABI, 'utf8'));
 let bad = 0, ran = 0;
 const t = (n, ok, d) => { if (!ok) bad = 1; console.log((ok ? 'PASS ' : 'FAIL ') + n + (ok ? '' : ' | ' + d)); };
-for (const lp of ['v13/escrow-ledger-testnet-v13.json', 'v13/escrow-ledger-marks3-v13.json']) {
+for (const lp of ['data/escrow-ledger-testnet-v13.json', 'data/escrow-ledger-marks3-v13.json']) {
   const nm = lp.split('/').pop().replace('.json', '');
   if (!fs.existsSync(lp)) { console.log('INFO ' + nm + ' not present'); continue; }
   const L = JSON.parse(fs.readFileSync(lp, 'utf8'));

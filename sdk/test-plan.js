@@ -1,13 +1,14 @@
 'use strict';
 const fs = require('fs');
 const CH = require('../web/reliks-chain.js'), plan = require('./plan.js');
-CH.init(require('../lib/reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' }));
-const LP = 'v13/ledger-vm-v13.json';
-if (!fs.existsSync(LP)) { console.log('SKIP no ledger'); process.exit(0); }
-const LD = JSON.parse(fs.readFileSync(LP, 'utf8')), S = LD.series;
+CH.init(require('../lib/reliks-templates.js')());
+// Self-contained synthetic series: no ledger file is needed.
+const H = (c) => c.repeat(64);
+const LD = { C: H('9') };
+const S = { program_hash: H('1'), artist: H('2'), price: '100000000', royalty_bips: '500', mints_left: '5', engine_lang: '2', render_hash: H('3'), next_serial: '0' };
 let bad = 0;
 const t = (name, ok, detail) => { if (!ok) bad = 1; console.log((ok ? 'PASS ' : 'FAIL ') + name + (ok ? '' : ' | ' + (detail || ''))); };
-const state = { program_hash: S.program_hash, artist: S.artist, price: BigInt(S.price), royalty_bips: BigInt(S.royalty_bips), mints_left: BigInt(S.mints_left), engine_lang: BigInt(S.engine_lang), render_hash: S.render_hash };
+const state = { program_hash: S.program_hash, artist: S.artist, price: BigInt(S.price), royalty_bips: BigInt(S.royalty_bips), mints_left: BigInt(S.mints_left), engine_lang: BigInt(S.engine_lang), render_hash: S.render_hash, next_serial: BigInt(S.next_serial) };
 const pubkey = '11'.repeat(32);
 const mkP = (o) => Object.assign({
   hrp: 'kaspatest',
@@ -24,7 +25,7 @@ t('plan reports size and fee', pl.size > 0 && pl.fee > 0n, pl.size + ' B fee ' +
 t('explicit fee honored', plan.planMint(mkP({ fee: 5000000n })).fee >= 5000000n);
 const laneWith = (o) => { const s2 = Object.assign({}, state, o); return Object.assign(mkP().lane, { state: s2, spk: CH.p2shSpk(CH.factoryRedeem(s2)) }); };
 const failing = (r) => r.checks.filter((c) => !c.ok).map((c) => c.name).join(',');
-[[0n, false], [1n, true], [2000n, true], [2001n, false]].forEach(([r, ok]) => { const p2 = plan.planMint(mkP({ lane: laneWith({ royalty_bips: r }) })); t('royalty_bips ' + r + (ok ? ' accepted' : ' flagged (factory requires 1..2000)'), p2.ok === ok, failing(p2)); });
+[[0n, false], [1n, false], [499n, false], [500n, true], [2000n, true], [2001n, false]].forEach(([r, ok]) => { const p2 = plan.planMint(mkP({ lane: laneWith({ royalty_bips: r }) })); t('royalty_bips ' + r + (ok ? ' accepted' : ' flagged (factory requires 500..2000)'), p2.ok === ok, failing(p2)); });
 const p0 = plan.planMint(mkP({ lane: laneWith({ price: 0n }) }));
 t('free mint (price 0) plans ok with no artist output', p0.ok && !p0.draft.outputs.some((o) => o.role === 'artist'), failing(p0));
 t('price below 1 KAS throws', !!thrown(() => plan.planMint(mkP({ lane: laneWith({ price: 50000000n }) }))));

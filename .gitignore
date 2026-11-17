@@ -53,12 +53,10 @@ PUBLISH-READINESS-*.md
 accept-v5
 offer-v5
 secondary-v12
-v13/*.bak*
-v13/demo-v13.html
-v13/wash-preview.html
-v13/program-preview.html
-v13/marks-preview.html
-v13/history-vm-v13.json
 
 # WASM SDK (Resolver/Borsh submit path, not committed — run tools/setup-sdk.sh)
 vendor/
+
+# Local ledgers produced by CLI/SDK runs
+data/ledger-*.json
+data/escrow-ledger-*.json

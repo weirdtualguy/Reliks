@@ -1,7 +1,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const sdk = require('./read.js');
-const ledgerPath = process.argv[2] || 'v13/ledger-vm-v13.json';
+const ledgerPath = process.argv[2] || 'data/ledger-vm-v13.json';
 const LD = JSON.parse(fs.readFileSync(ledgerPath, 'utf8'));
 const S = LD.series, EDS = LD.editions;
 if (!S || !Array.isArray(EDS)) { console.log('FAIL ledger shape; keys: ' + Object.keys(LD).join(',')); process.exit(2); }
@@ -23,17 +23,17 @@ function scanPushes(bc) {
   return null;
 }
 function findProgram() {
-  if (fs.existsSync('v13/out')) {
-    for (const f of fs.readdirSync('v13/out').filter((n) => /^factory-.*\.json$/.test(n))) {
+  if (fs.existsSync('data/out')) {
+    for (const f of fs.readdirSync('data/out').filter((n) => /^factory-.*\.json$/.test(n))) {
       try {
-        const abi = JSON.parse(fs.readFileSync('v13/out/' + f, 'utf8'));
+        const abi = JSON.parse(fs.readFileSync('data/out/' + f, 'utf8'));
         const c = abi.contracts[Object.keys(abi.contracts)[0]];
         const b = scanPushes(Buffer.from(c.compiled.bytecode));
-        if (b) return { f: 'v13/out/' + f + ' (template pushes)', b };
+        if (b) return { f: 'data/out/' + f + ' (template pushes)', b };
       } catch (e) { /* skip */ }
     }
   }
-  for (const dir of ['v13', 'v13/archive']) {
+  for (const dir of ['data', 'data/archive']) {
     if (!fs.existsSync(dir)) continue;
     for (const f of fs.readdirSync(dir).filter((n) => n.endsWith('.hex'))) {
       try {
@@ -51,7 +51,7 @@ if (S.render_hash) rep('anchor', sdk.verifyAnchor({ program: P.b, factory: S }))
 else console.log('SKIP anchor: ledger series has no render_hash');
 EDS.forEach((ed, i) => rep('edition ' + i, sdk.verifyEdition({ program: P.b, state: { program_hash: S.program_hash, serial: ed.serial, lineage: ed.lineage, sales: ed.sales } })));
 let CH = null;
-try { CH = require('../web/reliks-chain.js'); CH.init(require('../lib/reliks-templates.js')({ editionAbi: 'edition-abi-v13.json' })); } catch (e) { CH = null; console.log('SKIP script check: ' + e.message); }
+try { CH = require('../web/reliks-chain.js'); CH.init(require('../lib/reliks-templates.js')()); } catch (e) { CH = null; console.log('SKIP script check: ' + e.message); }
 if (CH && LD.C) EDS.forEach((ed, i) => { if (ed.spk) rep('edition ' + i + ' script', sdk.verifyEditionScript({ chain: CH, series: S, covId: LD.C, edition: ed })); });
 console.log(bad ? 'SDK READ FAILED' : 'SDK READ OK');
 process.exit(bad);
